@@ -736,6 +736,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_audit_safe_context_cleans_up_on_error` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_background_translation_records_user_audit` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_identifier_sanitization_during_translation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rules_compilation_and_artifact_generation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_study_published_event_triggers_translation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_study_published_expired_timestamp_rejection` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_study_published_invalid_signature_rejection` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
