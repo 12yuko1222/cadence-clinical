@@ -126,7 +126,7 @@ rapidfuzz               3.14.5
 requests                2.34.2
 rich                    15.0.0
 rsa                     4.9.1
-ruff                    0.15.22
+ruff                    0.16.0
 six                     1.17.0
 sortedcontainers        2.4.0
 soupsieve               2.9.1
@@ -801,6 +801,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_audit_safe_context_cleans_up_on_error` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_background_translation_records_user_audit` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_identifier_sanitization_during_translation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_multi_language_localization_and_hint_system` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_rules_compilation_and_artifact_generation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_study_published_event_triggers_translation` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_study_published_expired_timestamp_rejection` | `tests.test_translator` | *Regression/Helper* | 🟢 PASSED | < 1s |
