@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 709
-- **Passed:** 709 🟢
+- **Total Automated Test Cases Run:** 710
+- **Passed:** 710 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -263,6 +263,15 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_etmf_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_interop_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_notifications_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_serialize_bundle` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_serialize_single_dataset_dm` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validation_success_on_valid_bundle` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_adam_referential_consistency_demographic_mismatch` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_adam_referential_consistency_missing_source_event` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_adam_referential_consistency_subject_not_in_adsl_or_dm` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_duplicate_sequence_numbers` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_empty_studyid_usubjid` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_missing_required_variables` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_basic_detection_results` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_compliance_profiles` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_custom_literal_terms` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
