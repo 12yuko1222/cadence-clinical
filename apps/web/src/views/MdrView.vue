@@ -1,5 +1,8 @@
 <template>
-  <div id="section-mdr" class="dashboard-section active">
+  <div
+    id="section-mdr"
+    class="dashboard-section active"
+  >
     <div class="section-header">
       <h2>MDR / Protocol Visualizer & Interactive SoA Builder</h2>
       <p>
@@ -411,6 +414,11 @@
       <div class="card">
         <div class="card-title">
           Schedule of Activities (SoA) Matrix
+        </div>
+        <div
+          id="soa-matrix-container"
+          v-html="matrixHtml"
+        />
           <span
             v-if="store.soaLoading"
             style="font-size: 0.8rem; font-weight: normal; color: #64748b"
