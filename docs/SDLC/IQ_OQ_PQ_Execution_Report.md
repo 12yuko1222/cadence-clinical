@@ -9,9 +9,9 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 961
-- **Passed:** 956 🟢
-- **Failed/Errors:** 5 🔴
+- **Total Automated Test Cases Run:** 966
+- **Passed:** 966 🟢
+- **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 99.48%
 
@@ -670,6 +670,17 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_whodrug_import_happy_path` | `tests.test_medical_coding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_whodrug_lookup_endpoint_happy_path` | `tests.test_medical_coding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_whodrug_record_unique_constraint` | `tests.test_medical_coding` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_audit_relevant_workflows` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cache_behavior_and_degradation` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_coding_transitions` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dictionary_version_isolation` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_import_auth_and_job_status` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_lookups_endpoints` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_matcher_normalization_and_scoring_thresholds` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_override_reason_validation` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_parser_fixtures` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_uncodable_query_generation_and_pii_isolation` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_upversioning_ledger_outcomes` | `tests.test_medical_coding_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_impact_analysis_meddra_and_whodrug_lifecycle` | `tests.test_medical_coding_impact` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_auto_coding_on_observation_creation` | `tests.test_medical_coding_lifecycle` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_coder_action_accept_and_override_lifecycle` | `tests.test_medical_coding_lifecycle` | *Regression/Helper* | 🟢 PASSED | < 1s |
