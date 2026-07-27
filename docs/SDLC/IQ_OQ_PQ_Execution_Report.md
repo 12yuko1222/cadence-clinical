@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1004
-- **Passed:** 999 🟢
+- **Total Automated Test Cases Run:** 1005
+- **Passed:** 1000 🟢
 - **Failed/Errors:** 5 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 99.50%
@@ -467,6 +467,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_parse_invalid_syntax` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-004 | 🟢 PASSED | < 1s |
 | `test_parse_logical_and_nested_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-003 | 🟢 PASSED | < 1s |
 | `test_parse_simple_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-002 | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_crud_endpoints` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_immutability` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_usdm_projection` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_validation_failures` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_missing_sig_token` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_screening_status_error` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_subject_not_found` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
