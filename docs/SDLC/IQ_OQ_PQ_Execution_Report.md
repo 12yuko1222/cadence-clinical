@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 959
-- **Passed:** 954 🟢
+- **Total Automated Test Cases Run:** 961
+- **Passed:** 956 🟢
 - **Failed/Errors:** 5 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 99.48%
@@ -380,6 +380,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_xpath_compile_simple` | `tests.test_designer_rules` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_version_diff_success` | `tests.test_designer_version_diff` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_version_diff_unrelated_or_nonexistent` | `tests.test_designer_version_diff` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_assignment_compliance_states_and_recalculations` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_instrument_retrieval_and_assignment_boundaries` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_notifications_lifecycle_reminders_and_acknowledgments` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_submission_conflict_resolution_lifecycles` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_structural_conflict_on_missing_or_deleted_targets` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_subject_only_authorization_and_cross_subject_rejection` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_authoring_mutations_rejected_for_auditors` | `tests.test_econsent` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_clause_lifecycle_and_versioning_audit` | `tests.test_econsent` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_database_url_override_and_init` | `tests.test_econsent` | *Regression/Helper* | 🟢 PASSED | < 1s |
