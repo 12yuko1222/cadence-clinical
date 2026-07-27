@@ -9,9 +9,9 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 966
-- **Passed:** 961 🟢
-- **Failed/Errors:** 5 🔴
+- **Total Automated Test Cases Run:** 965
+- **Passed:** 965 🟢
+- **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 99.48%
 
@@ -229,6 +229,16 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_normalize_sex` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_supp_record_row_conversion` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_variable_metadata_validation` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_adae_trtemfl_logic` | `tests.test_biostat_export` | ADAM-ADAE-TRTEMFL-01 | 🟢 PASSED | < 1s |
+| `test_advs_chg_pchg_computations` | `tests.test_biostat_export` | ADAM-ADVS-CHG-01 | 🟢 PASSED | < 1s |
+| `test_api_adam_export_success` | `tests.test_biostat_export` | API-ADAM-EXPORT-01 | 🟢 PASSED | < 1s |
+| `test_api_sdtm_export_success` | `tests.test_biostat_export` | API-SDTM-EXPORT-01 | 🟢 PASSED | < 1s |
+| `test_api_unauthenticated_export_rejection` | `tests.test_biostat_export` | SEC-EXPORT-AUTH-01 | 🟢 PASSED | < 1s |
+| `test_api_validation_failure_logging` | `tests.test_biostat_export` | API-EXPORT-VAL-01 | 🟢 PASSED | < 1s |
+| `test_partial_date_imputation_detailed` | `tests.test_biostat_export` | SDTM-IMPUTE-01 | 🟢 PASSED | < 1s |
+| `test_sdtm_age_derivation` | `tests.test_biostat_export` | SDTM-DM-AGE-01 | 🟢 PASSED | < 1s |
+| `test_sdtm_sequence_assignment` | `tests.test_biostat_export` | SDTM-SEQ-01 | 🟢 PASSED | < 1s |
+| `test_sdtm_supplemental_qualifiers` | `tests.test_biostat_export` | SDTM-SUPP-01 | 🟢 PASSED | < 1s |
 | `test_adam_dataset_export_success` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_biostat_bundle_export_success` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_validation_failure_handling` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
