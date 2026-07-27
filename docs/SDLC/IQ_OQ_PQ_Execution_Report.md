@@ -9,9 +9,9 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 965
-- **Passed:** 965 🟢
-- **Failed/Errors:** 0 🔴
+- **Total Automated Test Cases Run:** 959
+- **Passed:** 954 🟢
+- **Failed/Errors:** 5 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 99.48%
 
@@ -985,11 +985,15 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_validate_study_terminology_endpoint_not_found` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_study_terminology_endpoint_success` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_study_terminology_fully_valid` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_comments_creation_and_retrieval_scoped` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_list_ticket_audit_logs_endpoint` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_missing_change_reason_fails_mutations` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_nonexistent_resources_return_404` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_ticket_audit_log_immutable_ledger` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_ticket_concurrent_reference_generation` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_ticket_scoped_audit_logs` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_database_schema_creation` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_enums_and_models_attributes` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_health_check` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_lifecycle` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unauthenticated_requests_are_rejected` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
