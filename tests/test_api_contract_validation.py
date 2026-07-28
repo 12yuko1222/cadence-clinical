@@ -291,6 +291,7 @@ WHITELISTED_ROUTES = {
     ("post", "/api/designer/protocols/{id}/amend"),
     ("post", "/api/v1/designer/round-trip"),
     ("post", "/api/v1/designer/usdm/validate"),
+    ("post", "/api/v1/designer/round-trip"),
     ("post", "/api/v1/execution/batch-sign-off"),
     ("post", "/api/v1/execution/coding/assignments/{assignment_id}/action"),
     ("post", "/api/v1/execution/coding/impact-analysis"),

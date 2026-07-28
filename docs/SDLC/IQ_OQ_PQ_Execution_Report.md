@@ -9,11 +9,11 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1150
-- **Passed:** 1139 🟢
-- **Failed/Errors:** 11 🔴
+- **Total Automated Test Cases Run:** 1154
+- **Passed:** 1151 🟢
+- **Failed/Errors:** 3 🔴
 - **Skipped:** 0 ⚪
-- **Overall Operational Pass Rate:** 99.04%
+- **Overall Operational Pass Rate:** 99.74%
 
 ## 2. Installation Qualification (IQ)
 
@@ -638,6 +638,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_lab_reference_range_audit_and_triggers` | `tests.test_lab_reference_range_persistence` | PRD-LAB-001 | 🟢 PASSED | < 1s |
 | `test_lab_reference_range_crud_and_precision` | `tests.test_lab_reference_range_persistence` | PRD-LAB-001 | 🟢 PASSED | < 1s |
 | `test_schema_evolution_migration_upgrade` | `tests.test_lab_reference_range_persistence` | PRD-LAB-001 | 🟢 PASSED | < 1s |
+| `test_layout_validation_integration` | `tests.test_layout_validator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_layout_validation_invisible` | `tests.test_layout_validator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_layout_validation_overlap` | `tests.test_layout_validator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_layout_validation_scrambled_sequence` | `tests.test_layout_validator` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_layout_validation_valid` | `tests.test_layout_validator` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_layout_validation_integration` | `tests.test_layout_validator` | *Regression/Helper* | 🔴 FAILED | < 1s |
 | `test_layout_validation_invisible` | `tests.test_layout_validator` | *Regression/Helper* | 🔴 FAILED | < 1s |
 | `test_layout_validation_overlap` | `tests.test_layout_validator` | *Regression/Helper* | 🔴 FAILED | < 1s |
@@ -781,6 +786,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_ensure_docx_template_exists` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_as_docx_success` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_as_pdf_success` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_etmf_forwarding_best_effort` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_etmf_forwarding_strict_failure` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_generation_auditing` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_invalid_output` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_not_found` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_export_protocol_outputs_rendering` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_not_found` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_unsupported_format` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_get_safe_filename` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
