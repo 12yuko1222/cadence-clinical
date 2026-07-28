@@ -171,6 +171,14 @@ The Operational Qualification verifies that individual clinical operations, stat
 ### 3.1 Traceability Mappings Verification
 | Test Case Name | Classname / Suite | Target Req | Status | Duration |
 | :--- | :--- | :--- | :--- | :--- |
+| `test_api_round_trip_endpoint_internal_success` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_compare_payloads_lossless_equivalence` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_compare_payloads_lossy_mismatch` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_flatten_dict_complex` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_orchestrate_circular_skip_logic_lossy` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_orchestrate_internal_to_usdm_to_internal_lossless` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_orchestrate_stochastic_operator_lossy` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_orchestrate_usdm_to_internal_to_usdm_lossless` | `tests.test_designer_roundtrip` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_derive_adae_basic_join` | `tests.test_adae` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_derive_adae_missing_dates_and_ongoing` | `tests.test_adae` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_derive_adae_partial_dates_imputation` | `tests.test_adae` | *Regression/Helper* | 🟢 PASSED | < 1s |
