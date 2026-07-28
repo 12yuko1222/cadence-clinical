@@ -1,23 +1,27 @@
-import re
-import os
-import pytest
-import base64
-import time
-import hmac
 import hashlib
+import hmac
 import json
+import os
+import re
+import time
+
+import pytest
 from fastapi.testclient import TestClient
 
-from apps.designer.main import app as designer_app
-from apps.designer.rendering import sanitize_filename, get_safe_filename, ensure_docx_template_exists
 from apps.designer.db import MOCK_DESIGNER_AUDIT_LOGS
+from apps.designer.main import app as designer_app
+from apps.designer.rendering import (
+    ensure_docx_template_exists,
+    get_safe_filename,
+    sanitize_filename,
+)
 
 
 def get_custom_auth_headers(change_reason="system_operation"):
     timestamp = str(time.time())
     user_id = "123"
     roles = "admin"
-    secret = "internal-gateway-secret-12345"
+    secret = "internal-gateway-secret-12345"  # pragma: allowlist secret
     payload = {
         "change_reason": change_reason,
         "roles": roles,
@@ -181,7 +185,8 @@ def test_export_protocol_outputs_rendering(client):
             )
             assert response.status_code == 200
             expected_mime = (
-                "application/pdf" if fmt == "pdf"
+                "application/pdf"
+                if fmt == "pdf"
                 else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
             assert response.headers["content-type"] == expected_mime

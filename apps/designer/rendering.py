@@ -1,15 +1,13 @@
 import io
 import os
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any
 
 from docx import Document
 from docxtpl import DocxTemplate
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from weasyprint import HTML
-
 from protocol_render import RenderedProtocolDocument, SoAMatrixView
+from weasyprint import HTML
 
 # Initialize Jinja2 environment
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -26,6 +24,7 @@ class RendererResult:
     Abstractions containing the rendered document bytes, suggested safe filename,
     and the exact MIME/media type.
     """
+
     def __init__(self, content: bytes, filename: str, media_type: str):
         self.content = content
         self.filename = filename
@@ -218,7 +217,9 @@ def build_soa_subdoc(subdoc: Any, soa_matrix: SoAMatrixView) -> None:
         row_idx += 1
 
 
-def render_protocol_to_pdf(doc: RenderedProtocolDocument, output: str = "combined") -> RendererResult:
+def render_protocol_to_pdf(
+    doc: RenderedProtocolDocument, output: str = "combined"
+) -> RendererResult:
     """
     Renders the RenderedProtocolDocument to a PDF byte stream using WeasyPrint.
     """
@@ -233,7 +234,9 @@ def render_protocol_to_pdf(doc: RenderedProtocolDocument, output: str = "combine
     )
     # Generate PDF bytes via WeasyPrint
     pdf_bytes = HTML(string=html_content).write_pdf()
-    filename = get_safe_filename(doc.synopsis.study_id, doc.metadata.version_index, "pdf")
+    filename = get_safe_filename(
+        doc.synopsis.study_id, doc.metadata.version_index, "pdf"
+    )
     return RendererResult(
         content=pdf_bytes,
         filename=filename,
@@ -241,7 +244,9 @@ def render_protocol_to_pdf(doc: RenderedProtocolDocument, output: str = "combine
     )
 
 
-def render_protocol_to_docx(doc: RenderedProtocolDocument, output: str = "combined") -> RendererResult:
+def render_protocol_to_docx(
+    doc: RenderedProtocolDocument, output: str = "combined"
+) -> RendererResult:
     """
     Renders the RenderedProtocolDocument to a DOCX byte stream using docxtpl.
     """
@@ -286,7 +291,9 @@ def render_protocol_to_docx(doc: RenderedProtocolDocument, output: str = "combin
     tpl.save(bio)
     docx_bytes = bio.getvalue()
 
-    filename = get_safe_filename(doc.synopsis.study_id, doc.metadata.version_index, "docx")
+    filename = get_safe_filename(
+        doc.synopsis.study_id, doc.metadata.version_index, "docx"
+    )
     return RendererResult(
         content=docx_bytes,
         filename=filename,
