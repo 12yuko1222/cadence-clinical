@@ -601,6 +601,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_valid_visit_detail_validation` | `tests.test_global_library` | PRD-MDR-001 | 🟢 PASSED | < 1s |
 | `test_auth_and_malformed_requests` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_create_and_retrieve_library_objects` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_global_library_governance_lifecycle_transitions` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_instantiate_library_object_cross_sponsor_rejected` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_instantiate_library_object_inaccessible_study` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_instantiate_library_object_success` | `tests.test_global_library_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
