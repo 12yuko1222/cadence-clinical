@@ -491,23 +491,21 @@ def fix_unindexed_adrs(unindexed: list[str], index_content: str) -> None:
 
 
 def main():
-    fix_index = "--fix-index" in sys.argv
-    args = [arg for arg in sys.argv[1:] if arg != "--fix-index"]
+    # Automatically ensure all valid ADR files are indexed in docs/adr/index.md
+    valid_adrs = [
+        f
+        for f in os.listdir(ADR_DIR)
+        if FILENAME_PATTERN.match(f) and f not in IGNORE_FILES
+    ]
+    index_content = ""
+    if os.path.exists(INDEX_FILE):
+        with open(INDEX_FILE, "r") as f:
+            index_content = f.read()
+    unindexed = [f for f in valid_adrs if f not in index_content]
+    if unindexed:
+        fix_unindexed_adrs(unindexed, index_content)
 
-    if fix_index:
-        # First scan to find unindexed files
-        valid_adrs = [
-            f
-            for f in os.listdir(ADR_DIR)
-            if FILENAME_PATTERN.match(f) and f not in IGNORE_FILES
-        ]
-        index_content = ""
-        if os.path.exists(INDEX_FILE):
-            with open(INDEX_FILE, "r") as f:
-                index_content = f.read()
-        unindexed = [f for f in valid_adrs if f not in index_content]
-        if unindexed:
-            fix_unindexed_adrs(unindexed, index_content)
+    args = [arg for arg in sys.argv[1:] if arg != "--fix-index"]
 
     if args:
         targets = args

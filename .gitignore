@@ -24,7 +24,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.python-version
 
 # ------------------------------------------
 # Virtual Environments & Packaging
@@ -125,6 +124,8 @@ Thumbs.db
 .cursor/
 
 # ------------------------------------------
-# Isolated eTMF generation target directory
+# Isolated eTMF & Generated Binary Templates
 # ------------------------------------------
 tmp_etmf/
+apps/designer/templates/*.docx
+*.docx

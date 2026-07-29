@@ -49,18 +49,14 @@ def get_safe_filename(study_id: str, version_index: int, extension: str) -> str:
     return f"protocol_{safe_study_id}_v{version_index}.{extension.strip('.')}"
 
 
-def ensure_docx_template_exists() -> str:
+def ensure_docx_template_exists(force: bool = False) -> str:
     """
-    Programmatically creates the base version-controlled .docx template containing
+    Programmatically creates the base .docx template containing
     docxtpl placeholders if it does not already exist.
     """
     template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
-    # Always regenerate/re-save template to ensure the latest conditional tags are active
-    if os.path.exists(template_path):
-        try:
-            os.remove(template_path)
-        except Exception:
-            pass
+    if os.path.exists(template_path) and not force:
+        return template_path
 
     doc = Document()
 
