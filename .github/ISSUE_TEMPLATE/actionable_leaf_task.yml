@@ -1,0 +1,77 @@
+name: Actionable Developer Task
+description: Scope a developer-ready leaf task with explicit file targets, work stream tag, and DoD checklist.
+title: "[TASK]: "
+labels: ["enhancement", "type: feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out the sections below to make this issue immediately actionable for developers working in parallel.
+
+  - type: dropdown
+    id: work_stream
+    attributes:
+      label: Work Stream & Feature Area
+      description: Select the work stream for parallelization.
+      options:
+        - "Stream 1: eTMF & Regulated Document Management"
+        - "Stream 2: RTSM & IP Supply Chain"
+        - "Stream 3: Study Designer, eCRF & SoA"
+        - "Stream 4: eCOA, ePRO & Subject Portal"
+        - "Stream 5: Frontend Vue 3 SPA"
+        - "Stream 6: Platform Security, RBAC & Audit Ledger"
+        - "Stream 7: Biostatistics & Dataset Exports"
+        - "Stream 8: Clinical Operations, SDV & Lab Ranges"
+    validations:
+      required: true
+
+  - type: input
+    id: target_files
+    attributes:
+      label: Target File Paths & Modules
+      description: List exact file paths to create/modify (e.g. `apps/etmf/main.py`, `apps/execution/models.py`).
+      placeholder: "e.g. apps/etmf/main.py, tests/test_etmf.py"
+    validations:
+      required: true
+
+  - type: input
+    id: requirement_id
+    attributes:
+      label: Requirement Identifier (PRD / SRS / ADR)
+      description: Specify PRD-SYS-xxx, Trace-x, or ADR-xxx.
+      placeholder: "e.g. PRD-SYS-001, Trace-5, ADR-049"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective & Technical Specification
+      description: Clear summary of work to perform and architectural guidelines.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Bulleted checkboxes for testable acceptance criteria.
+      value: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition_of_done
+    attributes:
+      label: Standard Definition of Done (DoD)
+      options:
+        - label: "Implementation complete across target file paths."
+          required: true
+        - label: "Unit & integration tests written/updated in `tests/` (`uv run pytest`)."
+          required: true
+        - label: "Code formatted and typed cleanly (`uv run ruff check .`)."
+          required: true
+        - label: "GxP audit fields preserved/updated (`created_by`, `reason_for_change`, versioning) if models modified."
+          required: true

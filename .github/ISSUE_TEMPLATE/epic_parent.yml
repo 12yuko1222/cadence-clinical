@@ -1,0 +1,59 @@
+name: Parent Epic & Execution Graph
+description: Create a top-level Parent Epic tracking child task execution order, dependencies, and architecture.
+title: "EPIC: "
+labels: ["Parent", "enhancement", "architecture"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to scope top-level parent epics and establish execution order across child tasks.
+
+  - type: input
+    id: milestone_name
+    attributes:
+      label: Target Release Milestone
+      description: Milestone for this epic (e.g. "Document Management & Archiving").
+    validations:
+      required: true
+
+  - type: input
+    id: requirement_id
+    attributes:
+      label: Governing Requirement Identifier (PRD / SRS / ADR)
+      placeholder: "e.g. PRD-SYS-001, ADR-049"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Architectural Objective & Scope
+      description: Summary of feature epic, regulatory goals, and system impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: execution_graph
+    attributes:
+      label: Execution Graph & Task Dependency Order
+      description: Graph detailing child task execution sequence.
+      value: |
+        ```text
+        1. #xxx — schema & models (ready now)
+        2. #yyy — API service & logic (blocked by #xxx)
+        3. #zzz — frontend SPA & verification (blocked by #yyy)
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: child_issues
+    attributes:
+      label: Child Task Breakdown
+      description: List child issue numbers and titles.
+      value: |
+        - [ ] #xxx — ...
+        - [ ] #yyy — ...
+        - [ ] #zzz — ...
+    validations:
+      required: true

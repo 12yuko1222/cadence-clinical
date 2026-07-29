@@ -2,6 +2,7 @@
 """
 CLI Developer Helper for Creating & Indexing Architectural Decision Records (ADRs).
 Enforces consistent domain categorization, requirement linking, and index updates.
+Supports both CLI flags and interactive prompts for seamless developer experience.
 """
 
 import argparse
@@ -16,15 +17,17 @@ REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 ADR_DIR = os.path.join(REPO_ROOT, "docs", "adr")
 INDEX_FILE = os.path.join(ADR_DIR, "index.md")
 
-DOMAIN_MAP = {
-    "core-platform": "### 1. Core Platform & Execution Engine",
-    "gateway-security": "### 2. API Gateway, Security & Identity",
-    "data-standards": "### 3. Clinical Data Interoperability & Standards",
-    "clinical-ops": "### 4. Clinical Operations & Business Modules",
-    "compliance-audit": "### 5. Compliance, Audit & Governance",
-    "frontend-ui": "### 6. Frontend & Design System",
-    "devops-ci": "### 7. DevOps, Tooling & CI/CD",
-}
+DOMAIN_CHOICES = [
+    ("core-platform", "1. Core Platform & Execution Engine"),
+    ("gateway-security", "2. API Gateway, Security & Identity"),
+    ("data-standards", "3. Clinical Data Interoperability & Standards"),
+    ("clinical-ops", "4. Clinical Operations & Business Modules"),
+    ("compliance-audit", "5. Compliance, Audit & Governance"),
+    ("frontend-ui", "6. Frontend & Design System"),
+    ("devops-ci", "7. DevOps, Tooling & CI/CD"),
+]
+
+DOMAIN_MAP = {key: f"### {title}" for key, title in DOMAIN_CHOICES}
 
 
 def slugify(text: str) -> str:
@@ -130,7 +133,6 @@ Chosen option: Option A because it satisfies {requirement_id} while ensuring sys
                 f.write(index_content)
             print(f"Successfully auto-indexed {filename} under '{domain_header}'.")
         else:
-            # Fallback to end of file
             with open(INDEX_FILE, "a", encoding="utf-8") as f:
                 f.write(f"\n{entry}\n")
             print(f"Auto-indexed {filename} at bottom of {INDEX_FILE}.")
@@ -138,16 +140,49 @@ Chosen option: Option A because it satisfies {requirement_id} while ensuring sys
     return filepath
 
 
+def prompt_interactive() -> tuple[str, str, str]:
+    """Interactive wizard when CLI arguments are not provided."""
+    print("=====================================================")
+    print(" Cadence Clinical - ADR Creation Wizard")
+    print("=====================================================")
+
+    try:
+        title = input("\nEnter ADR Title (e.g. 'Audit Log Hash Chain Verification'): ").strip()
+        while not title:
+            title = input("Title cannot be empty. Please enter title: ").strip()
+
+        print("\nSelect Functional Domain:")
+        for idx, (key, label) in enumerate(DOMAIN_CHOICES, start=1):
+            print(f"  [{idx}] {label} ({key})")
+
+        choice = input("\nSelect Domain [1-7] (default 1): ").strip() or "1"
+        try:
+            choice_idx = int(choice) - 1
+            if choice_idx < 0 or choice_idx >= len(DOMAIN_CHOICES):
+                choice_idx = 0
+        except ValueError:
+            choice_idx = 0
+
+        domain_key = DOMAIN_CHOICES[choice_idx][0]
+
+        req = input("\nEnter Requirement ID (default 'PRD-SYS-001'): ").strip() or "PRD-SYS-001"
+
+        return title, domain_key, req
+    except KeyboardInterrupt:
+        print("\nOperation cancelled.")
+        sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="CLI Developer Helper for Creating Architectural Decision Records (ADRs)."
     )
     parser.add_argument(
-        "--title", required=True, help="Short, descriptive title of the decision."
+        "--title", required=False, help="Short, descriptive title of the decision."
     )
     parser.add_argument(
         "--domain",
-        required=True,
+        required=False,
         choices=list(DOMAIN_MAP.keys()),
         help="Functional domain category for the ADR.",
     )
@@ -158,7 +193,13 @@ def main():
     )
 
     args = parser.parse_args()
-    create_adr(args.title, args.domain, args.req)
+
+    if args.title and args.domain:
+        create_adr(args.title, args.domain, args.req)
+    else:
+        # Run interactive wizard if flags were not specified
+        title, domain, req = prompt_interactive()
+        create_adr(title, domain, req)
 
 
 if __name__ == "__main__":
