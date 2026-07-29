@@ -4,15 +4,32 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 
+let pnpmCmd = 'pnpm';
+
 /**
  * Preflight checks to verify required executables are on PATH.
  */
 function runPreflightChecks() {
   console.log('--- Preflight Tool-Availability Check ---');
+
+  try {
+    execSync('pnpm -v', { stdio: 'ignore', cwd: repoRoot });
+    pnpmCmd = 'pnpm';
+  } catch (e) {
+    try {
+      execSync('npx pnpm -v', { stdio: 'ignore', cwd: repoRoot });
+      pnpmCmd = 'npx pnpm';
+    } catch (err) {
+      console.error('\n[ERROR] Missing required tool: "pnpm" (or npx pnpm).');
+      console.error('Please install pnpm or Node/npm and try again.');
+      process.exit(1);
+    }
+  }
+
   const tools = [
     { name: 'node', cmd: 'node -v', desc: 'Node.js runtime environment', expected: 'expected to be provided by Node.js installer or nvm' },
     { name: 'python3', cmd: 'python3 --version', desc: 'Python 3 interpreter', expected: 'expected to be provided by Python 3 installer or your system package manager' },
-    { name: 'pnpm', cmd: 'pnpm -v', desc: 'pnpm package manager', expected: 'expected to be provided via npm install -g pnpm or system package manager' }
+    { name: 'pnpm', cmd: `${pnpmCmd} -v`, desc: 'pnpm package manager', expected: 'expected to be provided via pnpm or npx pnpm' }
   ];
 
   for (const tool of tools) {
@@ -24,7 +41,7 @@ function runPreflightChecks() {
       process.exit(1);
     }
   }
-  console.log('Preflight checks successful. All tools are available.\n');
+  console.log(`Preflight checks successful. Using package manager command: "${pnpmCmd}".\n`);
 }
 
 /**
@@ -144,7 +161,7 @@ try {
 
   // 4. Build VitePress static portal
   console.log('--- Step 4: Compiling VitePress Static Portal ---');
-  runCommand('pnpm vitepress build docs');
+  runCommand(`${pnpmCmd} vitepress build docs`);
 
   console.log('--- Docs Build Completed Successfully! ---');
 } catch (error) {

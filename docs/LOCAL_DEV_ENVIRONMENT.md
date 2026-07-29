@@ -31,27 +31,18 @@ The frontend portals and monorepo workspace configurations depend on Node.js and
    pnpm install
    ```
 
-### Step 3: Install Python 3.11+ & uv Package Manager
-Our backend systems are written in Python and utilize `uv` for ultra-fast package and tool management.
-1. Install Python 3.11 or higher on your host.
-2. Install the `uv` Package Manager:
-   * **macOS/Linux/WSL:**
-     ```bash
-     curl -LsSf https://astral.sh/uv/install.sh | sh
-     ```
-   * **Windows (PowerShell):**
-     ```bash
-     powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
-     ```
-3. Sync and provision your local host's virtual environment with all Python development, security, testing, and formatting dependencies:
+### Step 3: Install Python 3.11 & Run Single-Command Setup (`pnpm setup:dev`)
+Our backend systems are written in Python 3.11 and utilize `uv` for package management. Python version `3.11` is pinned via `.python-version`.
+
+1. Install `uv` Package Manager:
+   * **macOS/Linux/WSL:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
+   * **Windows (PowerShell):** `powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+
+2. Run the single-command local setup script from the root directory:
    ```bash
-   uv sync --all-extras
+   pnpm setup:dev
    ```
-   *This command installs critical dev tools (`ruff`, `pytest`, `pytest-asyncio`, `bandit`, `detect-secrets`, `playwright`) natively into your local virtual environment, ensuring the `pnpm check` checks execute flawlessly without import errors.*
-4. Install browser binaries required by Playwright (used for layout and rendering verification tests):
-   ```bash
-   uv run playwright install
-   ```
+   *This single command automatically provisions Python 3.11 with `--all-extras` (`pytest`, `ruff`, `bandit`, `playwright`, `weasyprint`), downloads required Playwright browser engines, and links workspace dependencies.*
 
 ### Step 4: Install & Configure Git Pre-commit Hooks
 Register the pre-commit configuration with Git to run automatic linting, formatting, and link validations before staging commits:

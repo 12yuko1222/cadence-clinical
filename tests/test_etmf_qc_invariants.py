@@ -1,7 +1,8 @@
 import os
 import uuid
+
 import pytest
-from sqlalchemy import text, event
+from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -10,6 +11,7 @@ from apps.etmf.migrate import run_migrations
 
 def enable_sqlite_fks(engine):
     """Event listener to enable SQLite foreign keys on raw connections."""
+
     @event.listens_for(engine.sync_engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
@@ -35,7 +37,9 @@ async def test_migration_clean_path():
         enable_sqlite_fks(engine)
         async with engine.begin() as conn:
             # Check that tables exist
-            res = await conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+            res = await conn.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table'")
+            )
             tables = [row[0] for row in res.fetchall()]
             assert "tmf_documents" in tables
             assert "tmf_document_qc_transitions" in tables
@@ -64,7 +68,8 @@ async def test_migration_upgrade_and_backfill_path():
 
         async with engine.begin() as conn:
             # 1. Manually create legacy schemas (prior to our hard constraints and sequence field)
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TABLE tmf_documents (
                     id VARCHAR(36) PRIMARY KEY,
                     study_id VARCHAR(255) NOT NULL,
@@ -83,9 +88,11 @@ async def test_migration_upgrade_and_backfill_path():
                     approval_status VARCHAR(50) NOT NULL,
                     is_redacted BOOLEAN NOT NULL DEFAULT 0
                 );
-            """))
+            """)
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TABLE tmf_document_qc_transitions (
                     id VARCHAR(36) PRIMARY KEY,
                     document_id VARCHAR(36) NOT NULL,
@@ -96,33 +103,43 @@ async def test_migration_upgrade_and_backfill_path():
                     reason_for_change VARCHAR(1000) NOT NULL,
                     timestamp DATETIME NOT NULL
                 );
-            """))
+            """)
+            )
 
             # 2. Seed some legacy documents and transitions
             doc1_id = str(uuid.uuid4())
             doc2_id = str(uuid.uuid4())
 
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 INSERT INTO tmf_documents (id, study_id, zone, section, artifact_type, filename, content, mime_type, created_at, created_by, version_index, status, taxonomy_version, artifact_code, approval_status)
                 VALUES
                 (:id1, 'study_001', 1, 'SecA', 'TypeA', 'file1.txt', 'ContentA', 'text/plain', '2026-01-01', 'user1', 1, 'CLINICAL_QC', 'v3.2.0', '01.01.01', 'PENDING'),
                 (:id2, 'study_001', 1, 'SecA', 'TypeA', 'file2.txt', 'ContentB', 'text/plain', '2026-01-01', 'user1', 1, 'DRAFT', 'v3.2.0', '01.01.01', 'PENDING')
-            """), {"id1": doc1_id, "id2": doc2_id})
+            """),
+                {"id1": doc1_id, "id2": doc2_id},
+            )
 
             # Insert multiple transitions for doc1 to test sequence calculation
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 INSERT INTO tmf_document_qc_transitions (id, document_id, from_status, to_status, actor_id, actor_role, reason_for_change, timestamp)
                 VALUES
                 ('t1', :doc_id, 'DRAFT', 'TECHNICAL_QC', 'u1', 'r1', 'First change reason here', '2026-01-01 10:00:00'),
                 ('t2', :doc_id, 'TECHNICAL_QC', 'CLINICAL_QC', 'u2', 'r2', 'Second change reason here', '2026-01-01 11:00:00')
-            """), {"doc_id": doc1_id})
+            """),
+                {"doc_id": doc1_id},
+            )
 
             # Insert one transition for doc2
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 INSERT INTO tmf_document_qc_transitions (id, document_id, from_status, to_status, actor_id, actor_role, reason_for_change, timestamp)
                 VALUES
                 ('t3', :doc_id, 'DRAFT', 'TECHNICAL_QC', 'u1', 'r1', 'Third change reason here', '2026-01-01 12:00:00')
-            """), {"doc_id": doc2_id})
+            """),
+                {"doc_id": doc2_id},
+            )
 
         await engine.dispose()
 
@@ -134,7 +151,11 @@ async def test_migration_upgrade_and_backfill_path():
         enable_sqlite_fks(engine)
         async with engine.begin() as conn:
             # Check transition_sequence column backfilled correctly
-            res = await conn.execute(text("SELECT id, document_id, transition_sequence FROM tmf_document_qc_transitions ORDER BY id"))
+            res = await conn.execute(
+                text(
+                    "SELECT id, document_id, transition_sequence FROM tmf_document_qc_transitions ORDER BY id"
+                )
+            )
             trans_rows = {row[0]: (row[1], row[2]) for row in res.fetchall()}
 
             # 't1' and 't2' are for doc1. Chronologically: t1 then t2
@@ -146,36 +167,49 @@ async def test_migration_upgrade_and_backfill_path():
             # 3. Test CheckConstraint on TMFDocument status
             # Writing an invalid status should fail
             with pytest.raises(IntegrityError):
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     INSERT INTO tmf_documents (id, study_id, zone, section, artifact_type, filename, content, mime_type, created_at, created_by, version_index, status, taxonomy_version, artifact_code, approval_status)
                     VALUES
                     ('doc3', 'study_001', 1, 'SecA', 'TypeA', 'file3.txt', 'ContentC', 'text/plain', '2026-01-01', 'user1', 1, 'INVALID_QC_STATUS', 'v3.2.0', '01.01.01', 'PENDING')
-                """))
+                """)
+                )
 
             # 4. Test ForeignKey on DocumentQCTransition
             with pytest.raises(IntegrityError):
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     INSERT INTO tmf_document_qc_transitions (id, document_id, transition_sequence, from_status, to_status, actor_id, actor_role, reason_for_change, timestamp)
                     VALUES
                     ('t4', 'nonexistent-doc-id', 1, 'DRAFT', 'TECHNICAL_QC', 'u1', 'r1', 'Fourth change reason', '2026-01-01 13:00:00')
-                """))
+                """)
+                )
 
             # 5. Test UniqueConstraint (document_id, transition_sequence)
             with pytest.raises(IntegrityError):
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     INSERT INTO tmf_document_qc_transitions (id, document_id, transition_sequence, from_status, to_status, actor_id, actor_role, reason_for_change, timestamp)
                     VALUES
                     ('t5', :doc_id, 1, 'DRAFT', 'TECHNICAL_QC', 'u1', 'r1', 'Duplicate sequence check', '2026-01-01 14:00:00')
-                """), {"doc_id": doc1_id})
+                """),
+                    {"doc_id": doc1_id},
+                )
 
             # 6. Test Immutability Triggers (reject UPDATE/DELETE)
             # Attempting to delete or update a transition should fail via the sqlite trigger
             with pytest.raises((OperationalError, IntegrityError)) as exc_info:
-                await conn.execute(text("DELETE FROM tmf_document_qc_transitions WHERE id='t1'"))
+                await conn.execute(
+                    text("DELETE FROM tmf_document_qc_transitions WHERE id='t1'")
+                )
             assert "IMMUTABILITY_VIOLATION" in str(exc_info.value)
 
             with pytest.raises((OperationalError, IntegrityError)) as exc_info:
-                await conn.execute(text("UPDATE tmf_document_qc_transitions SET to_status='APPROVED' WHERE id='t1'"))
+                await conn.execute(
+                    text(
+                        "UPDATE tmf_document_qc_transitions SET to_status='APPROVED' WHERE id='t1'"
+                    )
+                )
             assert "IMMUTABILITY_VIOLATION" in str(exc_info.value)
 
         await engine.dispose()

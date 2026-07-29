@@ -6,7 +6,7 @@ with immutable audit trail logging in compliance with 21 CFR Part 11.
 
 from typing import Dict, Set
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.etmf.models import DocumentQCTransition, DocumentStatus, TMFDocument

@@ -48,7 +48,8 @@ import argparse
 import asyncio
 import os
 import sys
-from sqlalchemy import text, inspect
+
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from apps.etmf.models import Base
@@ -60,41 +61,59 @@ async def deploy_database_triggers(conn, dialect_name: str) -> None:
     for DocumentQCTransition records.
     """
     if dialect_name == "sqlite":
-        await conn.execute(text("""
+        await conn.execute(
+            text("""
             CREATE TRIGGER IF NOT EXISTS tmf_document_qc_transitions_no_update
             BEFORE UPDATE ON tmf_document_qc_transitions
             BEGIN
                 SELECT RAISE(FAIL, 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be updated.');
             END;
-        """))
-        await conn.execute(text("""
+        """)
+        )
+        await conn.execute(
+            text("""
             CREATE TRIGGER IF NOT EXISTS tmf_document_qc_transitions_no_delete
             BEFORE DELETE ON tmf_document_qc_transitions
             BEGIN
                 SELECT RAISE(FAIL, 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be deleted.');
             END;
-        """))
+        """)
+        )
     elif dialect_name == "postgresql":
-        await conn.execute(text("""
+        await conn.execute(
+            text("""
             CREATE OR REPLACE FUNCTION block_qc_transition_mutation()
             RETURNS TRIGGER AS $$
             BEGIN
                 RAISE EXCEPTION 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only.';
             END;
             $$ LANGUAGE plpgsql;
-        """))
-        await conn.execute(text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_update ON tmf_document_qc_transitions;"))
-        await conn.execute(text("""
+        """)
+        )
+        await conn.execute(
+            text(
+                "DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_update ON tmf_document_qc_transitions;"
+            )
+        )
+        await conn.execute(
+            text("""
             CREATE TRIGGER tmf_document_qc_transitions_no_update
             BEFORE UPDATE ON tmf_document_qc_transitions
             FOR EACH ROW EXECUTE FUNCTION block_qc_transition_mutation();
-        """))
-        await conn.execute(text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_delete ON tmf_document_qc_transitions;"))
-        await conn.execute(text("""
+        """)
+        )
+        await conn.execute(
+            text(
+                "DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_delete ON tmf_document_qc_transitions;"
+            )
+        )
+        await conn.execute(
+            text("""
             CREATE TRIGGER tmf_document_qc_transitions_no_delete
             BEFORE DELETE ON tmf_document_qc_transitions
             FOR EACH ROW EXECUTE FUNCTION block_qc_transition_mutation();
-        """))
+        """)
+        )
 
 
 async def upgrade_existing_tables(conn, dialect_name: str) -> None:
@@ -102,6 +121,7 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
     Inspects and upgrades existing tables to ensure they adhere to core invariants
     without destructive data modifications.
     """
+
     def get_table_columns(sync_conn, table_name: str):
         insp = inspect(sync_conn)
         if not insp.has_table(table_name):
@@ -109,23 +129,38 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
         return [col["name"] for col in insp.get_columns(table_name)]
 
     # 1. Clean and align TMFDocument statuses
-    has_tmf_docs = await conn.run_sync(lambda sc: inspect(sc).has_table("tmf_documents"))
+    has_tmf_docs = await conn.run_sync(
+        lambda sc: inspect(sc).has_table("tmf_documents")
+    )
     if has_tmf_docs:
         # Auto-heal invalid statuses to DRAFT
-        valid_statuses = ("DRAFT", "TECHNICAL_QC", "CLINICAL_QC", "APPROVED", "ARCHIVED", "REJECTED", "SIGNED")
+        valid_statuses = (
+            "DRAFT",
+            "TECHNICAL_QC",
+            "CLINICAL_QC",
+            "APPROVED",
+            "ARCHIVED",
+            "REJECTED",
+            "SIGNED",
+        )
         res = await conn.execute(text("SELECT id, status FROM tmf_documents"))
         rows = res.fetchall()
         for doc_id, status in rows:
             if status not in valid_statuses:
-                print(f"[Migration] Document {doc_id} has invalid status '{status}'; resetting to DRAFT.")
+                print(
+                    f"[Migration] Document {doc_id} has invalid status '{status}'; resetting to DRAFT."
+                )
                 await conn.execute(
                     text("UPDATE tmf_documents SET status = 'DRAFT' WHERE id = :id"),
-                    {"id": doc_id}
+                    {"id": doc_id},
                 )
 
         if dialect_name == "sqlite":
-            print("[Migration] Rebuilding tmf_documents for SQLite constraint enforcement...")
-            await conn.execute(text("""
+            print(
+                "[Migration] Rebuilding tmf_documents for SQLite constraint enforcement..."
+            )
+            await conn.execute(
+                text("""
                 CREATE TABLE tmf_documents_new (
                     id VARCHAR(36) PRIMARY KEY,
                     study_id VARCHAR(255) NOT NULL,
@@ -152,15 +187,37 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     redaction_manifest_json JSON,
                     CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'))
                 );
-            """))
+            """)
+            )
 
-            cols_present = await conn.run_sync(lambda sc: get_table_columns(sc, "tmf_documents"))
+            cols_present = await conn.run_sync(
+                lambda sc: get_table_columns(sc, "tmf_documents")
+            )
             select_parts = []
             for col in [
-                "id", "study_id", "zone", "section", "artifact_type", "filename", "content", "mime_type",
-                "created_at", "created_by", "version_index", "status", "taxonomy_version", "artifact_code",
-                "metadata_json", "document_type", "approval_status", "signature_manifestation", "signer",
-                "signing_timestamp", "is_redacted", "redaction_source_id", "redaction_manifest_json"
+                "id",
+                "study_id",
+                "zone",
+                "section",
+                "artifact_type",
+                "filename",
+                "content",
+                "mime_type",
+                "created_at",
+                "created_by",
+                "version_index",
+                "status",
+                "taxonomy_version",
+                "artifact_code",
+                "metadata_json",
+                "document_type",
+                "approval_status",
+                "signature_manifestation",
+                "signer",
+                "signing_timestamp",
+                "is_redacted",
+                "redaction_source_id",
+                "redaction_manifest_json",
             ]:
                 if col in cols_present:
                     select_parts.append(col)
@@ -180,7 +237,8 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                         select_parts.append(f"NULL AS {col}")
 
             select_sql = ", ".join(select_parts)
-            await conn.execute(text(f"""
+            await conn.execute(
+                text(f"""
                 INSERT INTO tmf_documents_new (
                     id, study_id, zone, section, artifact_type, filename, content, mime_type,
                     created_at, created_by, version_index, status, taxonomy_version, artifact_code,
@@ -189,44 +247,83 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 )
                 SELECT {select_sql}
                 FROM tmf_documents;
-            """))
+            """)
+            )
 
             await conn.execute(text("DROP TABLE tmf_documents;"))
-            await conn.execute(text("ALTER TABLE tmf_documents_new RENAME TO tmf_documents;"))
+            await conn.execute(
+                text("ALTER TABLE tmf_documents_new RENAME TO tmf_documents;")
+            )
 
             # Recreate indices
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_study_id ON tmf_documents (study_id);"))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_zone ON tmf_documents (zone);"))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_artifact_type ON tmf_documents (artifact_type);"))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_artifact_code ON tmf_documents (artifact_code);"))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_document_type ON tmf_documents (document_type);"))
-            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tmf_documents_redaction_source_id ON tmf_documents (redaction_source_id);"))
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_study_id ON tmf_documents (study_id);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_zone ON tmf_documents (zone);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_artifact_type ON tmf_documents (artifact_type);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_artifact_code ON tmf_documents (artifact_code);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_document_type ON tmf_documents (document_type);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_redaction_source_id ON tmf_documents (redaction_source_id);"
+                )
+            )
 
         elif dialect_name == "postgresql":
             # Attempt to add check constraint if missing
             try:
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     ALTER TABLE tmf_documents
                     ADD CONSTRAINT chk_tmf_document_status
                     CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'));
-                """))
+                """)
+                )
             except Exception:
                 pass
 
     # 2. Upgrade and Backfill tmf_document_qc_transitions table
-    trans_cols = await conn.run_sync(lambda sc: get_table_columns(sc, "tmf_document_qc_transitions"))
+    trans_cols = await conn.run_sync(
+        lambda sc: get_table_columns(sc, "tmf_document_qc_transitions")
+    )
     if trans_cols:
         # Add transition_sequence as nullable column if missing
         if "transition_sequence" not in trans_cols:
-            print("[Migration] Adding transition_sequence column to tmf_document_qc_transitions...")
-            await conn.execute(text("ALTER TABLE tmf_document_qc_transitions ADD COLUMN transition_sequence INTEGER;"))
+            print(
+                "[Migration] Adding transition_sequence column to tmf_document_qc_transitions..."
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE tmf_document_qc_transitions ADD COLUMN transition_sequence INTEGER;"
+                )
+            )
 
             # Query all existing records to compute and backfill sequences chronologically
-            res = await conn.execute(text("""
+            res = await conn.execute(
+                text("""
                 SELECT id, document_id
                 FROM tmf_document_qc_transitions
                 ORDER BY document_id, timestamp ASC, id ASC
-            """))
+            """)
+            )
             rows = res.fetchall()
 
             seq_map = {}  # document_id -> current sequential index
@@ -234,20 +331,29 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 seq = seq_map.get(doc_id, 0) + 1
                 seq_map[doc_id] = seq
                 await conn.execute(
-                    text("UPDATE tmf_document_qc_transitions SET transition_sequence = :seq WHERE id = :id"),
-                    {"seq": seq, "id": tid}
+                    text(
+                        "UPDATE tmf_document_qc_transitions SET transition_sequence = :seq WHERE id = :id"
+                    ),
+                    {"seq": seq, "id": tid},
                 )
 
         # Enforce NOT NULL, Unique, and FK constraints
         if dialect_name == "sqlite":
             # Rebuild table to enforce SQLite column and index constraints
-            print("[Migration] Rebuilding tmf_document_qc_transitions for SQLite constraint enforcement...")
+            print(
+                "[Migration] Rebuilding tmf_document_qc_transitions for SQLite constraint enforcement..."
+            )
 
             # Temporary drop triggers to prevent rebuild errors
-            await conn.execute(text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_update;"))
-            await conn.execute(text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_delete;"))
+            await conn.execute(
+                text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_update;")
+            )
+            await conn.execute(
+                text("DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_delete;")
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE TABLE tmf_document_qc_transitions_new (
                     id VARCHAR(36) PRIMARY KEY,
                     document_id VARCHAR(36) NOT NULL,
@@ -261,46 +367,63 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     FOREIGN KEY (document_id) REFERENCES tmf_documents(id) ON DELETE CASCADE,
                     UNIQUE (document_id, transition_sequence)
                 );
-            """))
+            """)
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 INSERT INTO tmf_document_qc_transitions_new (
                     id, document_id, transition_sequence, from_status, to_status, actor_id, actor_role, reason_for_change, timestamp
                 )
                 SELECT id, document_id, COALESCE(transition_sequence, 1), from_status, to_status, actor_id, actor_role, reason_for_change, timestamp
                 FROM tmf_document_qc_transitions;
-            """))
+            """)
+            )
 
             await conn.execute(text("DROP TABLE tmf_document_qc_transitions;"))
-            await conn.execute(text("ALTER TABLE tmf_document_qc_transitions_new RENAME TO tmf_document_qc_transitions;"))
+            await conn.execute(
+                text(
+                    "ALTER TABLE tmf_document_qc_transitions_new RENAME TO tmf_document_qc_transitions;"
+                )
+            )
 
-            await conn.execute(text("""
+            await conn.execute(
+                text("""
                 CREATE INDEX IF NOT EXISTS ix_tmf_document_qc_transitions_doc_seq
                 ON tmf_document_qc_transitions (document_id, transition_sequence);
-            """))
+            """)
+            )
 
         elif dialect_name == "postgresql":
             print("[Migration] Setting constraints for PostgreSQL dialect...")
             # Set transition_sequence to NOT NULL
-            await conn.execute(text("ALTER TABLE tmf_document_qc_transitions ALTER COLUMN transition_sequence SET NOT NULL;"))
+            await conn.execute(
+                text(
+                    "ALTER TABLE tmf_document_qc_transitions ALTER COLUMN transition_sequence SET NOT NULL;"
+                )
+            )
 
             # Add foreign key constraint if missing
             try:
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     ALTER TABLE tmf_document_qc_transitions
                     ADD CONSTRAINT fk_tmf_document_qc_transitions_document_id
                     FOREIGN KEY (document_id) REFERENCES tmf_documents(id) ON DELETE CASCADE;
-                """))
+                """)
+                )
             except Exception:
                 pass
 
             # Add UniqueConstraint
             try:
-                await conn.execute(text("""
+                await conn.execute(
+                    text("""
                     ALTER TABLE tmf_document_qc_transitions
                     ADD CONSTRAINT uq_document_transition_sequence
                     UNIQUE (document_id, transition_sequence);
-                """))
+                """)
+                )
             except Exception:
                 pass
 
@@ -334,7 +457,9 @@ async def run_migrations(database_url: str) -> None:
 
 def main() -> None:
     """CLI script entrypoint."""
-    parser = argparse.ArgumentParser(description="eTMF Database Schema Migration Runner")
+    parser = argparse.ArgumentParser(
+        description="eTMF Database Schema Migration Runner"
+    )
     parser.add_argument(
         "--db-url",
         type=str,

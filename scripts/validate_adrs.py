@@ -462,18 +462,60 @@ def validate_existing_adrs(targets: list[str] = None) -> bool:
     return all_passed
 
 
-def main():
-    if len(sys.argv) > 1:
-        # File paths provided as arguments
-        targets = sys.argv[1:]
-        existing_valid = validate_existing_adrs(targets)
+def fix_unindexed_adrs(unindexed: list[str], index_content: str) -> None:
+    """Appends unindexed ADRs to index.md automatically."""
+    new_entries = []
+    for filename in sorted(unindexed):
+        filepath = os.path.join(ADR_DIR, filename)
+        title = filename
+        try:
+            with open(filepath, "r") as f:
+                first_line = f.readline().strip()
+                if first_line.startswith("# "):
+                    title = first_line[2:].strip()
+        except Exception:
+            pass
+        date_match = DATE_PATTERN.search(filename)
+        date_str = date_match.group(0) if date_match else "2026-08-20"
+        clean_title = re.sub(r"^ADR-\d+:\s*", "", title)
+        entry = f"- [{date_str}: {clean_title}]({filename})"
+        new_entries.append(entry)
 
+    if new_entries:
+        with open(INDEX_FILE, "a") as f:
+            if not index_content.endswith("\n"):
+                f.write("\n")
+            for entry in new_entries:
+                f.write(f"{entry}\n")
+        print(f"Successfully auto-indexed {len(new_entries)} ADR(s) into {INDEX_FILE}.")
+
+
+def main():
+    fix_index = "--fix-index" in sys.argv
+    args = [arg for arg in sys.argv[1:] if arg != "--fix-index"]
+
+    if fix_index:
+        # First scan to find unindexed files
+        valid_adrs = [
+            f
+            for f in os.listdir(ADR_DIR)
+            if FILENAME_PATTERN.match(f) and f not in IGNORE_FILES
+        ]
+        index_content = ""
+        if os.path.exists(INDEX_FILE):
+            with open(INDEX_FILE, "r") as f:
+                index_content = f.read()
+        unindexed = [f for f in valid_adrs if f not in index_content]
+        if unindexed:
+            fix_unindexed_adrs(unindexed, index_content)
+
+    if args:
+        targets = args
+        existing_valid = validate_existing_adrs(targets)
         changed_files = set(targets)
         arch_valid = check_architectural_changes_require_adr(changed_files)
     else:
-        # Fallback to scanning everything
         existing_valid = validate_existing_adrs()
-
         changed_files = get_changed_files()
         arch_valid = check_architectural_changes_require_adr(changed_files)
 

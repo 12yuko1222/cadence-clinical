@@ -1,20 +1,20 @@
-import uuid
 import enum
+import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from sqlalchemy import (
+    DDL,
     JSON,
+    CheckConstraint,
     DateTime,
+    ForeignKey,
+    Index,
     Integer,
     String,
-    func,
-    ForeignKey,
     UniqueConstraint,
-    Index,
-    CheckConstraint,
-    DDL,
     event,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -83,7 +83,7 @@ class TMFDocument(Base):
     __table_args__ = (
         CheckConstraint(
             "status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED')",
-            name="chk_tmf_document_status"
+            name="chk_tmf_document_status",
         ),
     )
 
@@ -145,8 +145,14 @@ class DocumentQCTransition(Base):
     __tablename__ = "tmf_document_qc_transitions"
 
     __table_args__ = (
-        UniqueConstraint("document_id", "transition_sequence", name="uq_document_transition_sequence"),
-        Index("ix_tmf_document_qc_transitions_doc_seq", "document_id", "transition_sequence"),
+        UniqueConstraint(
+            "document_id", "transition_sequence", name="uq_document_transition_sequence"
+        ),
+        Index(
+            "ix_tmf_document_qc_transitions_doc_seq",
+            "document_id",
+            "transition_sequence",
+        ),
     )
 
     id: Mapped[str] = mapped_column(
@@ -156,7 +162,7 @@ class DocumentQCTransition(Base):
         String(36),
         ForeignKey("tmf_documents.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     transition_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
     from_status: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -253,36 +259,40 @@ FOR EACH ROW EXECUTE FUNCTION block_qc_transition_mutation();
 event.listen(
     DocumentQCTransition.__table__,
     "after_create",
-    trigger_update_sqlite.execute_if(dialect="sqlite")
+    trigger_update_sqlite.execute_if(dialect="sqlite"),
 )
 event.listen(
     DocumentQCTransition.__table__,
     "after_create",
-    trigger_delete_sqlite.execute_if(dialect="sqlite")
+    trigger_delete_sqlite.execute_if(dialect="sqlite"),
 )
 event.listen(
     DocumentQCTransition.__table__,
     "after_create",
-    trigger_func_pg.execute_if(dialect="postgresql")
+    trigger_func_pg.execute_if(dialect="postgresql"),
 )
 event.listen(
     DocumentQCTransition.__table__,
     "after_create",
-    trigger_update_pg.execute_if(dialect="postgresql")
+    trigger_update_pg.execute_if(dialect="postgresql"),
 )
 event.listen(
     DocumentQCTransition.__table__,
     "after_create",
-    trigger_delete_pg.execute_if(dialect="postgresql")
+    trigger_delete_pg.execute_if(dialect="postgresql"),
 )
 
 
 # Model event listeners for SQLAlchemy session/mapper validation
 @event.listens_for(DocumentQCTransition, "before_update")
 def prevent_qc_transition_update(mapper, connection, target):
-    raise RuntimeError("IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be updated.")
+    raise RuntimeError(
+        "IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be updated."
+    )
 
 
 @event.listens_for(DocumentQCTransition, "before_delete")
 def prevent_qc_transition_delete(mapper, connection, target):
-    raise RuntimeError("IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be deleted.")
+    raise RuntimeError(
+        "IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be deleted."
+    )

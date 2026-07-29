@@ -21,10 +21,10 @@ from apps.etmf.lifecycle import validate_and_transition_document_status
 from apps.etmf.models import (
     Base,
     DocumentQCTransition,
+    DocumentStatus,
     ExpectedDocument,
     TMFAuditLog,
     TMFDocument,
-    DocumentStatus,
 )
 from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.deid.detector import DeidDetector
@@ -2209,7 +2209,7 @@ async def transition_document_status_endpoint(
     if payload.to_status not in valid_qc_statuses:
         raise HTTPException(
             status_code=422,
-            detail=f"Invalid status: '{payload.to_status}'. Must be one of {sorted(list(valid_qc_statuses))}."
+            detail=f"Invalid status: '{payload.to_status}'. Must be one of {sorted(list(valid_qc_statuses))}.",
         )
 
     # Check if already signed
