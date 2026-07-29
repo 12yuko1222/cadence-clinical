@@ -146,7 +146,27 @@ def validate_schemas() -> bool:
 
 
 if __name__ == "__main__":
+    import json
+
+    export_dir = None
+    if "--export-dir" in sys.argv:
+        idx = sys.argv.index("--export-dir")
+        if idx + 1 < len(sys.argv):
+            export_dir = sys.argv[idx + 1]
+
     success = validate_schemas()
     if not success:
         sys.exit(1)
+
+    if export_dir:
+        os.makedirs(export_dir, exist_ok=True)
+        print(f"\n[EXPORT] Exporting OpenAPI schemas to '{export_dir}'...")
+        for name, config in SERVICES_CONFIG.items():
+            app = config["app"]
+            schema = app.openapi()
+            out_file = os.path.join(export_dir, f"{name}_openapi.json")
+            with open(out_file, "w") as f:
+                json.dump(schema, f, indent=2)
+            print(f"  - Exported {out_file}")
+
     sys.exit(0)

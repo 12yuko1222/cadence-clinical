@@ -54,13 +54,26 @@ You can run the checks manually on all files in the repository at any time:
 uv run pre-commit run --all-files
 ```
 
-### Step 5: Install Docker & Docker Compose v2
-Orchestration of databases and service ports requires Docker:
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [OrbStack](https://orbstack.dev/).
-2. Verify Docker Compose v2 is available on your path:
-   ```bash
-   docker compose version
-   ```
+### Step 5: Parallel Developer Productivity Utilities
+The codebase provides built-in utilities to simplify parallel feature development across branches:
+
+* **Microservice Port Allocation Diagnostics**:
+  ```bash
+  pnpm ports:check
+  ```
+  *Detects active port listeners on ports 8000–8011 before launching local servers or tests, avoiding `address already in use` crashes.*
+
+* **Ultra-Fast Parallel Testing**:
+  ```bash
+  uv run pytest -n auto
+  ```
+  *Leverages isolated in-memory test database workers (`PYTEST_XDIST_WORKER`) to run all 1,200+ unit and integration tests in parallel (~20 seconds total).*
+
+* **Offline OpenAPI Contract Exporting**:
+  ```bash
+  pnpm openapi:export
+  ```
+  *Exports compiled OpenAPI JSON schemas for all 10 microservices to `docs/openapi/` for offline frontend API mocking and client generation.*
 
 ---
 

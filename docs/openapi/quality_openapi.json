@@ -1,0 +1,1103 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cadence Clinical - Quality & CAPA",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Service health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/deviations": {
+      "post": {
+        "summary": "Create Deviation",
+        "description": "Create a new clinical protocol deviation or quality deviation event.",
+        "operationId": "create_deviation_api_v1_quality_deviations_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Deviations",
+        "description": "Retrieve clinical deviation records with optional filtering.",
+        "operationId": "list_deviations_api_v1_quality_deviations_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by study ID",
+              "title": "Study Id"
+            },
+            "description": "Filter by study ID"
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by site ID",
+              "title": "Site Id"
+            },
+            "description": "Filter by site ID"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DeviationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            },
+            "description": "Filter by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviationResponse"
+                  },
+                  "title": "Response List Deviations Api V1 Quality Deviations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/deviations/{id}": {
+      "get": {
+        "summary": "View Deviation",
+        "description": "Retrieve a specific clinical deviation by ID.",
+        "operationId": "view_deviation_api_v1_quality_deviations__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/deviations/{id}/rca": {
+      "put": {
+        "summary": "Create Or Update Rca",
+        "description": "Create or update Root Cause Analysis (RCA) linked to a specific deviation.\nTransitions the deviation status to RCA_COMPLETE.",
+        "operationId": "create_or_update_rca_api_v1_quality_deviations__id__rca_put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RCACreateOrUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCAResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Or Update Rca",
+        "description": "Create or update Root Cause Analysis (RCA) linked to a specific deviation.\nTransitions the deviation status to RCA_COMPLETE.",
+        "operationId": "create_or_update_rca_api_v1_quality_deviations__id__rca_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RCACreateOrUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCAResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/capas": {
+      "post": {
+        "summary": "Create Capa",
+        "description": "Create a new Corrective and Preventive Action (CAPA) record linked to a deviation.",
+        "operationId": "create_capa_api_v1_quality_capas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPACreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPAResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/capas/{id}/transition": {
+      "post": {
+        "summary": "Transition Capa",
+        "description": "Perform a secure, 21 CFR Part 11 compliant status transition on a CAPA record.",
+        "operationId": "transition_capa_api_v1_quality_capas__id__transition_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPATransitionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPAResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/capas/{id}": {
+      "put": {
+        "summary": "Update Capa",
+        "description": "Update non-status attributes of a CAPA record. Disallowed once terminal (CLOSED/CANCELLED).",
+        "operationId": "update_capa_api_v1_quality_capas__id__put",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPAUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPAResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/audit-logs": {
+      "get": {
+        "summary": "List Audit Logs",
+        "description": "Retrieve quality audit logs in descending chronological order.",
+        "operationId": "list_audit_logs_api_v1_quality_audit_logs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Audit Logs Api V1 Quality Audit Logs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditLogResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "user_role": {
+            "type": "string",
+            "title": "User Role"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "change_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "user_id",
+          "user_role",
+          "action",
+          "details"
+        ],
+        "title": "AuditLogResponse"
+      },
+      "CAPACreate": {
+        "properties": {
+          "deviation_id": {
+            "type": "string",
+            "title": "Deviation Id",
+            "description": "Reference to the parent deviation ID"
+          },
+          "rca_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rca Id",
+            "description": "Optional reference to the Root Cause Analysis ID"
+          },
+          "capa_type": {
+            "type": "string",
+            "title": "Capa Type",
+            "description": "Type of CAPA: CORRECTIVE or PREVENTIVE"
+          },
+          "action_plan": {
+            "type": "string",
+            "title": "Action Plan",
+            "description": "The planned corrective/preventive action steps"
+          },
+          "preventive_measures": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preventive Measures",
+            "description": "Specific measures to prevent recurrence"
+          },
+          "target_completion_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Completion Date",
+            "description": "Optional expected completion timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deviation_id",
+          "capa_type",
+          "action_plan"
+        ],
+        "title": "CAPACreate"
+      },
+      "CAPAResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "deviation_id": {
+            "type": "string",
+            "title": "Deviation Id"
+          },
+          "rca_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rca Id"
+          },
+          "capa_type": {
+            "type": "string",
+            "title": "Capa Type"
+          },
+          "action_plan": {
+            "type": "string",
+            "title": "Action Plan"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CAPAStatus"
+          },
+          "preventive_measures": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preventive Measures"
+          },
+          "target_completion_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Completion Date"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "deviation_id",
+          "capa_type",
+          "action_plan",
+          "status",
+          "study_id",
+          "created_at",
+          "created_by",
+          "version_index",
+          "reason_for_change"
+        ],
+        "title": "CAPAResponse"
+      },
+      "CAPAStatus": {
+        "type": "string",
+        "enum": [
+          "INITIATED",
+          "UNDER_REVIEW",
+          "IMPLEMENTATION",
+          "EFFECTIVENESS_CHECK",
+          "CLOSED",
+          "CANCELLED"
+        ],
+        "title": "CAPAStatus"
+      },
+      "CAPATransitionRequest": {
+        "properties": {
+          "to_status": {
+            "$ref": "#/components/schemas/CAPAStatus",
+            "description": "Target CAPA Status to transition to"
+          },
+          "version_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Index",
+            "description": "Expected version index for optimistic locking"
+          }
+        },
+        "type": "object",
+        "required": [
+          "to_status"
+        ],
+        "title": "CAPATransitionRequest"
+      },
+      "CAPAUpdate": {
+        "properties": {
+          "action_plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Plan",
+            "description": "The planned corrective/preventive action steps"
+          },
+          "preventive_measures": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preventive Measures",
+            "description": "Specific measures to prevent recurrence"
+          },
+          "target_completion_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Completion Date",
+            "description": "Optional expected completion timestamp"
+          },
+          "version_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Index",
+            "description": "Current expected version index for optimistic locking"
+          }
+        },
+        "type": "object",
+        "title": "CAPAUpdate"
+      },
+      "DeviationCreate": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Unique identifier of the clinical study"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id",
+            "description": "Optional clinical site ID"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Title",
+            "description": "A short summary of the deviation"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Detailed explanation of the deviation"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/DeviationSeverity",
+            "description": "Severity level: MINOR, MAJOR, CRITICAL"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DeviationType",
+            "description": "Type of deviation, e.g., INFORMED_CONSENT"
+          },
+          "is_protocol_violation": {
+            "type": "boolean",
+            "title": "Is Protocol Violation",
+            "description": "Whether this constitutes a protocol violation",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "title",
+          "description",
+          "severity",
+          "type"
+        ],
+        "title": "DeviationCreate"
+      },
+      "DeviationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/DeviationSeverity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeviationStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DeviationType"
+          },
+          "is_protocol_violation": {
+            "type": "boolean",
+            "title": "Is Protocol Violation"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "title",
+          "description",
+          "severity",
+          "status",
+          "type",
+          "is_protocol_violation",
+          "created_at",
+          "created_by",
+          "version_index",
+          "reason_for_change"
+        ],
+        "title": "DeviationResponse"
+      },
+      "DeviationSeverity": {
+        "type": "string",
+        "enum": [
+          "MINOR",
+          "MAJOR",
+          "CRITICAL"
+        ],
+        "title": "DeviationSeverity"
+      },
+      "DeviationStatus": {
+        "type": "string",
+        "enum": [
+          "REPORTED",
+          "UNDER_INVESTIGATION",
+          "RCA_COMPLETE",
+          "CAPA_INITIATED",
+          "RESOLVED",
+          "CLOSED"
+        ],
+        "title": "DeviationStatus"
+      },
+      "DeviationType": {
+        "type": "string",
+        "enum": [
+          "INFORMED_CONSENT",
+          "ELIGIBILITY",
+          "PROTOCOL_PROCEDURE",
+          "SAFETY_REPORTING",
+          "IP_MANAGEMENT",
+          "OTHER"
+        ],
+        "title": "DeviationType"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RCACreateOrUpdate": {
+        "properties": {
+          "methodology": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Methodology",
+            "description": "RCA methodology used, e.g., 5 Whys, Fishbone"
+          },
+          "investigation_details": {
+            "type": "string",
+            "title": "Investigation Details",
+            "description": "Full details of the investigation"
+          },
+          "root_cause_summary": {
+            "type": "string",
+            "title": "Root Cause Summary",
+            "description": "Summary of the determined root cause"
+          },
+          "version_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Index",
+            "description": "Current expected version index for optimistic locking"
+          }
+        },
+        "type": "object",
+        "required": [
+          "methodology",
+          "investigation_details",
+          "root_cause_summary"
+        ],
+        "title": "RCACreateOrUpdate"
+      },
+      "RCAResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "deviation_id": {
+            "type": "string",
+            "title": "Deviation Id"
+          },
+          "methodology": {
+            "type": "string",
+            "title": "Methodology"
+          },
+          "investigation_details": {
+            "type": "string",
+            "title": "Investigation Details"
+          },
+          "root_cause_summary": {
+            "type": "string",
+            "title": "Root Cause Summary"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "deviation_id",
+          "methodology",
+          "investigation_details",
+          "root_cause_summary",
+          "study_id",
+          "created_at",
+          "created_by",
+          "version_index",
+          "reason_for_change"
+        ],
+        "title": "RCAResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -1,0 +1,1212 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cadence Clinical - FHIR / eSource & eCOA Sync Gateway",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Service health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/fhir/prefill": {
+      "post": {
+        "summary": "Fhir Prefill",
+        "description": "Ingest a standard FHIR Bundle payload, pseudonymize Patient ID,\nstrip all Direct Identifiers (PII), and return mapped CDASH eCRF fields.",
+        "operationId": "fhir_prefill_api_v1_interop_fhir_prefill_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FHIRPrefillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Fhir Prefill Api V1 Interop Fhir Prefill Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/epro/submit": {
+      "post": {
+        "summary": "Epro Submit",
+        "description": "Secure REST endpoint for mobile apps to submit a single participant diary/survey entry.\nHandles offline queue reconciliation & conflict resolution on duplicate sync requests.",
+        "operationId": "epro_submit_api_v1_interop_epro_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EPROSubmissionPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Epro Submit Api V1 Interop Epro Submit Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/epro/sync": {
+      "post": {
+        "summary": "Epro Sync",
+        "description": "Secure bulk sync endpoint for offline queues. Performs reconciliation\nand conflict resolution across multiple participant submissions.",
+        "operationId": "epro_sync_api_v1_interop_epro_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkSyncPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Epro Sync Api V1 Interop Epro Sync Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/instruments": {
+      "post": {
+        "summary": "Create Instrument",
+        "description": "Author a new eCOA questionnaire/diary definition.\nEnforces staff role authentication and Part 11 auditing.",
+        "operationId": "create_instrument_api_v1_interop_instruments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstrumentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/assignments": {
+      "post": {
+        "summary": "Create Subject Assignment",
+        "description": "Assign an eCOA instrument to a subject with due/recurrence window data.\nEnforces staff role authorization, validates instrument reference, and logs audit fields.",
+        "operationId": "create_subject_assignment_api_v1_interop_assignments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectAssignmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectAssignmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/instruments/{id}": {
+      "get": {
+        "summary": "Get Instrument",
+        "description": "Retrieve an Instrument definition by ID.\nEnforces subject assignment checks for Subject role.",
+        "operationId": "get_instrument_api_v1_interop_instruments__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/assignments/subject/{subject_id}": {
+      "get": {
+        "summary": "Get Subject Assignments",
+        "description": "Retrieve all assignments for a given subject.\nEnforces subject-scoped identity boundary (Subject can only view their own assignments).",
+        "operationId": "get_subject_assignments_api_v1_interop_assignments_subject__subject_id__get",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectAssignmentResponse"
+                  },
+                  "title": "Response Get Subject Assignments Api V1 Interop Assignments Subject  Subject Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/subjects/{subject_id}/instruments": {
+      "get": {
+        "summary": "Get Subject Assigned Instruments",
+        "description": "Retrieve all unique assigned instruments for a given subject.\nEnforces subject-scoped identity boundary (Subject can only view their own instruments).",
+        "operationId": "get_subject_assigned_instruments_api_v1_interop_subjects__subject_id__instruments_get",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InstrumentResponse"
+                  },
+                  "title": "Response Get Subject Assigned Instruments Api V1 Interop Subjects  Subject Id  Instruments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/subjects/{subject_id}/compliance": {
+      "get": {
+        "summary": "Get Subject Compliance",
+        "description": "Retrieve/compute eCOA compliance status metrics for a subject.",
+        "operationId": "get_subject_compliance_api_v1_interop_subjects__subject_id__compliance_get",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectComplianceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/reminders/compute": {
+      "post": {
+        "summary": "Compute Reminders",
+        "description": "Compute due reminders from assignment schedules on demand.\nGenerates notifications for uncompleted assignments whose due window is reached.",
+        "operationId": "compute_reminders_api_v1_interop_reminders_compute_post",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Compute Reminders Api V1 Interop Reminders Compute Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/subjects/{subject_id}/notifications": {
+      "get": {
+        "summary": "Get Subject Notifications",
+        "description": "Retrieve all notifications for a given subject.\nEnforces subject-scoped identity boundary (Subject can only view their own notifications).",
+        "operationId": "get_subject_notifications_api_v1_interop_subjects__subject_id__notifications_get",
+        "parameters": [
+          {
+            "name": "subject_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectNotificationResponse"
+                  },
+                  "title": "Response Get Subject Notifications Api V1 Interop Subjects  Subject Id  Notifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interop/notifications/{notification_id}/acknowledge": {
+      "post": {
+        "summary": "Acknowledge Notification",
+        "description": "Acknowledge/read a notification.\nEnforces subject-scoped authorization and records an audit log.",
+        "operationId": "acknowledge_notification_api_v1_interop_notifications__notification_id__acknowledge_post",
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeNotificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectNotificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcknowledgeNotificationRequest": {
+        "properties": {
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change",
+            "description": "21 CFR Part 11 compliant reason for change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason_for_change"
+        ],
+        "title": "AcknowledgeNotificationRequest"
+      },
+      "AssignmentComplianceDetail": {
+        "properties": {
+          "assignment_id": {
+            "type": "string",
+            "title": "Assignment Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "instrument_name": {
+            "type": "string",
+            "title": "Instrument Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Date"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assignment_id",
+          "instrument_id",
+          "instrument_name",
+          "status",
+          "due_at",
+          "end_date"
+        ],
+        "title": "AssignmentComplianceDetail"
+      },
+      "BulkSyncPayload": {
+        "properties": {
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/EPROSubmissionPayload"
+            },
+            "type": "array",
+            "title": "Submissions",
+            "description": "A list of queued ePRO submissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "submissions"
+        ],
+        "title": "BulkSyncPayload",
+        "description": "A bulk list of ePRO submissions for offline queue reconciliation."
+      },
+      "ConflictStrategy": {
+        "type": "string",
+        "enum": [
+          "CLIENT_WINS",
+          "SERVER_WINS",
+          "MERGE"
+        ],
+        "title": "ConflictStrategy",
+        "description": "Explicit validated conflict resolution strategies."
+      },
+      "EPROSubmissionPayload": {
+        "properties": {
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id",
+            "description": "Pseudonymized identifier of the subject"
+          },
+          "diary_id": {
+            "type": "string",
+            "title": "Diary Id",
+            "description": "Unique identifier for the diary or survey"
+          },
+          "device_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Device Timestamp",
+            "description": "ISO 8601 timestamp when the entry was created on device"
+          },
+          "answers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Answers",
+            "description": "The questionnaire response key-values"
+          },
+          "offline_sync_markers": {
+            "$ref": "#/components/schemas/OfflineSyncMarkers",
+            "description": "The offline sync queue conflict tracking parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject_id",
+          "diary_id",
+          "device_timestamp",
+          "answers",
+          "offline_sync_markers"
+        ],
+        "title": "EPROSubmissionPayload",
+        "description": "A single participant ePRO/eCOA diary submission."
+      },
+      "FHIRPrefillRequest": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Unique identifier of the clinical study"
+          },
+          "bundle": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Bundle",
+            "description": "The standard FHIR Bundle JSON payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "bundle"
+        ],
+        "title": "FHIRPrefillRequest",
+        "description": "Payload for pre-filling CDASH fields using a FHIR bundle."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InstrumentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the questionnaire/diary"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Optional description"
+          },
+          "items": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Items",
+            "description": "Items/questions"
+          },
+          "response_types": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Response Types",
+            "description": "Response types and options"
+          },
+          "scoring_metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scoring Metadata",
+            "description": "Scoring metadata"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change",
+            "description": "21 CFR Part 11 compliant reason for change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "items",
+          "response_types",
+          "scoring_metadata",
+          "reason_for_change"
+        ],
+        "title": "InstrumentCreate"
+      },
+      "InstrumentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "items": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Items"
+          },
+          "response_types": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Response Types"
+          },
+          "scoring_metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scoring Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "items",
+          "response_types",
+          "scoring_metadata",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "InstrumentResponse"
+      },
+      "OfflineSyncMarkers": {
+        "properties": {
+          "sequence_number": {
+            "type": "integer",
+            "title": "Sequence Number",
+            "description": "The queue order sequence from device"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "Unique identifier for the mobile device"
+          },
+          "conflict_strategy": {
+            "$ref": "#/components/schemas/ConflictStrategy",
+            "description": "Conflict strategy to resolve duplicate submissions. Supported: CLIENT_WINS, SERVER_WINS, MERGE",
+            "default": "CLIENT_WINS"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature",
+            "description": "Optional HMAC-SHA256 signature of the payload for cryptographic integrity"
+          },
+          "timestamps": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamps",
+            "description": "Optional per-field UTC timestamps indicating when each field in 'answers' was modified"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sequence_number",
+          "client_id"
+        ],
+        "title": "OfflineSyncMarkers",
+        "description": "Offline queue reconciliation and conflict resolution parameters."
+      },
+      "SubjectAssignmentCreate": {
+        "properties": {
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id",
+            "description": "Unique subject identifier"
+          },
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id",
+            "description": "ID of the Instrument to assign"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Date",
+            "description": "Start of the due/recurrence window"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Date",
+            "description": "End of the due/recurrence window"
+          },
+          "recurrence_pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Pattern",
+            "description": "E.g., DAILY, WEEKLY"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At",
+            "description": "Optional specific due date/time"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change",
+            "description": "21 CFR Part 11 compliant reason for change"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject_id",
+          "instrument_id",
+          "start_date",
+          "end_date",
+          "reason_for_change"
+        ],
+        "title": "SubjectAssignmentCreate"
+      },
+      "SubjectAssignmentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id"
+          },
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End Date"
+          },
+          "recurrence_pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Pattern"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject_id",
+          "instrument_id",
+          "start_date",
+          "end_date",
+          "recurrence_pattern",
+          "due_at",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SubjectAssignmentResponse"
+      },
+      "SubjectComplianceResponse": {
+        "properties": {
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id"
+          },
+          "compliance_rate": {
+            "type": "number",
+            "title": "Compliance Rate"
+          },
+          "completed_count": {
+            "type": "integer",
+            "title": "Completed Count"
+          },
+          "pending_count": {
+            "type": "integer",
+            "title": "Pending Count"
+          },
+          "overdue_count": {
+            "type": "integer",
+            "title": "Overdue Count"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentComplianceDetail"
+            },
+            "type": "array",
+            "title": "Assignments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "subject_id",
+          "compliance_rate",
+          "completed_count",
+          "pending_count",
+          "overdue_count",
+          "assignments"
+        ],
+        "title": "SubjectComplianceResponse"
+      },
+      "SubjectNotificationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id"
+          },
+          "assignment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignment Id"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due At"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "delivery_status": {
+            "type": "string",
+            "title": "Delivery Status"
+          },
+          "is_read": {
+            "type": "boolean",
+            "title": "Is Read"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject_id",
+          "assignment_id",
+          "due_at",
+          "channel",
+          "delivery_status",
+          "is_read",
+          "read_at",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SubjectNotificationResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
