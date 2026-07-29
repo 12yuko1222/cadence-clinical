@@ -7,7 +7,7 @@
 * **Version:** 1.0.0-RELEASE
 * **Effective Date:** 2026-07-22
 * **Classification:** GxP Confined / Highly Confidential
-* **Authors:** Frederick de Ruiter (Lead Solutions Architect), Jules (Staff Software Engineer)
+* **Authors:** Frederick de Ruiter (Lead Solutions Architect), Frederick de Ruiter (Lead Architect)
 * **Standards Alignment:**
   * **ISO/IEC/IEEE 29148:2018:** Systems and software engineering — Life cycle processes — Requirements engineering
   * **ISO 14155:2020:** Clinical investigation of medical devices for human subjects — Good clinical practice (GCP)
@@ -18,7 +18,7 @@
 | Version | Date | Description of Change | Author(s) | Reviewer(s) / Approver(s) |
 | :--- | :--- | :--- | :--- | :--- |
 | 0.1.0-DRAFT | 2026-06-01 | Initial skeleton and placeholder generation | F. de Ruiter | SDLC Steering Group |
-| 1.0.0-RELEASE| 2026-07-22 | Comprehensive expansion of all clinical modules, field-level validation, clinical state machines, unblinding protocols, and query lifecycles. Conforms to ISO 29148. | Jules | F. de Ruiter, QA Directorate |
+| 1.0.0-RELEASE| 2026-07-22 | Comprehensive expansion of all clinical modules, field-level validation, clinical state machines, unblinding protocols, and query lifecycles. Conforms to ISO 29148. | F. de Ruiter | F. de Ruiter, QA Directorate |
 
 ### 1.3 Signature & Approval Matrix
 By signing below, the representatives from clinical development, software engineering, and regulatory affairs authorize this document as the definitive functional baseline for the Cadence Clinical Platform.

@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-28
-* **Authors:** @jules
+* **Authors:** @fderuiter
 * **Deciders:** @fderuiter
 * **Requirements Reference:** PRD-SYS-001
 

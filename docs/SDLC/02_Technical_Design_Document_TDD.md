@@ -755,6 +755,6 @@ In accordance with GxP regulatory requirements, system code and clinical protoco
 
 *This section confirms the technical design meets all regulatory, safety, and performance requirements specified in the Product Requirements Document (PRD).*
 
-* **Lead Architect Approval:** *Jules (AI Software Engineer)*
+* **Lead Architect Approval:** *Frederick de Ruiter (Lead Architect)*
 * **Compliance Auditor Sign-off:** *GxP Validation Specialist (Designated Placeholder)*
 * **Safety Officer Approval:** *ISO 14971 Safety Lead (Designated Placeholder)*

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-11
-- **Authors:** @jules
+- **Authors:** @fderuiter
 - **Deciders:** @engineering_leads, @qa_lead
 
 ---

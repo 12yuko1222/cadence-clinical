@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-23
-* **Authors:** @jules
+* **Authors:** @fderuiter
 * **Deciders:** @lead-architect, @compliance-officer
 
 ---

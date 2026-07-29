@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-24
-* **Authors:** @jules
+* **Authors:** @fderuiter
 * **Deciders:** @engineering-lead, @gxp-auditor
 
 ---

@@ -2,8 +2,8 @@
 
 * **Status:** Proposed
 * **Date:** 2026-07-29
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 

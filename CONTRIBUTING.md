@@ -2,7 +2,7 @@
 
 Welcome to the Cadence Clinical Platform contributor repository! This document outlines the workflows, coding standards, and quality verification gates required of all human developers wishing to contribute.
 
-To ensure the GxP-compliance and high-integrity nature of this eClinical monorepo, please adhere strictly to these guidelines.
+To ensure the GxP-compliance and high-integrity nature of this eClinical monorepo, please adhere strictly to these guidelines. Refer to the **[Master Documentation Index](docs/DOCUMENTATION_INDEX.md)** for a complete sitemap of system specifications, architecture blueprints, ADRs, and validation ledgers.
 
 ---
 
@@ -41,16 +41,34 @@ When starting a new issue or feature, create a branch from the up-to-date `main`
 
 ---
 
-## 2. Human vs. AI Agent Boundary & Rules
+## 2. Issue-to-Documentation Synchronization Workflow
+
+When addressing open GitHub issues or modifying system functionality, follow the 3-tier documentation cascade to keep specifications and tests in sync:
+
+1. **Requirement Level (`PRD` / `SRS`)**:
+   - Verify if your issue changes user capabilities or platform specs. Update `docs/SDLC/01_Product_Requirements_Document_PRD.md` or `docs/SRS.md` and reference a Requirement ID (`PRD-SYS-xxx` or `Trace-x`).
+2. **Architecture & Decision Level (`ADR`)**:
+   - If introducing architectural changes, scaffold a domain-indexed ADR using the developer CLI tool:
+     ```bash
+     python3 scripts/create_adr.py --title "Your Feature Title" --domain "core-platform" --req "PRD-SYS-001"
+     ```
+   - This automatically creates the formatted ADR file in `docs/adr/` and inserts it under the chosen domain in `docs/adr/index.md`.
+3. **Traceability Level (`RTM`)**:
+   - Reference requirement IDs in unit/integration test docstrings or test names.
+   - Run `node scripts/build-docs.js` locally to verify links, rebuild VitePress, and update the Requirements Traceability Matrix.
+
+---
+
+## 3. Human vs. AI Agent Boundary & Rules
 
 This repository is designed to be co-authored by human developers and autonomous AI agents. To prevent operational confusion, the guidelines and automated checks distinguish between human contribution pipelines and AI execution parameters:
 
 * **Human Developers:** Follow the interactive, cross-platform instructions outlined in this document (`CONTRIBUTING.md`) and the [Local Development Environment Guide](docs/LOCAL_DEV_ENVIRONMENT.md). Humans should leverage their interactive shell environments, run manual package resolution commands natively on the host (using Git, Node, pnpm, Python, and uv), and run local checks in parallel.
-* **Autonomous AI Agents:** Must strictly comply with `/app/AGENTS.md`. Agents have specific directory target constraints, automated file structure validation requirements, strict Pydantic v2 validation constraints, and must format code only with ruff / black to maintain syntactic uniformity.
+* **Autonomous AI Agents:** Must strictly comply with `AGENTS.md`. Agents have specific directory target constraints, automated file structure validation requirements, strict Pydantic v2 validation constraints, and must format code only with ruff / black to maintain syntactic uniformity.
 
 ---
 
-## 3. Mandatory Quality Gates & Verification Pipelines
+## 4. Mandatory Quality Gates & Verification Pipelines
 
 All contributions must pass through three rigorous quality verification gates before merging into the `main` branch.
 
@@ -62,8 +80,8 @@ Every module, class, function, and public API endpoint must be thoroughly docume
 ### Gate 2: Architecture Decision Records (ADRs)
 We enforce a strict **"Code + Context"** policy. If your PR introduces significant architectural drift, you must document it with an Architecture Decision Record (ADR):
 * **When required:** Introducing a new library/database, modifying inter-service REST contracts, adding a new service, or altering global database schemas.
-* **Format:** Create a new markdown document inside `docs/adr/` using the format `YYYY-MM-DD-short-title.md` (e.g., `docs/adr/2026-07-27-example-dynamic-ecrf-templates.md`).
-* ADRs must follow the template structure provided in `docs/adr/` and are validated on pre-commit and push gates.
+* **Scaffolding Tool:** `python3 scripts/create_adr.py --title "..." --domain "..." --req "PRD-..."`
+* ADRs are automatically indexed into `docs/adr/index.md` by functional domain and validated on pre-commit and push gates.
 
 ### Gate 3: Mandatory Test Coverage & Verification Passes
 No code is merged untested.
@@ -74,7 +92,7 @@ No code is merged untested.
 
 ---
 
-## 4. Local Git Hook Configurations (`pre-commit`)
+## 5. Local Git Hook Configurations (`pre-commit`)
 
 We use `pre-commit` to catch code formatting, security hazards, and relative link errors before they are committed to Git.
 

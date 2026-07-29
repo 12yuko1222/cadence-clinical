@@ -16,7 +16,7 @@ This document is maintained under strict version control within the Cadence Clin
 | Version | Date | Author(s) | Description of Change |
 | :--- | :--- | :--- | :--- |
 | 0.1.0 | 2026-07-20 | Quality Assurance Team | Initial outline structure initialized. |
-| 1.0.0 | 2026-07-22 | Jules, Principal Validation Engineer | Comprehensive rewrite to full GxP, IEC 62304, and GAMP 5 compliance; integrated complete Bidirectional Traceability Matrix and four execution-ready verification protocols. |
+| 1.0.0 | 2026-07-22 | Frederick de Ruiter, Lead Validation Engineer | Comprehensive rewrite to full GxP, IEC 62304, and GAMP 5 compliance; integrated complete Bidirectional Traceability Matrix and four execution-ready verification protocols. |
 
 ### 1.2 Regulatory Sign-Off & Clinical Approvals
 The signatures below declare that this Quality Assurance & Validation Plan meets all internal standard operating procedures (SOPs), clinical protocols, and statutory requirements for computerized systems used in clinical trials. By signing, the reviewers agree that the verification and validation (V&V) strategies detailed herein provide adequate evidence of fitness for purpose, data integrity, and compliance under 21 CFR Part 11 and EU Annex 11.

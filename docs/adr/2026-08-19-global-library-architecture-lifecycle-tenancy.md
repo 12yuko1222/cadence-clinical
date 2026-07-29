@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-08-19
-* **Authors:** @jules
+* **Authors:** @fderuiter
 * **Deciders:** @lead_architect, @gxp_compliance_officer
 
 ---

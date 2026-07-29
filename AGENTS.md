@@ -27,6 +27,23 @@ Cadence Clinical is a unified, standalone eClinical platform synthesizing upstre
 
 ---
 
+## Issue-to-Documentation Synchronization Protocol
+
+To keep requirements, specifications, decisions, and tests aligned across 100+ GitHub issues, agents must follow the **3-Tier Cascade Protocol**:
+
+1. **Requirement Level (`PRD` / `SRS`)**:
+   - Updates to scope or functionality must update `docs/SDLC/01_Product_Requirements_Document_PRD.md` or `docs/SRS.md` and reference a unique Requirement ID (`PRD-SYS-xxx` or `Trace-x`).
+2. **Architecture & Decision Level (`ADR`)**:
+   - Architectural or design changes require scaffolding a new ADR using the CLI helper:
+     ```bash
+     python3 scripts/create_adr.py --title "Short Title" --domain "core-platform" --req "PRD-SYS-xxx"
+     ```
+3. **Traceability Level (`RTM`)**:
+   - Unit and integration tests must reference requirement IDs (`PRD-SYS-xxx`).
+   - Run `node scripts/build-docs.js` to compile the portal and refresh the Requirements Traceability Matrix.
+
+---
+
 ## Pull Request & Contribution Verification Standards
 
 To maintain code health, architectural transparency, and GxP audit readiness across the **Cadence Clinical** monorepo, every Pull Request (PR) must satisfy three mandatory verification gates before being merged into `main`.
@@ -42,9 +59,9 @@ Cadence Clinical enforces a strict **"Code + Context"** design policy. Any PR th
   * Adding a new third-party dependency or database engine.
   * Modifying inter-service data contracts or introducing new API gateways.
   * Changing data storage models (e.g., Neo4j graph nodes or PostgreSQL schema migrations).
-* **Where do ADRs live?**
-  * Create a new markdown file inside `docs/adr/` using the format `YYYY-MM-DD-short-title.md` (e.g., `docs/adr/2026-06-06-usdm-pydantic-models.md`).
-  * If an existing ADR covers the architectural pattern, reference its ID in the PR description.
+* **Where do ADRs live & how to scaffold?**
+  * Use the ADR helper tool: `python3 scripts/create_adr.py --title "..." --domain "..." --req "PRD-..."`
+  * This creates `docs/adr/` files following the pattern `YYYY-MM-DD-short-title.md` and automatically indexes it under the correct domain in `docs/adr/index.md`.
 
 ### Gate 3: Mandatory Test Coverage & Verification Passes
 No code is merged untested. Every feature, bug fix, or data transformation must be accompanied by automated tests.
