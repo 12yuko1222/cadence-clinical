@@ -9,11 +9,11 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1199
-- **Passed:** 1193 🟢
-- **Failed/Errors:** 6 🔴
+- **Total Automated Test Cases Run:** 1217
+- **Passed:** 1212 🟢
+- **Failed/Errors:** 5 🔴
 - **Skipped:** 0 ⚪
-- **Overall Operational Pass Rate:** 99.50%
+- **Overall Operational Pass Rate:** 99.59%
 
 ## 2. Installation Qualification (IQ)
 
@@ -890,6 +890,16 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_merge_outcomes` | `tests.test_pr_comment` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_parse_existing_outcomes` | `tests.test_pr_comment` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_traceability_outcome_handling` | `tests.test_pr_comment` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_api_block_crud_with_rbac` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_arm_aware_soa_matrix_projection` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_block_persistence_lifecycle` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_canonical_ich_skeleton` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_immutability_guard_rejects_locked_block_writes` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_protocol_block_parenting` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_protocol_block_validation` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_reorder_blocks` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_selective_lineage_propagation` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_usdm_block_round_trip` | `tests.test_protocol_blocks` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_ensure_docx_template_exists` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_as_docx_success` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_export_protocol_as_pdf_success` | `tests.test_protocol_export` | *Regression/Helper* | 🟢 PASSED | < 1s |
