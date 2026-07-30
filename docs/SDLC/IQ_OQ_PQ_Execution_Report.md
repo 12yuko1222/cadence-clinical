@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1452
-- **Passed:** 1452 🟢
+- **Total Automated Test Cases Run:** 1457
+- **Passed:** 1457 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -562,6 +562,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_eisf_document_creation_and_site_scoped` | `tests.test_eisf_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_part11_audit_log_retention` | `tests.test_eisf_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_uninitialized_database_manager_eisf` | `tests.test_eisf_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_completeness_site_isolation` | `tests.test_eisf_site_scope` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_external_monitor_role` | `tests.test_eisf_site_scope` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_site_scoped_users_read_isolation` | `tests.test_eisf_site_scope` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_site_scoped_write_restrictions` | `tests.test_eisf_site_scope` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_sponsor_admin_global_visibility` | `tests.test_eisf_site_scope` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_sync_conflict_client_wins` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_sync_conflict_merge_lexicographic_tiebreaker` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_sync_conflict_merge_lww_existing_wins` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
