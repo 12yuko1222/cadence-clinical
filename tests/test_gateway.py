@@ -1267,7 +1267,8 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
     assert result.returncode == 0
 
 
-def test_eisf_gateway_site_isolation_propagation(
+@pytest.mark.asyncio
+async def test_eisf_gateway_site_isolation_propagation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
@@ -1276,7 +1277,8 @@ def test_eisf_gateway_site_isolation_propagation(
     are propagated to eISF, and that eISF correctly enforces site isolation
     (returning 403 and logging SECURITY_ALERT on mismatch).
     """
-    import asyncio
+    from httpx import ASGITransport, AsyncClient
+    from sqlalchemy import select
 
     from apps.eisf.database import db_manager as eisf_db_manager
     from apps.eisf.main import app as eisf_app
@@ -1286,21 +1288,13 @@ def test_eisf_gateway_site_isolation_propagation(
 
     # Initialize in-memory SQLite database for eISF
     eisf_db_manager.init_db("sqlite+aiosqlite:///:memory:", echo=False)
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-
-        async def create_tables():
-            async with eisf_db_manager.engine.begin() as conn:
-                await conn.run_sync(EisfBase.metadata.create_all)
-
-        loop.run_until_complete(create_tables())
-    except Exception:
-        pass
+    async with eisf_db_manager.engine.begin() as conn:
+        await conn.run_sync(EisfBase.metadata.create_all)
 
     try:
-        with TestClient(eisf_app) as eisf_client:
+        async with AsyncClient(
+            transport=ASGITransport(app=eisf_app), base_url="http://test"
+        ) as eisf_client:
             # Create same-site document using admin to allow setup
             setup_headers = get_eisf_auth_headers(
                 user_id="admin-user", roles="admin", site_id="site-boston-01"
@@ -1314,7 +1308,7 @@ def test_eisf_gateway_site_isolation_propagation(
                 "mime_type": "application/pdf",
                 "reason_for_change": "Admin setup",
             }
-            res_setup = eisf_client.post(
+            res_setup = await eisf_client.post(
                 "/api/v1/eisf/documents", json=doc_payload, headers=setup_headers
             )
             assert res_setup.status_code == 201
@@ -1324,7 +1318,7 @@ def test_eisf_gateway_site_isolation_propagation(
             pi_boston_headers = get_eisf_auth_headers(
                 user_id="pi-boston", roles="site investigator", site_id="site-boston-01"
             )
-            res_same = eisf_client.get(
+            res_same = await eisf_client.get(
                 f"/api/v1/eisf/documents/{doc_id}", headers=pi_boston_headers
             )
             assert res_same.status_code == 200
@@ -1333,38 +1327,22 @@ def test_eisf_gateway_site_isolation_propagation(
             pi_london_headers = get_eisf_auth_headers(
                 user_id="pi-london", roles="site investigator", site_id="site-london-02"
             )
-            res_cross = eisf_client.get(
+            res_cross = await eisf_client.get(
                 f"/api/v1/eisf/documents/{doc_id}", headers=pi_london_headers
             )
             assert res_cross.status_code == 403
 
             # Verify SECURITY_ALERT log entry
-            async def check_alerts():
-                from sqlalchemy import select
-
-                async with eisf_db_manager.get_session_maker()() as session:
-                    stmt = select(ISFAuditLog).where(
-                        ISFAuditLog.action == "SECURITY_ALERT"
-                    )
-                    res = await session.execute(stmt)
-                    alerts = res.scalars().all()
-                    return len(alerts)
-
-            num_alerts = loop.run_until_complete(check_alerts())
-            assert num_alerts > 0
+            async with eisf_db_manager.get_session_maker()() as session:
+                stmt = select(ISFAuditLog).where(ISFAuditLog.action == "SECURITY_ALERT")
+                res = await session.execute(stmt)
+                alerts = res.scalars().all()
+                assert len(alerts) > 0
 
     finally:
-
-        async def drop_tables():
-            async with eisf_db_manager.engine.begin() as conn:
-                await conn.run_sync(EisfBase.metadata.drop_all)
-            await eisf_db_manager.close()
-
-        try:
-            loop.run_until_complete(drop_tables())
-        except Exception:
-            pass
-        loop.close()
+        async with eisf_db_manager.engine.begin() as conn:
+            await conn.run_sync(EisfBase.metadata.drop_all)
+        await eisf_db_manager.close()
 
 
 def test_gateway_proxy_eisf_headers_propagation(
