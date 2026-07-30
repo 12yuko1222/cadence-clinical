@@ -70,6 +70,7 @@ async def test_defeated_record_persistence_on_conflicts():
     inputs with status 'Defeated by online-merge conflict resolution' in EPROSubmissionDefeated.
     # @req:Trace-9
     """
+    # @req:PRD-EDC-008
     # 1. Setup Instrument and SubjectAssignment
     async_session = db_manager.get_session_maker()
     async with async_session() as session:
@@ -229,6 +230,7 @@ async def test_structural_conflict_on_missing_target():
     in EPROSubmissionDefeated, write audit logs with reason 'SYSTEM SYNC EXCEPTION TRIGGERED',
     and create an OPEN ClinicalQuery.
     """
+    # @req:PRD-EDC-008
     client = TestClient(app)
     # Target records (Instrument/SubjectAssignment) do NOT exist in the database for this subject.
     headers = get_auth_headers(
@@ -305,6 +307,7 @@ async def test_submit_with_valid_signature():
     Test submitting an ePRO diary with a valid cryptographic signature.
     The response should propagate the valid signature validation status and reconciliation result.
     """
+    # @req:PRD-EDC-008
     async_session = db_manager.get_session_maker()
     async with async_session() as session:
         inst = Instrument(
@@ -388,6 +391,7 @@ async def test_submit_with_invalid_signature_fails():
     Test submitting an ePRO diary with an invalid cryptographic signature.
     Should raise 400 Bad Request.
     """
+    # @req:PRD-EDC-008
     async_session = db_manager.get_session_maker()
     async with async_session() as session:
         inst = Instrument(
@@ -447,6 +451,7 @@ async def test_bulk_sync_with_valid_signatures_and_tallies():
     verifying tally counts (CREATED, UPDATED_CLIENT_WINS, MERGED, IGNORED_SERVER_WINS, STRUCTURAL_CONFLICT)
     and ensuring responses propagate details.
     """
+    # @req:PRD-EDC-007
     async_session = db_manager.get_session_maker()
     async with async_session() as session:
         # Instrument exists
