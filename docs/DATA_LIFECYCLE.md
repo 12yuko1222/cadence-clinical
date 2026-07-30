@@ -572,3 +572,72 @@ The eISF service implements a robust bidirectional offline and service-to-servic
 - **Open eTMF Contract (#343)**: The receiving-side synchronized document deduplication contract on the eTMF service remains an open, pending dependency.
 - **Redacted Derivative Constraint (#693)**: Sync propagation is strictly limited to redacted/de-identified derivatives to avoid leaking any PHI or sensitive client data across boundaries.
 
+---
+
+# Data Lifecycle Specification: ePRO / Subject Portal Offline Sync
+
+## 1. Overview
+The offline ePRO (electronic Patient-Reported Outcome) and eCOA (electronic Clinical Outcome Assessment) synchronization system manages participant-reported diary submissions with high data-integrity standards, in full alignment with **PRD-EDC-007**, **PRD-EDC-008**, and **SRS Trace-9**. Its technical design and conflict resolution models are formally governed by [ADR-116](./adr/2026-08-07-epro-sync-durable-reconciliation.md).
+
+Offline participant diaries are captured locally in the Patient/Subject Portal Progressive Web App (PWA) client and synchronized securely to the Interoperability Service (Interop) via the central API Gateway.
+
+## 2. Sync States & Statuses
+The lifecycle of an offline-captured ePRO entry progresses through the following sequential states:
+- **QUEUED**: The submission is logged locally inside the client's IndexedDB queue on the patient's device, assigned a monotonic `sequence_number` and a unique `client_id`.
+- **SYNCED** (or `CREATED` / `UPDATED_CLIENT_WINS` / `MERGED`): The submission is successfully transmitted to the backend Interop service and reconciled with the database.
+- **CONFLICT**: Resolved deterministically on the server via conflict resolution strategies:
+  - `CLIENT_WINS`: Incoming offline entry overwrites the server record.
+  - `SERVER_WINS`: Existing server record is preserved.
+  - `MERGE`: Overlapping and independent fields from both the client and server are merged using Last-Write-Wins (LWW) and tiebreak logic.
+- **DEFEATED**: Payloads that were overwritten (during `CLIENT_WINS`) or ignored (during `SERVER_WINS`) are durably persisted in the `EPROSubmissionDefeated` table as "defeated by online-merge conflict resolution" to ensure no raw clinical data is silently discarded.
+- **IGNORED**: Inbound duplicate transmissions or entries superseded by newer local sequence numbers.
+- **STRUCTURAL_CONFLICT**: Triggered when a submission targets a missing or deleted clinical schema object (e.g. non-existent Instrument or SubjectAssignment). The record is rejected from primary tables, written to `EPROSubmissionDefeated`, and automatically spawns an `OPEN` `ClinicalQuery` with the system exception reason `SYSTEM SYNC EXCEPTION TRIGGERED`.
+
+## 3. Offline Synchronization Flow
+The following diagram illustrates the offline-to-online synchronization pipeline, routing gateway scopes, and target reconciliation handlers:
+
+```mermaid
+graph TD
+    A[Subject Portal PWA - client] -->|Enqueues Offline Diary| B[(IndexedDB: sync-queue.js)]
+    B -->|Reconnection: Flushes Payload| C[API Gateway - Subject-scoped Routing]
+    C -->|REST POST /api/v1/interop/epro/submit or epro/sync| D[Interop Service]
+    D -->|Calls: reconcile_records| E{Target Objects Exist?}
+    E -->|Yes: Normal Merge/LWW| F[EPROSubmission]
+    E -->|No: Structural Query Opened| G[ClinicalQuery status=OPEN]
+
+    F -->|Superseded / Defeated records| H[EPROSubmissionDefeated]
+    G -->|Defeated record state stored| H
+```
+
+## 4. Roles & Access Matrix
+System access is strictly role-governed to isolate clinical subject boundaries from sponsor administrators and CRAs:
+
+| Role / Scope | Allowable API Actions | Gateway Scope Constraint |
+| :--- | :--- | :--- |
+| **Subject** | `epro/submit`, `epro/sync`, retrieve own assignments | Scope restricted strictly to user's OIDC sub-claim / patient pseudonym |
+| **Site Staff (CRC/Investigator)** | View resolved submissions, manage Clinical Queries | Restricted to assigned clinical site boundaries |
+| **Sponsor Monitor (CRA/DM)** | Read-only compliance metrics, resolve structural queries | Global or site-allocated administrative read scope |
+
+## 5. Audit Trail & 21 CFR Part 11 Compliance
+Every transition, merge decision, or exception is chronologically logged in the `InteropAuditLog` using compliant append-only logs. The system records the following specific event types:
+- `EPRO_SUBMIT`: Standard entry logging for individual incoming records.
+- `EPRO_BULK_SYNC`: Triggered on processing batch queues, capturing total tallies of processed, created, merged, and failed sync runs.
+- `EPRO_RECONCILE`: Audit logging of deterministic conflict resolution decisions (`CLIENT_WINS`, `SERVER_WINS`, or `MERGE`) and version index increments.
+- `EPRO_STRUCTURAL_CONFLICT`: Logged on system exceptions, capturing missing schema identifiers and recording the mandatory change reason `SYSTEM SYNC EXCEPTION TRIGGERED`.
+
+## 6. Delivered Implementations & Code Traceability
+Because client-side JavaScript testing is excluded from the Python-based RTM generator, the verified client-side components and their human-readable traces are listed here:
+- **Local Persistence & Service Worker**:
+  - `apps/subject-portal/sync-queue.js` (IndexedDB queue ordering and offline state tracking)
+  - `apps/subject-portal/index.js` (State persistence and reconnection-based auto-flushes)
+  - `apps/subject-portal/public/sw.js` (PWA service-worker caching and offline network fallback)
+- **Client Verification Suites**:
+  - `apps/subject-portal/tests/portal.test.js` (Validates queue serialization and sequence ordering)
+  - `apps/subject-portal/tests/portal-ecoa-regression.test.js` (Ensures robust service worker interceptors)
+
+## 7. Planned / Pending Implementation
+
+### Feature #389: AES-GCM Local Encryption & Per-Record Signatures (Future Scope)
+- **Status**: Pending (Open under **#389**)
+- **Target standard**: Future extension of **PRD-EDC-007**
+- **Description**: Currently, local offline records stored inside the client's IndexedDB browser storage are held as plaintext, and the client-side queue does not perform local cryptographic signing. The complete AES-GCM-at-rest encryption layer and cryptographic per-record client signatures remain explicitly out of scope for the current system release and are tracked for implementation under Feature **#389**.
