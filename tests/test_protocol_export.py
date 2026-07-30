@@ -59,9 +59,10 @@ def setup_default_template():
     """
     Ensure a baseline protocol template exists for standard tests.
     """
-    # Authoritative template is checked-in and immutable.
-    # No need to rebuild it and overwrite it during parallel tests.
-    pass
+    from apps.designer.rendering import TEMPLATES_DIR
+    template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
+    if not os.path.exists(template_path):
+        build_docx_template()
 
 
 def test_sanitize_filename():
