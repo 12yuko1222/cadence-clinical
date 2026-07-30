@@ -29,7 +29,13 @@ on the target database:
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS expiration_date;
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS document_owner_id;
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS idempotency_key;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS correlation_key;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS content_checksum;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS source_system;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS sync_status;
+     ALTER TABLE tmf_audit_logs DROP COLUMN IF EXISTS reason_for_change;
      DROP INDEX IF EXISTS ix_tmf_documents_idempotency_key;
+     DROP INDEX IF EXISTS ix_tmf_documents_correlation_key;
    - For SQLite (Since SQLite does not support dropping columns directly, rebuild the table):
      CREATE TABLE tmf_document_qc_transitions_rollback (
          id VARCHAR(36) PRIMARY KEY,
@@ -199,6 +205,10 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     issue_date DATE,
                     expiration_date DATE,
                     document_owner_id VARCHAR(255),
+                    correlation_key VARCHAR(255),
+                    content_checksum VARCHAR(64),
+                    source_system VARCHAR(255),
+                    sync_status VARCHAR(50),
                     CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'))
                 );
             """)
@@ -241,6 +251,10 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 "issue_date",
                 "expiration_date",
                 "document_owner_id",
+                "correlation_key",
+                "content_checksum",
+                "source_system",
+                "sync_status",
             ]:
                 if col in cols_present:
                     select_parts.append(col)
@@ -268,7 +282,7 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     metadata_json, reason_for_change, protocol_version_tag, protocol_version_index, protocol_version_status,
                     document_type, approval_status, signature_manifestation, signer,
                     signing_timestamp, is_redacted, redaction_source_id, redaction_manifest_json,
-                    issue_date, expiration_date, document_owner_id
+                    issue_date, expiration_date, document_owner_id, correlation_key, content_checksum, source_system, sync_status
                 )
                 SELECT {select_sql}
                 FROM tmf_documents;
@@ -334,6 +348,11 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             await conn.execute(
                 text(
                     "CREATE INDEX IF NOT EXISTS ix_tmf_documents_document_owner_id ON tmf_documents (document_owner_id);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_correlation_key ON tmf_documents (correlation_key);"
                 )
             )
 
@@ -435,6 +454,47 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             except Exception:
                 pass
 
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS correlation_key VARCHAR(255);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_documents_correlation_key ON tmf_documents (correlation_key);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS content_checksum VARCHAR(64);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS source_system VARCHAR(255);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS sync_status VARCHAR(50);"
+                    )
+                )
+            except Exception:
+                pass
+
             # Attempt to add check constraint if missing
             try:
                 res_const = await conn.execute(
@@ -451,6 +511,29 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                         CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'));
                     """)
                     )
+            except Exception:
+                pass
+
+        # For tmf_audit_logs, add nullable column reason_for_change
+        if dialect_name == "sqlite":
+            # Rebuild is optional, but SQLite's ALTER TABLE supports adding nullable columns directly!
+            # Let's check if reason_for_change exists in tmf_audit_logs first.
+            audit_cols = await conn.run_sync(
+                lambda sc: get_table_columns(sc, "tmf_audit_logs")
+            )
+            if audit_cols and "reason_for_change" not in audit_cols:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_audit_logs ADD COLUMN reason_for_change VARCHAR(1000);"
+                    )
+                )
+        elif dialect_name == "postgresql":
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_audit_logs ADD COLUMN IF NOT EXISTS reason_for_change VARCHAR(1000);"
+                    )
+                )
             except Exception:
                 pass
 

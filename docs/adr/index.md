@@ -60,6 +60,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-24: Role Authorization for Granular Data-Lock Actions and Trust Boundary Verification](2026-08-24-role-authorization-for-granular-data-lock-actions.md)
 
 ### 3. Clinical Data Interoperability & Standards
+- [2026-08-26: SAE Reconciliation Architecture](2026-08-26-sae-reconciliation-architecture.md)
 
 - [2026-06-06: ADR 2026-06-06: USDM Pydantic Models](2026-06-06-usdm-pydantic-models.md)
 - [2026-07-22: ADR 2026-07-22: API-First Validation and USDM Integration](2026-07-22-api-first-validation-and-usdm-integration.md)
@@ -76,11 +77,13 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-08: Expose Authenticated SDTM/ADaM Dataset-JSON Export Endpoints](2026-08-08-expose-authenticated-sdtm-adam-dataset-json-export-endpoints.md)
 - [2026-08-09: Medical Coding Engine and Query Subsystem Integration](2026-08-09-medical-coding-engine-query-integration.md)
 - [2026-08-09: Signed NCI Thesaurus CT Web Client](2026-08-09-nci-thesaurus-signed-web-client.md)
+- [2026-08-26: Durable Dictionary-Import Worker and Recovery Contract](2026-08-26-durable-dictionary-import-worker.md)
 - [2026-08-09: E2B(R3) ICSR XML Export and Structural Validation](2026-08-09-safety-e2b-icsr-xml-export-pipeline.md)
 - [2026-08-11: Bidirectional Field Parity and RFC 7807 Validation Schemas](2026-08-11-bidirectional-field-parity-and-rfc7807-validation-schemas.md)
 - [2026-08-14: Biostatistical Export Pipeline Interoperability and Architecture](2026-08-14-biostatistical-export-pipeline-interoperability.md)
 
 ### 4. Clinical Operations & Business Modules
+- [2026-08-26: ADR-111: eISF Gateway Integration, Docker-Compose Wiring, and eTMF Sync Topology](2026-08-26-eisf-gateway-compose-and-etmf-sync-topology.md)
 - [2026-08-25: CTMS Offline Sync Reconciliation and Structural Clinical Queries](2026-08-25-ctms-offline-sync-reconciliation-and-structural-clinical-queries.md)
 - [2026-08-23: Tickets-to-Notifications Integration Architecture](2026-08-23-tickets-notifications-integration.md)
 - [2026-07-30: Protocol Ingestion and CRF Draft Generation Workflow](2026-07-30-protocol-ingestion-and-crf-draft-generation-workflow.md)
@@ -150,3 +153,6 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-23: Ticket Read Audit Policy and Paginated Audit Log Retrieval](2026-08-23-ticket-read-audit-policy-and-pagination.md)
 - [2026-08-23: Delegation of Authority Log Archive Destination and Taxonomy Mapping Decisions](2026-08-23-doa-archive-destination-and-taxonomy.md)
 - [2026-08-24: Support Tickets SLA/Overdue Escalation and Notification De-Duplication](2026-08-24-tickets-escalation-and-deduplication.md)
+- [2026-08-26: SDTM/ADaM Export Privacy: Deterministic Pseudonymization and Date De-identification](2026-08-26-sdtm-adam-export-privacy.md)
+- [2026-08-26: Durable and Idempotent eTMF Expiration Scanning Service](2026-08-26-durable-idempotent-etmf-expiration-scanner.md)
+- [2026-08-26: ADR 112: Site-Aware Synchronized Document Deduplication](2026-08-26-site-aware-synchronized-document-deduplication.md)

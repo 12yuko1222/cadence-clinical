@@ -153,8 +153,8 @@ class TMFDocument(Base):
 
     # Expiration metadata fields
     issue_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
-    expiration_date: Mapped[Optional[date]] = mapped_column(
-        Date, nullable=True, index=True
+    expiration_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
     )
     document_owner_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True, index=True
@@ -197,6 +197,14 @@ class TMFDocument(Base):
     redaction_manifest_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True
     )
+
+    # Synchronization and provenance fields
+    correlation_key: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    content_checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source_system: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
 
 class DocumentQCTransition(Base):
@@ -260,6 +268,9 @@ class TMFAuditLog(Base):
     )
     details: Mapped[str] = mapped_column(String(1000), nullable=False)
     cryptographic_seal: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    reason_for_change: Mapped[Optional[str]] = mapped_column(
+        String(1000), nullable=True
+    )
 
 
 class TMFAuditLedgerSeal(Base):
@@ -279,6 +290,42 @@ class TMFAuditLedgerSeal(Base):
     )
     sealed_record_count: Mapped[int] = mapped_column(Integer, nullable=False)
     merkle_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class DocumentExpirationAlertState(Base):
+    """
+    Tracks persistent warning/expiration alerts generated for eTMF documents to avoid duplication.
+    """
+
+    __tablename__ = "tmf_document_expiration_alert_states"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "warning_window", name="uq_tmf_doc_expiration_alert_state"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    document_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("tmf_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    warning_window: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    alerted_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+    # Standard Part 11 Audit Fields
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason_for_change: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
 
 # Trigger listener setup for SQLite immutability

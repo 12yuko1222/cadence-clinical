@@ -107,12 +107,14 @@ async def test_get_openapi_json(monkeypatch: pytest.MonkeyPatch) -> None:
         assert "/quality/test" in data["paths"]
         assert "/notifications/test" in data["paths"]
         assert "/safety/test" in data["paths"]
+        assert "/eisf/test" in data["paths"]
         assert "Designer_TestModel" in data["components"]["schemas"]
         assert "Execution_TestModel" in data["components"]["schemas"]
         assert "Ctms_TestModel" in data["components"]["schemas"]
         assert "Quality_TestModel" in data["components"]["schemas"]
         assert "Notifications_TestModel" in data["components"]["schemas"]
         assert "Safety_TestModel" in data["components"]["schemas"]
+        assert "Eisf_TestModel" in data["components"]["schemas"]
 
 
 def test_get_openapi_json_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -250,6 +252,31 @@ def test_proxy_requests_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         assert (
             str(mock_send.call_args.args[0].url)
             == "http://localhost:8008/api/v1/safety/test"
+        )
+
+        # Test eisf prefix
+        res = client.get("/eisf/test", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200
+        assert str(mock_send.call_args.args[0].url) == "http://localhost:8010/test"
+
+        # Test api/v1/eisf
+        res = client.get(
+            "/api/v1/eisf/test", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        assert (
+            str(mock_send.call_args.args[0].url)
+            == "http://localhost:8010/api/v1/eisf/test"
+        )
+
+        # Test events/publish alias
+        res = client.post(
+            "/events/publish", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        assert (
+            str(mock_send.call_args.args[0].url)
+            == "http://localhost:8010/events/publish"
         )
 
         # Test default route
@@ -1238,6 +1265,130 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
         text=True,
     )
     assert result.returncode == 0
+
+
+@pytest.mark.asyncio
+async def test_eisf_gateway_site_isolation_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    # @req:Trace-16
+    Contract test: Verify that valid gateway-signed identity/site scope headers
+    are propagated to eISF, and that eISF correctly enforces site isolation
+    (returning 403 and logging SECURITY_ALERT on mismatch).
+    """
+    from httpx import ASGITransport, AsyncClient
+    from sqlalchemy import select
+
+    from apps.eisf.database import db_manager as eisf_db_manager
+    from apps.eisf.main import app as eisf_app
+    from apps.eisf.models import Base as EisfBase
+    from apps.eisf.models import ISFAuditLog
+    from tests.test_eisf_api import get_eisf_auth_headers
+
+    # Initialize in-memory SQLite database for eISF
+    eisf_db_manager.init_db("sqlite+aiosqlite:///:memory:", echo=False)
+    async with eisf_db_manager.engine.begin() as conn:
+        await conn.run_sync(EisfBase.metadata.create_all)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=eisf_app), base_url="http://test"
+        ) as eisf_client:
+            # Create same-site document using admin to allow setup
+            setup_headers = get_eisf_auth_headers(
+                user_id="admin-user", roles="admin", site_id="site-boston-01"
+            )
+            doc_payload = {
+                "study_id": "study-100",
+                "site_id": "site-boston-01",
+                "binder_classification": "Investigator CV",
+                "filename": "cv.pdf",
+                "content": "CV content",
+                "mime_type": "application/pdf",
+                "reason_for_change": "Admin setup",
+            }
+            res_setup = await eisf_client.post(
+                "/api/v1/eisf/documents", json=doc_payload, headers=setup_headers
+            )
+            assert res_setup.status_code == 201
+            doc_id = res_setup.json()["id"]
+
+            # 1. Same-site access (should succeed)
+            pi_boston_headers = get_eisf_auth_headers(
+                user_id="pi-boston", roles="site investigator", site_id="site-boston-01"
+            )
+            res_same = await eisf_client.get(
+                f"/api/v1/eisf/documents/{doc_id}", headers=pi_boston_headers
+            )
+            assert res_same.status_code == 200
+
+            # 2. Cross-site access (should return 403 and write SECURITY_ALERT log)
+            pi_london_headers = get_eisf_auth_headers(
+                user_id="pi-london", roles="site investigator", site_id="site-london-02"
+            )
+            res_cross = await eisf_client.get(
+                f"/api/v1/eisf/documents/{doc_id}", headers=pi_london_headers
+            )
+            assert res_cross.status_code == 403
+
+            # Verify SECURITY_ALERT log entry
+            async with eisf_db_manager.get_session_maker()() as session:
+                stmt = select(ISFAuditLog).where(ISFAuditLog.action == "SECURITY_ALERT")
+                res = await session.execute(stmt)
+                alerts = res.scalars().all()
+                assert len(alerts) > 0
+
+    finally:
+        async with eisf_db_manager.engine.begin() as conn:
+            await conn.run_sync(EisfBase.metadata.drop_all)
+        await eisf_db_manager.close()
+
+
+def test_gateway_proxy_eisf_headers_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    # @req:Trace-16
+    Verify that when proxying to eISF, the gateway successfully extracts site_id from JWT
+    and propagates it along with signature version 2 headers unchanged to the eISF proxy path.
+    """
+    monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
+    token = jwt.encode(
+        {
+            "sub": "pi-boston",
+            "roles": ["site investigator"],
+            "site_id": "site-boston-01",
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    mock_send = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{"status": "ok"}'
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_send.return_value = mock_resp
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_send)
+
+    with TestClient(app) as client:
+        res = client.get(
+            "/api/v1/eisf/documents",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Change-Reason": "Authorized list documents",
+            },
+        )
+        assert res.status_code == 200
+
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        assert sent_headers.get("X-Site-Id") == "site-boston-01"
+        assert sent_headers.get("X-User-Id") == "pi-boston"
+        assert sent_headers.get("X-Signature-Version") == "2"
+        assert sent_headers.get("X-Gateway-Signature") is not None
 
 
 def test_gateway_scope_extraction_and_verification_integrity(

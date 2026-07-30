@@ -28,6 +28,9 @@ async def ingest_document_service(
     audit_details: Optional[str] = None,
     reason_for_change: Optional[str] = None,
     protocol_version: Optional[ProtocolVersionRef] = None,
+    correlation_key: Optional[str] = None,
+    content_checksum: Optional[str] = None,
+    source_system: Optional[str] = None,
 ) -> TMFDocument:
     """Compatibility wrapper that delegates to ingest_tmf_document."""
     return await ingest_tmf_document(
@@ -51,4 +54,7 @@ async def ingest_document_service(
         audit_details=audit_details,
         reason_for_change=reason_for_change,
         protocol_version=protocol_version,
+        correlation_key=correlation_key,
+        content_checksum=content_checksum,
+        source_system=source_system,
     )
