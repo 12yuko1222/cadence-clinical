@@ -3,12 +3,15 @@ import hashlib
 import hmac
 import os
 import time
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional, Union
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
+
+if TYPE_CHECKING:
+    from packages.security.permissions import PermissionEnum
 
 from packages.security.context import (
     current_change_reason,
@@ -366,8 +369,16 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                         },
                     )
 
+        from packages.security.permissions import (
+            get_permissions_for_roles,
+        )
+
+        role_list = [r.strip() for r in (roles or "").split(",") if r.strip()]
+        granted_permissions = get_permissions_for_roles(role_list)
+
         request.state.user_id = user_id
         request.state.roles = roles
+        request.state.permissions = granted_permissions
         request.state.change_reason = change_reason
         request.state.site_id = site_id
         request.state.sponsor_id = sponsor_id
@@ -412,3 +423,26 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             current_sponsor_id.reset(sponsor_token)
             current_unblinded_access.reset(unblinded_token)
             current_tenant_id.reset(tenant_token)
+
+
+def require_gateway_permission(required_permission: "PermissionEnum") -> Callable:
+    """FastAPI route dependency to enforce a specific granular PermissionEnum.
+
+    Args:
+        required_permission: PermissionEnum required to execute the endpoint.
+
+    Returns:
+        Callable FastAPI dependency function.
+    """
+
+    async def _dependency(request: Request) -> None:
+        permissions = getattr(request.state, "permissions", set())
+        if required_permission not in permissions:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: Missing required permission '{required_permission.value}'",
+            )
+
+    return _dependency

@@ -16,6 +16,17 @@ from packages.security.delegation import (
     validate_request_staff_roles,
     verify_delegation_scope,
 )
+from packages.security.middleware import (
+    GatewayAuthMiddleware,
+    require_gateway_permission,
+)
+from packages.security.permissions import (
+    PermissionEnum,
+    RoleEnum,
+    get_permissions_for_role,
+    get_permissions_for_roles,
+    normalize_role_name,
+)
 from packages.security.rbac import (
     ROLE_ALIASES,
     ROLE_AUDITOR,
@@ -112,4 +123,11 @@ __all__ = [
     "can_access_site",
     "can_access_study",
     "mask_payload",
+    "PermissionEnum",
+    "RoleEnum",
+    "get_permissions_for_role",
+    "get_permissions_for_roles",
+    "normalize_role_name",
+    "GatewayAuthMiddleware",
+    "require_gateway_permission",
 ]

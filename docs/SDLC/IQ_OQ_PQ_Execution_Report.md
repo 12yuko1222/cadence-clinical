@@ -11,6 +11,8 @@ Based on the executed automated verification suite, the platform meets all prede
 ### Validation Result Summary
 - **Total Automated Test Cases Run:** 1428
 - **Passed:** 1428 🟢
+- **Total Automated Test Cases Run:** 1507
+- **Passed:** 1507 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1134,6 +1136,22 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_verify_is_auditor_denies_non_auditors` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_not_auditor_allows_others` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_not_auditor_denies_auditors` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_field_level_masking_blinded_user` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_field_level_masking_pii_fields` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_field_level_masking_unblinded_user` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_mask_clinical_records_list` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rbac_cra_monitoring_authorization` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rbac_data_manager_lock_authorization` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rbac_sponsor_admin_authorization` | `tests.test_rbac_enforcement` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_get_permissions_for_role_cra` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_get_permissions_for_role_data_manager` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_get_permissions_for_role_sponsor_admin` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_get_permissions_for_roles_aggregated` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_has_permission_checks` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_normalize_role_name` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_permission_matrix_enum_values` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_role_enum_canonical_names` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_unknown_role_returns_empty_permissions` | `tests.test_rbac_permissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_subject_consent_blocking_and_reconsent_lifecycle` | `tests.test_reconsent_blocking` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_reset_db_safety_guard_non_local` | `tests.test_reset_db` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_reset_db_safety_guard_production` | `tests.test_reset_db` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1266,6 +1284,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_middleware_invalid_timestamp_format` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_missing_headers` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_missing_signature_version_rejected` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_middleware_permissions_parsed_in_state` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_tenant_context_and_state` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_tenant_missing_fallback` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_tenant_signature_tampering_rejected` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1277,6 +1296,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_middleware_v2_safe_method_no_reason_success` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_middleware_v2_success` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_mutation_unsigned_and_non_compliant_rejections` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_require_gateway_permission_enforcement` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_gateway_signature_scope_fallback_restrictions` | `tests.test_security_middleware` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_sig_token_helper_scenarios` | `tests.test_security_middleware` | Trace-15 | 🟢 PASSED | < 1s |
 | `test_asymmetric_sign_and_verify` | `tests.test_signature_manifestation` | *Regression/Helper* | 🟢 PASSED | < 1s |
