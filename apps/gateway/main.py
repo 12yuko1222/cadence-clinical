@@ -163,7 +163,8 @@ SERVICES = {
     "quality": os.getenv("QUALITY_URL", "http://localhost:8005"),
     "safety": os.getenv("SAFETY_URL", "http://localhost:8008"),
     "tickets": os.getenv("TICKETS_URL", "http://localhost:8009"),
-    "org": os.getenv("ORG_URL", "http://localhost:8010"),
+    "org": os.getenv("ORG_URL", "http://localhost:8012"),
+    "eisf": os.getenv("EISF_URL", "http://localhost:8010"),
     "econsent": os.getenv("ECONSENT_URL", "http://localhost:8011"),
 }
 
@@ -453,6 +454,7 @@ async def get_openapi_json() -> Response:
         safety_spec,
         tickets_spec,
         org_spec,
+        eisf_spec,
     ) = await asyncio.gather(
         fetch_service_openapi(SERVICES["designer"]),
         fetch_service_openapi(SERVICES["execution"]),
@@ -464,7 +466,20 @@ async def get_openapi_json() -> Response:
         fetch_service_openapi(SERVICES["safety"]),
         fetch_service_openapi(SERVICES["tickets"]),
         fetch_service_openapi(SERVICES["org"]),
+        fetch_service_openapi(SERVICES["eisf"]),
     )
+
+    if eisf_spec and is_valid_openapi_spec(eisf_spec):
+        try:
+            eisf_spec = rewrite_references(eisf_spec, "Eisf_")
+            for path_str, path_item in eisf_spec.get("paths", {}).items():
+                merged["paths"][f"/eisf{path_str}"] = path_item
+            for schema_name, schema_val in (
+                eisf_spec.get("components", {}).get("schemas", {}).items()
+            ):
+                merged["components"]["schemas"][f"Eisf_{schema_name}"] = schema_val
+        except Exception:
+            pass
 
     if tickets_spec and is_valid_openapi_spec(tickets_spec):
         try:
@@ -1039,6 +1054,8 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['safety']}/{path[len('safety/') :]}"
     elif path.startswith("tickets/"):
         target_url = f"{SERVICES['tickets']}/{path[len('tickets/') :]}"
+    elif path.startswith("eisf/"):
+        target_url = f"{SERVICES['eisf']}/{path[len('eisf/') :]}"
     elif path.startswith("api/v1/terminology"):
         target_url = f"{SERVICES['designer']}/{path}"
     elif path.startswith("terminology/"):
@@ -1053,6 +1070,8 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['econsent']}/{path[len('econsent/') :]}"
     elif path.startswith("api/v1/econsent"):
         target_url = f"{SERVICES['econsent']}/{path}"
+    elif path.startswith("api/v1/eisf"):
+        target_url = f"{SERVICES['eisf']}/{path}"
     elif path.startswith("api/v1/etmf"):
         target_url = f"{SERVICES['etmf']}/{path}"
     elif path.startswith("api/v1/interop"):
@@ -1071,6 +1090,8 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['org']}/{path}"
     elif path.startswith("api/v1/tickets"):
         target_url = f"{SERVICES['tickets']}/{path}"
+    elif path == "events/publish":
+        target_url = f"{SERVICES['eisf']}/events/publish"
     else:
         target_url = f"{SERVICES['designer']}/{path}"
 

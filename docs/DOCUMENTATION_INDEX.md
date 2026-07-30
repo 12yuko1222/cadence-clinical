@@ -49,7 +49,7 @@ Immutable chronological records of key architectural and technical decisions mad
   1. **Core Platform & Engine**: Graph DB, PostgreSQL, Pydantic v2, rules engine, dynamic diffing.
   2. **API Gateway & Security**: Keycloak identity, RBAC, Gateway aggregation, canonical JSON signatures.
   3. **Clinical Data Interoperability & Standards**: USDM v3/v4 mapping, ODM, SDTM/ADaM, FHIR, medical coding.
-  4. **Clinical Operations & Business Modules**: CTMS, eTMF, RTSM, eCOA/ePRO, eConsent, SDV/TSDV, Quality/CAPA.
+  4. **Clinical Operations & Business Modules**: CTMS, eTMF, RTSM, eCOA/ePRO, eConsent, SDV/TSDV, Quality/CAPA, eISF.
   5. **Compliance, Audit & Governance**: 21 CFR Part 11 Audit Trail, Merkle root sealing, shadow triggers.
   6. **Frontend & Design System**: Vue 3 SPA, pnpm workspace, shared UI primitives, grid layouts.
   7. **DevOps, Tooling & CI/CD**: Parallel testing, DB CLI tool, markdown/ADR validation scripts.
