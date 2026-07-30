@@ -279,8 +279,14 @@ async def enforce_document_site_visibility(
     """
     if not can_access_site(principal, resource_site_id):
         actor_id = principal.user_id or "system"
-        actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
-        caller_scope = ",".join(principal.assigned_sites) if principal.assigned_sites else "global"
+        actor_roles = (
+            ",".join(principal.raw_roles)
+            if principal.raw_roles
+            else (",".join(principal.roles) if principal.roles else "anonymous")
+        )
+        caller_scope = (
+            ",".join(principal.assigned_sites) if principal.assigned_sites else "global"
+        )
 
         details = (
             f"SECURITY ALERT: Access Violation. User '{actor_id}' with roles '{actor_roles}' (scope: '{caller_scope}') "
@@ -343,7 +349,9 @@ async def list_documents(
     List site-scoped, binder-classified documents. Constrains by the authenticated Principal scope.
     """
     # Check if the principal is site-scoped
-    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(principal.assigned_sites)
+    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(
+        principal.assigned_sites
+    )
 
     if is_site_scoped:
         if principal.assigned_sites:
@@ -382,7 +390,11 @@ async def list_documents(
     docs = result.scalars().all()
 
     actor_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     # Log view action to audit trail
     await write_audit_log(
@@ -411,7 +423,11 @@ async def create_document(
     principal: Principal = Depends(get_principal),
 ):
     user_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     # Enforce site isolation
     await enforce_document_site_visibility(principal, payload.site_id, session)
@@ -516,7 +532,11 @@ async def ingest_document(
     principal: Principal = Depends(get_principal),
 ):
     user_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     # Enforce site isolation
     await enforce_document_site_visibility(principal, payload.site_id, session)
@@ -647,7 +667,11 @@ async def get_document(
     await enforce_document_site_visibility(principal, doc.site_id, session)
 
     actor_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     # Log view to audit trail
     await write_audit_log(
@@ -687,7 +711,11 @@ async def download_document(
     await enforce_document_site_visibility(principal, doc.site_id, session)
 
     actor_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     # Log download to audit trail
     await write_audit_log(
@@ -717,7 +745,11 @@ async def update_document(
     principal: Principal = Depends(get_principal),
 ):
     user_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
@@ -795,7 +827,11 @@ async def delete_document(
     principal: Principal = Depends(get_principal),
 ):
     user_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
@@ -857,7 +893,9 @@ async def get_binder_completeness(
     Compares filed artifacts for the study and site against a required artifact list by section.
     Enforces site isolation strictly.
     """
-    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(principal.assigned_sites)
+    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(
+        principal.assigned_sites
+    )
 
     if is_site_scoped:
         if principal.assigned_sites:
@@ -916,7 +954,11 @@ async def get_binder_completeness(
 
     # Log completeness checking action to audit trail
     actor_id = principal.user_id or "system"
-    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    actor_roles = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     await write_audit_log(
         session=session,
@@ -929,7 +971,11 @@ async def get_binder_completeness(
     )
 
     response_site_id = (
-        site_id if (site_id and (not principal.assigned_sites or site_id in principal.assigned_sites))
+        site_id
+        if (
+            site_id
+            and (not principal.assigned_sites or site_id in principal.assigned_sites)
+        )
         else (principal.assigned_sites[0] if principal.assigned_sites else "unknown")
     )
 
@@ -1042,7 +1088,11 @@ async def sync_documents(
 
     logging.getLogger("eisf_sync")
     user_id = principal.user_id or "system"
-    role_str = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+    role_str = (
+        ",".join(principal.raw_roles)
+        if principal.raw_roles
+        else (",".join(principal.roles) if principal.roles else "anonymous")
+    )
 
     processed_count = 0
     created_count = 0

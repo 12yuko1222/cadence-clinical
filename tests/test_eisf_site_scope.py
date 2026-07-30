@@ -24,7 +24,9 @@ async def setup_eisf_db():
     await db_manager.close()
 
 
-def get_global_auth_headers(roles: str = "admin", change_reason: str = "Test Change Reason Long enough") -> dict:
+def get_global_auth_headers(
+    roles: str = "admin", change_reason: str = "Test Change Reason Long enough"
+) -> dict:
     """
     Helper to generate valid global (unscoped) V2 signed headers.
     """
@@ -45,7 +47,9 @@ def get_global_auth_headers(roles: str = "admin", change_reason: str = "Test Cha
 
 
 def get_site_auth_headers(
-    roles: str = "investigator", site_id: str = "site_alpha", change_reason: str = "Test Change Reason Long enough"
+    roles: str = "investigator",
+    site_id: str = "site_alpha",
+    change_reason: str = "Test Change Reason Long enough",
 ) -> dict:
     """
     Helper to generate valid site-scoped V2 signed headers.
@@ -302,14 +306,18 @@ async def test_eisf_sponsor_admin_global_visibility():
     )
 
     # List documents as admin: should see site_alpha when queried specifically
-    list_resp = client.get("/api/v1/eisf/documents?site_id=site_alpha", headers=admin_headers)
+    list_resp = client.get(
+        "/api/v1/eisf/documents?site_id=site_alpha", headers=admin_headers
+    )
     assert list_resp.status_code == 200
     listed_filenames = [d["filename"] for d in list_resp.json()]
     assert "cv_alpha.pdf" in listed_filenames
     assert "cv_beta.pdf" not in listed_filenames
 
     # List documents as admin for site_beta
-    list_resp_beta = client.get("/api/v1/eisf/documents?site_id=site_beta", headers=admin_headers)
+    list_resp_beta = client.get(
+        "/api/v1/eisf/documents?site_id=site_beta", headers=admin_headers
+    )
     assert list_resp_beta.status_code == 200
     listed_filenames_beta = [d["filename"] for d in list_resp_beta.json()]
     assert "cv_beta.pdf" in listed_filenames_beta
