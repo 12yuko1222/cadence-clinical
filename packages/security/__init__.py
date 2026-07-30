@@ -1,3 +1,9 @@
+from packages.security.audit_logger import (
+    AuditLoggerEngine,
+    AuditLogPayload,
+    AuditLogRecord,
+    audit_logger_engine,
+)
 from packages.security.context import (
     audit_context,
     audit_context_decorator,
@@ -6,6 +12,11 @@ from packages.security.context import (
     current_signature_context,
     current_timestamp,
     current_user_id,
+)
+from packages.security.crypto_verifier import (
+    SignatureVerificationRequest,
+    SignatureVerificationResult,
+    verify_electronic_signature,
 )
 from packages.security.delegation import (
     DelegationChecker,
@@ -110,4 +121,11 @@ __all__ = [
     "can_access_site",
     "can_access_study",
     "mask_payload",
+    "AuditLoggerEngine",
+    "AuditLogPayload",
+    "AuditLogRecord",
+    "audit_logger_engine",
+    "SignatureVerificationRequest",
+    "SignatureVerificationResult",
+    "verify_electronic_signature",
 ]
