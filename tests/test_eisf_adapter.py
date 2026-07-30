@@ -263,17 +263,24 @@ def test_classify_incoming_document_changed_object():
     assert latest_doc == existing_docs[1]
 
 
+# Hardcoded per-code expectations so that tests catch incorrect catalog changes
+# rather than silently deriving truth from the active (potentially broken) catalog.
+# Extension codes must use "v3.2.0-extended"; all others use "v3.2.0-complete".
+_EXTENSION_ETMF_CODES = frozenset({"05.02.98"})
+
+
 def test_eisf_mappings_resolve_through_active_catalog():
     """
     Verify that all forward mappings defined in the eISF adapter successfully
-    resolve to standard, valid artifacts, sections, and zones in the active complete catalog.
+    resolve to standard, valid artifacts, sections, and zones in the active
+    complete catalog.
+
+    Version and is_extension expectations are hardcoded per artifact code so
+    that a bad catalog change cannot make this test pass falsely.
     """
-    from tmf_reference_model import get_active_catalog, resolve_artifact
+    from tmf_reference_model import resolve_artifact
 
     from apps.eisf.adapter import FORWARD_MAPPING
-
-    active_catalog = get_active_catalog()
-    assert active_catalog.version == "v3.2.0-complete"
 
     for (binder_sec, art_type), (
         zone,
@@ -281,14 +288,11 @@ def test_eisf_mappings_resolve_through_active_catalog():
         etmf_art_type,
         etmf_code,
     ) in FORWARD_MAPPING.items():
-        if etmf_code in active_catalog.artifact_map:
-            version = active_catalog.version
-            expected_ext = False
-        else:
-            version = "v3.2.0-extended"
-            expected_ext = True
+        # Expectations are independent of the active catalog state
+        expected_ext = etmf_code in _EXTENSION_ETMF_CODES
+        version = "v3.2.0-extended" if expected_ext else "v3.2.0-complete"
 
-        # Resolve artifact dynamically through the taxonomy catalog
+        # Resolve artifact through the taxonomy catalog
         resolved = resolve_artifact(version, code=etmf_code)
 
         # Verify correctness of the resolution
@@ -307,27 +311,25 @@ def test_eisf_mappings_resolve_through_active_catalog():
 def test_eisf_reverse_mappings_resolve_through_active_catalog():
     """
     Verify that all reverse mappings defined in the eISF adapter successfully
-    resolve to standard, valid artifacts, sections, and zones in the active complete catalog.
+    resolve to standard, valid artifacts, sections, and zones in the active
+    complete catalog.
+
+    Version and is_extension expectations are hardcoded per artifact code so
+    that a bad catalog change cannot make this test pass falsely.
     """
-    from tmf_reference_model import get_active_catalog, resolve_artifact
+    from tmf_reference_model import resolve_artifact
 
     from apps.eisf.adapter import REVERSE_MAPPING
-
-    active_catalog = get_active_catalog()
-    assert active_catalog.version == "v3.2.0-complete"
 
     for (zone, section, etmf_art_type, etmf_code), (
         binder_sec,
         art_type,
     ) in REVERSE_MAPPING.items():
-        if etmf_code in active_catalog.artifact_map:
-            version = active_catalog.version
-            expected_ext = False
-        else:
-            version = "v3.2.0-extended"
-            expected_ext = True
+        # Expectations are independent of the active catalog state
+        expected_ext = etmf_code in _EXTENSION_ETMF_CODES
+        version = "v3.2.0-extended" if expected_ext else "v3.2.0-complete"
 
-        # Resolve artifact dynamically through the taxonomy catalog
+        # Resolve artifact through the taxonomy catalog
         resolved = resolve_artifact(version, code=etmf_code)
 
         # Verify correctness of the resolution
