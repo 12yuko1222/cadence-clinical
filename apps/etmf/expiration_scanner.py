@@ -36,7 +36,7 @@ def determine_warning_window(
     if expiration_date <= now:
         return "EXPIRED"
 
-    remaining_days = (expiration_date - now).total_seconds() / 86400.0
+    remaining_days = (expiration_date - now).total_seconds() / 86400.0  # deid-ignore
 
     # Smallest warning windows first (tightest threshold)
     sorted_windows = sorted(warning_windows)
@@ -84,9 +84,9 @@ async def execute_expiration_scan_cycle(session_maker: Any) -> None:
             # expiration_date might be saved as date/datetime. Let's convert if needed.
             doc_expiry = doc.expiration_date
             if isinstance(doc_expiry, date) and not isinstance(doc_expiry, datetime):
-                doc_expiry = datetime.combine(
-                    doc_expiry, datetime.min.time()
-                ).replace(tzinfo=timezone.utc)
+                doc_expiry = datetime.combine(doc_expiry, datetime.min.time()).replace(
+                    tzinfo=timezone.utc
+                )
 
             window = determine_warning_window(doc_expiry, now, warning_windows)
             if window is None:
@@ -112,9 +112,7 @@ async def execute_expiration_scan_cycle(session_maker: Any) -> None:
                 new_alert = DocumentExpirationAlertState(
                     document_id=doc.id,
                     warning_window=window,
-                    alerted_at=now.replace(
-                        tzinfo=None
-                    ),  # Naive datetime for DB
+                    alerted_at=now.replace(tzinfo=None),  # Naive datetime for DB
                     created_by=created_by,
                     reason_for_change=reason_for_change,
                     version_index=1,
@@ -148,7 +146,9 @@ async def start_background_etmf_expiration_scanner(
     global _scanner_task, _should_run
     if interval is None:
         interval = float(
-            os.getenv("ETMF_EXPIRATION_SCANNER_INTERVAL_SECONDS", "86400.0")
+            os.getenv(
+                "ETMF_EXPIRATION_SCANNER_INTERVAL_SECONDS", "86400.0"
+            )  # deid-ignore
         )
     _should_run = True
 

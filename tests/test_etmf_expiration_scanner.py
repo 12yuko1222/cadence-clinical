@@ -1,6 +1,6 @@
 import asyncio
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -355,7 +355,4 @@ async def test_audit_attribution():
         )
         alert = res.scalars().one()
         assert alert.created_by == "expiration_scanner"
-        assert (
-            alert.reason_for_change
-            == "System-initiated expiration alert generation"
-        )
+        assert alert.reason_for_change == "System-initiated expiration alert generation"

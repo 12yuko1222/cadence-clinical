@@ -2477,7 +2477,9 @@ async def update_document_expiration_endpoint(
     # 5. Mutate the fields and increment version index
     doc.issue_date = payload.issue_date
     resolved_expiration_date = payload.expiration_date
-    if resolved_expiration_date is not None and not isinstance(resolved_expiration_date, datetime):
+    if resolved_expiration_date is not None and not isinstance(
+        resolved_expiration_date, datetime
+    ):
         resolved_expiration_date = datetime.combine(
             resolved_expiration_date, datetime.min.time()
         ).replace(tzinfo=timezone.utc)

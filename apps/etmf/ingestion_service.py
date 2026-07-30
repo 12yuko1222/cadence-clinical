@@ -304,7 +304,9 @@ async def ingest_tmf_document(
     try:
         async with session.begin_nested():
             resolved_expiration_date = expiration_date
-            if resolved_expiration_date is not None and not isinstance(resolved_expiration_date, datetime):
+            if resolved_expiration_date is not None and not isinstance(
+                resolved_expiration_date, datetime
+            ):
                 resolved_expiration_date = datetime.combine(
                     resolved_expiration_date, datetime.min.time()
                 ).replace(tzinfo=timezone.utc)
