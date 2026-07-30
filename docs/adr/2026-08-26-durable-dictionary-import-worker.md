@@ -48,7 +48,7 @@ Citing **ADR-050** (which highlighted technical debt and the eventual need for d
 * **Overview:** Build a database-backed, cooperative polling worker running as an in-process `asyncio.Task` loop within the FastAPI lifespan. The worker coordinates tasks using relational database-native locking mechanics (`SELECT ... FOR UPDATE SKIP LOCKED`).
 * **Pros:**
   * ✅ Zero new infrastructure: relies strictly on the existing PostgreSQL/SQLite relational database.
-  * ✅ Proven pattern: mirrors the repository's existing Standalone Notifications Service foundation dispatch loop (`apps/notifications/main.py:poll_and_dispatch`) and the background sealer.
+  * ✅ Proven pattern: mirrors the repository's existing Standalone Notifications Service foundation dispatch loop (`poll_and_dispatch` in `apps/notifications/main.py`) and the background sealer.
   * ✅ Full async compatibility: integrates seamlessly with async SQLAlchemy 2.0 and FastAPI lifespan startup/shutdown hooks.
   * ✅ Perfect GxP audit propagation: because jobs are stored in relational tables, the requesting user's ID, change reason, and step-up signature metadata are preserved in the job payload and can be re-bound dynamically using `audit_context` inside the background task thread.
 * **Cons:**
@@ -198,7 +198,7 @@ The downstream implementation must apply changes to the following modules:
 * Maintain progress reporting, capped at 90% during processing and 100% upon successful `COMPLETED` transition.
 * Delete the physical archive file in the durable storage directory *only* on successful terminal completion or when maximum retries are exhausted.
 
-#### 3. `apps/execution/coding/worker.py` (New Module)
+#### 3. `apps/execution/coding/{worker}.py` (New Module)
 * Implement the background loop:
   * Periodic loop running every 5 seconds (or using chunked sleeps for responsive shutdowns).
   * Executes the pessimistic lock query `SELECT ... FOR UPDATE SKIP LOCKED` inside a separate session.
