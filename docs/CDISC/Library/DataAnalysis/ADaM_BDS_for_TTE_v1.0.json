@@ -1,0 +1,518 @@
+{
+    "ReadMe": [
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": NaN,
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variables",
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Column Name",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Version (Column A)",
+            "Unnamed: 1": "ADaMIG version."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Name (Column B)",
+            "Unnamed: 1": "Name of the ADaM data structure. "
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Set (Column C)",
+            "Unnamed: 1": "Name of the ADaM Variable Set."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Name (Column D)",
+            "Unnamed: 1": "Name of the ADaMIG variable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Label (Column E)",
+            "Unnamed: 1": "Label for the ADAMIG variable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Type (Column F)",
+            "Unnamed: 1": "Simple datatype (Char or Num) defined by the implementation guide."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC CT Codelist Code(s) (Column G)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for the ADaMIG variable. The values represent Code in CDISC Controlled Terminology publications. A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC CT Codelist Submission Value(s) (Column H)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Submission Value for the ADaMIG variable. The values represent Submission Value in CDISC Controlled Terminology publications. A semi-colon delimited list will be used to display multiple values. "
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Described Value Domain(s) (Column I)",
+            "Unnamed: 1": "Described value domain(s) for the ADaMIG variable. Example: \"MedDRA\"  A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Value List (Column J)",
+            "Unnamed: 1": "Value list for the ADaMIG variable. A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Core (Column K)",
+            "Unnamed: 1": "Provides guidance and compliance rules relevant to the inclusion of the variable in the ADaMIG domain.  Variables in ADaMIG are Required, Conditional, or Permissible."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC Notes (Column L)",
+            "Unnamed: 1": "Gives the type of information conveyed by the ADaMIG variable about each record."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": NaN,
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structures",
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Column Name",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Version (Column A)",
+            "Unnamed: 1": "ADaMIG version."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Name (Column B)",
+            "Unnamed: 1": "Name of the ADaM Data Structure. Used to identify the Data Structure in API requests."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Description (Column C)",
+            "Unnamed: 1": "Description of Data Structure."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Class (Column D)",
+            "Unnamed: 1": "Class of the ADaM Data Structure."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Subclass (Column E)",
+            "Unnamed: 1": "Subclass of ADaM Data Structure where applicable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC Notes (Column F)",
+            "Unnamed: 1": "Explanatory text for the ADaM Data Structure"
+        }
+    ],
+    "Variables": [
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Subject Identifier Variable",
+            "Variable Name": "STUDYID",
+            "Variable Label": "Study Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "Must be identical to the ADSL variable."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Subject Identifier Variable",
+            "Variable Name": "USUBJID",
+            "Variable Label": "Unique Subject Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "Must be identical to the ADSL variable."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Subject Identifier Variable",
+            "Variable Name": "ASEQ",
+            "Variable Label": "Analysis Sequence Number",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Sequence number given to ensure uniqueness of subject record within the analysis dataset. As long as values are unique within a dataset, any valid number can be used for ASEQ. The use of this variable will be addressed in detail in the next version of ADaM IG."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTP",
+            "Variable Label": "Planned Treatment",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "TRTP is a record-level identifier that represents the planned treatment attributed to a record for analysis purposes."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTPN",
+            "Variable Label": "Planned Treatment (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The numeric code for TRTP. One-to-one map to TRTP."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTA",
+            "Variable Label": "Actual Treatment",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "TRTA is a record-level identifier that represents the actual treatment attributed to a record for analysis purposes."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTAN",
+            "Variable Label": "Actual Treatment (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The numeric code for TRTA. One-to-one map to TRTA."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTxxP",
+            "Variable Label": "Planned Treatment for Period xx",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Subject-level identifier that represents the planned treatment for period xx. Must be identical to the ADSL variable. The letter 'xx' in the variable name refer to a specific period where 'xx' is replaced with a zero-padded two-digit integer (i.e., 01 - 99)."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTxxPN",
+            "Variable Label": "Planned Treatment for Period xx (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The numeric code variable for TRTxxP. One-to-one map to TRTxxP. If included in ADSL, must be identical to the ADSL variable."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTxxA",
+            "Variable Label": "Actual Treatment for Period xx",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Subject-level identifier that represents the actual treatment for period xx. If included in ADSL, must be identical to the ADSL variable."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Treatment Variables",
+            "Variable Name": "TRTxxAN",
+            "Variable Label": "Actual Treatment for Period xx (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The numeric code variable for TRTxxA. One-to-one map to TRTxxA. If included in ADSL, must be identical to the ADSL variable."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Analysis Parameter Variables",
+            "Variable Name": "PARAM",
+            "Variable Label": "Parameter",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "The description of the analysis parameter. Examples include: 'Time to Death (days)', 'Time to First Hospitalization Through Day 168 (days)', 'Time to Progression Free Survival (days)', and 'Time to Hepatitis B Seroconversion (days)'. PARAM should be sufficient to describe clear contents of AVAL, including the unit of the measurement, if applicable. PARAM may be longer than 40 characters in length (200-character limit)."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Analysis Parameter Variables",
+            "Variable Name": "PARAMCD",
+            "Variable Label": "Parameter Code",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "The short name of the analysis parameter in PARAM. Values of PARAMCD should follow SAS 5 variable naming conventions (8 characters or less; starts with letter; contains only letters and digits). There must be a one-to-one mapping with PARAM. Examples include DEATH, PFS, and T2SERO."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Analysis Parameter Variables",
+            "Variable Name": "AVAL",
+            "Variable Label": "Analysis Value",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "AVAL is the elapsed time to the event of interest from the origin. For example, if AVAL is measured in days, AVAL would be ADT - STARTDT or ADT - STARTDT + 1"
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "STARTDT",
+            "Variable Label": "Time to Event Origin Date for Subject",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The original date of risk for the time-to-event analysis. This is generally the time at which a subject is first at risk for the event of interest evaluation (as defined in the Protocol or Statistical Analysis Plan). For example, this may be the randomization date or the date of first study therapy exposure."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "STARTDTM",
+            "Variable Label": "Time to Event Origin Date/Time",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The date/time associated with STARTDT in numeric format."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "STARTDTF",
+            "Variable Label": "Origin Date Imputation Flag",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C81223",
+            "CDISC CT Codelist Submission Value(s)": "DATEFL",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "The level of imputation of the origin date. See General Timing Variable Convention #6 in the ADaM IG [2]."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "STARTTMF",
+            "Variable Label": "Origin Time Imputation Flag",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C81226",
+            "CDISC CT Codelist Submission Value(s)": "TIMEFL",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "The level of imputation of the origin time. See General Timing Variable Convention #7 in the ADaM IG [2]."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "CNSR",
+            "Variable Label": "Censor",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "CNSR is a required variable for a time-to-event analysis dataset, though it is a conditionally required variable with respect to the ADaM BDS. For example, CNSR = 0 for event and CNSR > 0 for censored records."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "EVNTDESC",
+            "Variable Label": "Event or Censoring Description",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Describe the event of interest or an event that warrants censoring. Values for EVNTDESC will be defined in the metadata as sponsor-defined controlled terminology (See Section 7.1)."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Time-to-Event Variables ",
+            "Variable Name": "CNSDTDSC",
+            "Variable Label": "Censor Date Description",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Describe the circumstance represented by the censoring date if different from the event date that warrants censoring."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Timing Variables",
+            "Variable Name": "ADT",
+            "Variable Label": "Analysis Date",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Analysis date of event or censoring associated with AVAL in numeric format."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Timing Variables",
+            "Variable Name": "ADTM",
+            "Variable Label": "Analysis Date/Time",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Analysis date/time of event or censoring associated with AVAL in numeric format."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Timing Variables",
+            "Variable Name": "ADTF",
+            "Variable Label": "Analysis Date Imputation Flag",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C81223",
+            "CDISC CT Codelist Submission Value(s)": "DATEFL",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "The level of imputation of ADT based on the source SDTM DTC variable. See General Timing Variable Convention #6 in the ADaM IG [2]."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Timing Variables",
+            "Variable Name": "ATMF",
+            "Variable Label": "Analysis Time Imputation Flag",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C81226",
+            "CDISC CT Codelist Submission Value(s)": "TIMEFL",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "The level of imputation of ATM based on the source SDTM DTC variable. See General Timing Variable Convention #7 in the ADaM IG [2]."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Timing Variables",
+            "Variable Name": "AVISIT",
+            "Variable Label": "Analysis Visit",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Analysis visit where event or censoring occurred. AVISIT may contain the visit names as observed (i.e., from SDTM VISIT), derived visit names, or conceptual description (e.g., endpoint)."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Data Point Traceability Variables",
+            "Variable Name": "SRCDOM",
+            "Variable Label": "Source Data",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The name of the SDTM domain (or dataset) or analysis dataset that relates to the analysis variable (e.g., AVAL). Allowing SRCDOM to be not only SDTM, but also ADaM dataset will be addressed in the next version of ADaM IG."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Data Point Traceability Variables",
+            "Variable Name": "SRCVAR",
+            "Variable Label": "Source Variable",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The name of the column (in the domain or dataset identified by SRCDOM) that relates to the analysis variable. In the event that SRCDOM is a SUPPQUAL domain, then SRCVAR will be populated with the value of QNAM."
+        },
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "Basic Data Structure for Time to Event Analyses",
+            "Variable Set": "Data Point Traceability Variables",
+            "Variable Name": "SRCSEQ",
+            "Variable Label": "Source Sequence Number",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "The sequence number --SEQ or ASEQ of the row (in the domain or dataset identified by SRCDOM) that relates to the analysis variable."
+        }
+    ],
+    "Data Structures": [
+        {
+            "Version": "ADaM BDS for TTE v1.0",
+            "Data Structure Name": "BDS for TTE",
+            "Data Structure Description": "Basic Data Structure for Time to Event Analyses",
+            "Class": NaN,
+            "Subclass": NaN,
+            "CDISC Notes": "One record per subject per parameter"
+        }
+    ]
+}

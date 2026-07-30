@@ -1,0 +1,486 @@
+{
+    "ReadMe": [
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": NaN,
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variables",
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Column Name",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Version (Column A)",
+            "Unnamed: 1": "ADaMIG version."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Name (Column B)",
+            "Unnamed: 1": "Name of the ADaM data structure. "
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Set (Column C)",
+            "Unnamed: 1": "Name of the ADaM Variable Set."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Name (Column D)",
+            "Unnamed: 1": "Name of the ADaMIG variable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Variable Label (Column E)",
+            "Unnamed: 1": "Label for the ADAMIG variable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Type (Column F)",
+            "Unnamed: 1": "Simple datatype (Char or Num) defined by the implementation guide."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC CT Codelist Code(s) (Column G)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for the ADaMIG variable. The values represent Code in CDISC Controlled Terminology publications. A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC CT Codelist Submission Value(s) (Column H)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Submission Value for the ADaMIG variable. The values represent Submission Value in CDISC Controlled Terminology publications. A semi-colon delimited list will be used to display multiple values. "
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Described Value Domain(s) (Column I)",
+            "Unnamed: 1": "Described value domain(s) for the ADaMIG variable. Example: \"MedDRA\"  A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Value List (Column J)",
+            "Unnamed: 1": "Value list for the ADaMIG variable. A semi-colon delimited list will be used to display multiple values. Only one of the CDISC CT Codelist Code(s), Described Value Domain(s) or Value List columns can have a value."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Core (Column K)",
+            "Unnamed: 1": "Provides guidance and compliance rules relevant to the inclusion of the variable in the ADaMIG domain.  Variables in ADaMIG are Required, Conditional, or Permissible."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC Notes (Column L)",
+            "Unnamed: 1": "Gives the type of information conveyed by the ADaMIG variable about each record."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": NaN,
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structures",
+            "Unnamed: 1": NaN
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Column Name",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Version (Column A)",
+            "Unnamed: 1": "ADaMIG version."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Name (Column B)",
+            "Unnamed: 1": "Name of the ADaM Data Structure. Used to identify the Data Structure in API requests."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Data Structure Description (Column C)",
+            "Unnamed: 1": "Description of Data Structure."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Class (Column D)",
+            "Unnamed: 1": "Class of the ADaM Data Structure."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "Subclass (Column E)",
+            "Unnamed: 1": "Subclass of ADaM Data Structure where applicable."
+        },
+        {
+            "The content of this workbook represents the normative metadata found in the applicable ADaM Implementation Guide.  A brief description of the columns in the workbook is given below; please see the Implementation Guide for in-depth information.\n\nNote: The Codelist/Controlled Terms column found in ADaMIG is expanded into four columns: CDISC CT Codelist Code(s), CDISC CT Codelist Submission Value(s), Described Value Domain(s), and Value List.": "CDISC Notes (Column F)",
+            "Unnamed: 1": "Explanatory text for the ADaM Data Structure"
+        }
+    ],
+    "Variables": [
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Study Identifier",
+            "Variable Name": "STUDYID",
+            "Variable Label": "Study Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "DI.STUDYID"
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Study Identifier",
+            "Variable Name": "SPDEVID",
+            "Variable Label": "Sponsor Device Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "DI.SPDEVID"
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Study Identifier",
+            "Variable Name": "USUBJID",
+            "Variable Label": "Unique Subject Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "DR.USUBJID. USUBJID is required, when USUBJID is linked to one or more devices (SPDEVID) in SDTM DR dataset."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "DEVGRy",
+            "Variable Label": "Pooled Device Group y",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Character description of a grouping or pooling of devices for analysis purposes. For example, DEVGR1 is the name of a variable containing device group names, where the grouping has been done according to the first device grouping algorithm, defined in variable metadata; DEVGR1 does not mean the first group of devices. If the algorithm of device grouping is based on DI.DEVTYP or DI.MODEL, DEVTYGy or MODELGy should be used."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "DEVGRyN",
+            "Variable Label": "Pooled Device Group y (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Numeric representation of grouping \"y\" of the pooled device group. There must be a one-to-one relationship between DEVGRyN and DEVGRy within a study. DEVGRyN cannot be present unless DEVGRy is also present. When DEVGRy and DEVGRyN are present, then on a given record, either both must be populated or both must be null."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "DEVTYGy",
+            "Variable Label": "Pooled Device Type Group y",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Character description of a grouping or pooling of devices for analysis purposes by device type. The value of DI.DIVAL where DI.DIPARMCD ='DEVTYPE' is always used to create the device type grouping variable. For example DEVTYG1 is the name of a variable containing device group names by device type, where the grouping has been done according to the first device type grouping algorithm, defined in variable metadata."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "DEVTYGyN",
+            "Variable Label": "Pooled Device Type Group y (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Numeric representation of grouping \"y\" of the pooled device type group. There must be a one-to-one relationship between DEVTYGyN and DEVTYGy within a study. DEVTYGyN cannot be present unless DEVTYGy is also present. When DEVTYGy and DEVTYGyN are present, then on a given record, either both must be populated or both must be null."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "MODELGy",
+            "Variable Label": "Pooled Device Model Group y",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Character description of a grouping or pooling of devices for analysis purposes by device model. The value of DI.DIVAL where DI.DIPARMCD ='MODEL' is always used to create the device model grouping variable. For example, MODELG1 is the name of a variable containing device group names by device model, where the grouping has been done according to the first device model grouping algorithm, defined in variable metadata."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Grouping",
+            "Variable Name": "MODELGyN",
+            "Variable Label": "Pooled Device Model Group y (N)",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Numeric representation of grouping \"y\" of the pooled device type group. There must be a one-to-one relationship between MODELGyN and MODELGy within a study. MODELGyN cannot be present unless MODELGy is also present. When MODELGy and MODELGyN are present, then on a given record, either both must be populated or both must be null."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Overall Device Dates and Flag",
+            "Variable Name": "DEVSDT",
+            "Variable Label": "Date of First Exposure to Device",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "Date of first exposure to the device for the subject. \"First exposure\" to device is defined in the SAP. For example, DEVSDT might be defined as the Date Device Implanted or Date Device Turned On. Note that individual dates for device implanted or device turned on can be captured in more specific variables shown below. Similar to the TRTSDT variable from ADSL, DEVSDT is used for analysis when merged onto other device analysis datasets."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Overall Device Dates and Flag",
+            "Variable Name": "DEVEDT",
+            "Variable Label": "Date of Last Exposure to Device",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "Date of last exposure to the device for the subject. \"Last exposure\" to device is defined in the SAP. For example, DEVEDT might be defined as the Date Device Explanted or Date Device Turned Off. Note that individual dates for device explanted or device turned off can be captured in more specific variables shown below. Similar to the TRTEDT variable from ADSL, DEVEDT is used for analysis when merged onto other device analysis datasets."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Overall Device Dates and Flag",
+            "Variable Name": "DEVAFL",
+            "Variable Label": "Device Active Flag",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C66742",
+            "CDISC CT Codelist Submission Value(s)": "NY",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "DEVAFL indicates whether device is active at a time point specified in the SAP, such as at the time of the cutoff date for an interim analysis, or the date of final database lock, or a particular study milestone date such as subject completion of an analysis period or analysis phase. The SAP provides the definition of an active device. For example, one study could define that any implanted device remaining in the subject is considered active. Another study may only consider the device is turned on as active, and a device not turned on even though it remains in the subject as not active. It is permissible to use DEVAyFL if multiple flags are needed, with labels \"Device Active y Flag\". \\n A simple derivation might be to set this flag to \"Y\" when DEVEDT is missing. \\n As described in the ADaMIG, character flag (or indicator) variables whose names end in FL can have at most two possible non-missing values, Y or N (i.e., yes or no). If it satisfies the analysis need, the values of just Y and missing can be used instead of Y and N."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Implant and Explant Dates",
+            "Variable Name": "DEVIPDT",
+            "Variable Label": "Date Device Implanted",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Date device implanted in the subject. DEVIPDT is required when device is implanted."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Implant and Explant Dates",
+            "Variable Name": "DEVXPDT",
+            "Variable Label": "Date Device Explanted",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Date device explanted from the subject. DEVXPDT is required when device is explanted or DEVIPDT is present."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Turned On and Turned Off Dates",
+            "Variable Name": "DEVONDT",
+            "Variable Label": "Date Device Turned On",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Date device is turned on. DEVONDT is required when the device is able to be turned on. \\n Note that some devices may be turned on and off multiple times. If there are records in SDTM for each occurrence of the device being turned on, either \\n * collapse into 1 record in ADDL, where the algorithm for deriving DEVONDT is defined in the SAP; or \\n * use DEVONyDT. \\n The analysis needs specified in the SAP determine whether to include a single collapsed date or a set of dates."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Turned On and Turned Off Dates",
+            "Variable Name": "DEVOFDT",
+            "Variable Label": "Date Device Turned Off",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Date device is turned off. DEVOFDT is required when the device is able to be turned off, or DEVONDT is present. \\n Note that some devices may be turned on and off multiple times. If there are records in SDTM for each occurrence of the device being turned off, either \\n * collapse into 1 record in ADDL, where the algorithm for deriving DEVOFDT is defined in the SAP; or \\n * use DEVOFyDT. \\n The analysis needs specified in the SAP determine whether to include a single collapsed date or a set of dates."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Repositioning and Modification Dates",
+            "Variable Name": "DEVRPDT",
+            "Variable Label": "Date Device Repositioned",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "DEVRPDT indicates date when device was repositioned. DEVRPDT is required when a device could be repositioned and included in analysis. \\n Note that some devices may be repositioned multiple times. If there are records in SDTM for each occurrence of the device being repositioned, either \\n * collapse into 1 record in ADDL, where the algorithm for deriving DEVRPDT is defined in the SAP; or \\n * use DEVRPyDT. \\n The analysis needs specified in the SAP determine whether to include a single collapsed date or a set of dates."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Repositioning and Modification Dates",
+            "Variable Name": "DEVMDDT",
+            "Variable Label": "Date Device Modified",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "DEVMDDT indicates date when device was modified for a subject in a study. The device modification or maintenance could be done surgically or externally depending on device. What would qualify as device modification is defined by study protocol and SAP. DEVMDDT is required when the device could be modified and included in analysis. \\n Note that some devices may be modified multiple times. If there are records in SDTM for each occurrence of the device being modified, either \\n * collapse into 1 record in ADDL, where the algorithm for deriving DEVMDDT is defined in the SAP; or \\n * use DEVMDyDT. \\n The analysis needs specified in the SAP determine whether to include a single collapsed date or a set of dates."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Demographics",
+            "Variable Name": "AGEDST",
+            "Variable Label": "Subject Age at First Exposure to Device",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Age of the subject at DEVSDT. Used only if age at device exposure start date is needed for analysis. Otherwise, use ADSL.AGE."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Device-Level Analysis Dataset",
+            "Variable Set": "Device Demographics",
+            "Variable Name": "AGEDSTU",
+            "Variable Label": "Age at First Exposure to Device Unit",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": "C66781",
+            "CDISC CT Codelist Submission Value(s)": "AGEU",
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "Age unit usually is same as the ADSL.AGEU. If it is different, then AGEDSTU is required."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Medical Device Occurrence Data Structure",
+            "Variable Set": "Identifier",
+            "Variable Name": "SPDEVID",
+            "Variable Label": "Sponsor Device Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "ADDL.SPDEVID."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Medical Device Occurrence Data Structure",
+            "Variable Set": "Identifier",
+            "Variable Name": "USUBJID",
+            "Variable Label": "Unique Subject Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "ADDL.USUBJID. USUBJID is required when subject-device relationship is defined in ADDL."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Medical Device Basic Data Structure",
+            "Variable Set": "Identifier",
+            "Variable Name": "SPDEVID",
+            "Variable Label": "Sponsor Device Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Req",
+            "CDISC Notes": "ADDL.SPDEVID."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Medical Device Basic Data Structure",
+            "Variable Set": "Identifier",
+            "Variable Name": "USUBJID",
+            "Variable Label": "Unique Subject Identifier",
+            "Type": "Char",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Cond",
+            "CDISC Notes": "ADDL.USUBJID. USUBJID is required when subject-device relationship is defined in ADDL."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "Medical Device Basic Data Structure",
+            "Variable Set": "Identifier",
+            "Variable Name": "ASEQ",
+            "Variable Label": "Analysis Sequence Number",
+            "Type": "Num",
+            "CDISC CT Codelist Code(s)": NaN,
+            "CDISC CT Codelist Submission Value(s)": NaN,
+            "Described Value Domain(s)": NaN,
+            "Value List": NaN,
+            "Core": "Perm",
+            "CDISC Notes": "Sequence number given to ensure uniqueness of records within an ADaM dataset. ASEQ uniquely indexes records within a subject, or within a device, or within a subject and device; within an ADaM dataset. As long as values are unique within the appropriate key(s) (subject, device, or the combination of subject and device, whichever is appropriate for the dataset), any valid number can be used for ASEQ. ASEQ is useful for traceability when the dataset is used as input to another ADaM dataset. To refer to a record in a predecessor ADaM dataset, set SRCDOM to the name of the predecessor dataset, and set SRCSEQ to the value of ASEQ in the predecessor dataset."
+        }
+    ],
+    "Data Structures": [
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "ADDL",
+            "Data Structure Description": "Device-Level Analysis Dataset",
+            "Class": "DEVICE LEVEL ANALYSIS DATASET",
+            "Subclass": NaN,
+            "CDISC Notes": "The ADDL is a one-record-per-device or one-record-per-subject-per-device dataset which contains variables that describe device characteristics and timing, and group the devices for analysis. ADDL is the primary source for device-level variables included in other analysis datasets."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "MDOCCDS",
+            "Data Structure Description": "Medical Device Occurrence Data Structure",
+            "Class": "MEDICAL DEVICE OCCURRENCE DATA STRUCTURE",
+            "Subclass": NaN,
+            "CDISC Notes": "The MDOCCDS supports  analysis needs by adding SPDEVID as a required identifier and allowing USUBJID be a conditionally required variable. See the OCCDS class for further details."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "MDBDS",
+            "Data Structure Description": "Medical Device Basic Data Structure",
+            "Class": "MEDICAL DEVICE BASIC DATA STRUCTURE",
+            "Subclass": NaN,
+            "CDISC Notes": "The MDBDS supports  analysis needs by adding SPDEVID as a required key variable and USUBJID as a conditionally required variable. See the BDS class for further details."
+        },
+        {
+            "Version": "ADaMIG MD v1.0",
+            "Data Structure Name": "MDTTE",
+            "Data Structure Description": "Medical Device Basic Data Structure Medical Device Time-to-Event",
+            "Class": "MEDICAL DEVICE BASIC DATA STRUCTURE",
+            "Subclass": "MEDICAL DEVICE TIME-TO-EVENT",
+            "CDISC Notes": "A dataset containing data that is used for medical device time-to-event analyses."
+        }
+    ]
+}
