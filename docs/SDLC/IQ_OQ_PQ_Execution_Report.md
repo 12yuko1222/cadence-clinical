@@ -19,6 +19,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1439 🟢
 - **Total Automated Test Cases Run:** 1458
 - **Passed:** 1458 🟢
+- **Total Automated Test Cases Run:** 3
+- **Passed:** 3 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1645,6 +1647,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_public_entry_point_whodrug` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_strict_referential_validation_triggers` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_whodrug_parser_init_validation` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_to_etmf_e2e_boundaries` | `tests.test_etmf_sync_provenance` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_redaction_derivative_safety` | `tests.test_etmf_sync_provenance` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_sealer_retains_and_validates_reason_for_change` | `tests.test_etmf_sync_provenance` | *Regression/Helper* | 🟢 PASSED | < 1s |
 
 ## 4. Performance Qualification (PQ) & Scenario Validation
 

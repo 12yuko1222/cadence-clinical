@@ -198,6 +198,14 @@ class TMFDocument(Base):
         JSON, nullable=True
     )
 
+    # Synchronization and provenance fields
+    correlation_key: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    content_checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source_system: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
 
 class DocumentQCTransition(Base):
     """
@@ -260,6 +268,9 @@ class TMFAuditLog(Base):
     )
     details: Mapped[str] = mapped_column(String(1000), nullable=False)
     cryptographic_seal: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    reason_for_change: Mapped[Optional[str]] = mapped_column(
+        String(1000), nullable=True
+    )
 
 
 class TMFAuditLedgerSeal(Base):
