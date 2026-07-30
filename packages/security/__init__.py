@@ -1,3 +1,9 @@
+from packages.security.audit_logger import (
+    AuditLoggerEngine,
+    AuditLogPayload,
+    AuditLogRecord,
+    audit_logger_engine,
+)
 from packages.security.context import (
     audit_context,
     audit_context_decorator,
@@ -7,6 +13,11 @@ from packages.security.context import (
     current_timestamp,
     current_user_id,
     service_audit_context,
+)
+from packages.security.crypto_verifier import (
+    SignatureVerificationRequest,
+    SignatureVerificationResult,
+    verify_electronic_signature,
 )
 from packages.security.delegation import (
     DelegationChecker,
@@ -130,4 +141,11 @@ __all__ = [
     "normalize_role_name",
     "GatewayAuthMiddleware",
     "require_gateway_permission",
+    "AuditLoggerEngine",
+    "AuditLogPayload",
+    "AuditLogRecord",
+    "audit_logger_engine",
+    "SignatureVerificationRequest",
+    "SignatureVerificationResult",
+    "verify_electronic_signature",
 ]

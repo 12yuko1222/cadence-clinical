@@ -13,6 +13,10 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1428 🟢
 - **Total Automated Test Cases Run:** 1507
 - **Passed:** 1507 🟢
+- **Total Automated Test Cases Run:** 1457
+- **Passed:** 1457 🟢
+- **Total Automated Test Cases Run:** 1489
+- **Passed:** 1489 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -300,6 +304,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_router_send_sms_mapping` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_router_send_webhook_mapping` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_emergency_unblinding_alert_integration` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_audit_logger_creates_valid_record` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_audit_logger_detects_chain_tampering` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_crypto_verifier_invalid_signature` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_crypto_verifier_valid_signature` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_security_audit_script` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_check_dict_for_value` | `tests.test_concept_locks` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_concept_mutations_locked_active_recruiting` | `tests.test_concept_locks` | PRD-MDR-002 | 🟢 PASSED | < 1s |
 | `test_concept_mutations_unreferenced` | `tests.test_concept_locks` | *Regression/Helper* | 🟢 PASSED | < 1s |
