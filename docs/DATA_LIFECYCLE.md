@@ -433,3 +433,82 @@ The `SubjectConsent` table stores subject-specific consent statuses:
 ### Feature #331: eTMF Linkage and version History (Future Scope)
 * **eTMF Linkage**: Future releases will connect eTMF documents directly to the protocol versions they govern. The `TMFDocument` model will establish a foreign key or graph relationship mapping to the canonical `ProtocolVersionRef`.
 * **ExpectedDocument Alignment**: Seeding expected document templates (`ExpectedDocument`) will dynamically adapt according to the active protocol version. When a protocol version transitions, the expected document list will automatically register new required documents (e.g. adding a new Consent Form requirement for v2.0), while archiving outdated requirements in accordance with the GxP data preservation policy.
+
+---
+
+# Data Lifecycle Specification: Native 21 CFR Part 11 eSignature Lifecycle
+
+## 1. Overview
+The Native 21 CFR Part 11 eSignature Lifecycle governs the progression of clinical and regulatory artifacts from unsigned drafts to fully signed, cryptographically secured, and immutable historical records. This workflow ensures non-repudiation, signer re-authentication, and strict state locking across all core microservices, satisfying **PRD-SYS-001** and **PRD-TMF-005**.
+
+---
+
+## 2. Unsigned-to-Signed Transition Lifecycle
+
+```
+[ Artifact Ingestion ]
+         │
+         ▼
+[ PENDING / UNSIGNED ] ──( Re-Authenticate & Apply Sign-off )──► [ SIGNED / APPROVED ]
+   - status: active QC states                                       - status: "SIGNED"
+   - approval_status: "PENDING"                                     - approval_status: "APPROVED"
+   - signature_manifestation: null                                  - signature_manifestation: [Certificate-bound Block]
+   - Mutations Allowed (QC transitions, redaction)                  - Mutations Blocked (IMMUTABILITY_VIOLATION)
+```
+
+1. **Active/Unsigned Phase**: Newly ingested artifacts (e.g. eTMF documents, protocol versions) begin with `approval_status = "PENDING"`. In this state, they can undergo active QC review transitions, automated/manual redactions, or minor updates.
+2. **Re-Authentication Trigger**: Applying an electronic signature requires immediate "double-keying" re-authentication of the signer's credentials, regardless of an active session.
+3. **Locked/Signed Phase**: Upon successful re-authentication and signature execution, the artifact's `status` transitions to `SIGNED` and its `approval_status` transitions to `APPROVED`. The record becomes completely locked, preventing all future edits.
+
+---
+
+## 3. Dual-Layer Security: Gateway Authorization vs. Downstream Manifestation
+
+To secure electronic records without propagating raw credentials across service boundaries, the architecture enforces a strict dual-layer authorization-manifestation design:
+
+### Layer 1: Gateway Signature Token Authorization (Short-Lived Intent)
+- **Path**: `apps/gateway/main.py` ➔ `packages/security/middleware.py`
+- **Mechanism**: The user re-enters their password (and optional TOTP) into the reusable Vue 3 component `apps/web/src/components/SignatureCaptureModal.vue`. The API Gateway validates these credentials against Keycloak and issues a short-lived **Signature Token (`X-Sig-Token`)** signed via HS256 with `GATEWAY_SECRET`.
+- **Properties**:
+  - **Temporal Limitation**: Hard expired in **60 seconds** (`exp = iat + 60.0`).
+  - **Single-Use Replay Prevention**: Contains a unique UUID `jti` verified against an in-memory/distributed cache to block replay attacks.
+  - **Action & Identity Binding**: Explicitly bound to the executing user (`sub` claim) and the exact REST endpoint route (`action` claim).
+
+### Layer 2: Certificate-Bound Record Manifestation (Persistent Non-Repudiation)
+- **Path**: `apps/etmf/main.py` or `apps/designer/main.py`
+- **Mechanism**: Upon verifying the `X-Sig-Token`, the downstream service generates a transient RSA private key and self-signed X.509 certificate on-the-fly.
+- **Persistent Signature Block**: The service signs the canonical representation of the record (including its SHA-256 content hash, signer OIDC ID, UTC timestamp, and controlled signing reason).
+- **Result**: A structured, mathematically verifiable `SignatureManifestation` (containing the signature, certificate PEM, and key identifier) is persisted permanently in the record's database columns (`signature_manifestation` / `signature_manifestation_json`). This fulfills the Part 11 requirements for the printed name of the signer, UTC timestamp, and the meaning of the signature (§ 11.50).
+
+---
+
+## 4. Trust Boundaries & Token/Error Contracts
+
+The interaction across the UI, Gateway, and Downstream microservices is governed by clear error and token contracts:
+
+| Event Scenario | HTTP Code | Error Code / Contract | Actionable UI Mitigation |
+| :--- | :--- | :--- | :--- |
+| **Missing/Expired Token** | `401 Unauthorized` | `REAUTHENTICATION_REQUIRED` or `JWTExpired` | Forces user to re-verify credentials in the modal and requests a fresh `X-Sig-Token`. |
+| **User/Action Mismatch** | `401 Unauthorized` | `Mismatched signature token user` / `Action mismatch` | Rejects the signature execution, preventing token hijacking or cross-endpoint routing. |
+| **Insufficient RBAC Roles** | `403 Forbidden` | `ROLE_INSUFFICIENT` / Permission check failure | Modal displays an error stating the user is not authorized to sign. |
+| **Post-Signature Edit Attempt** | `403 Forbidden` | `IMMUTABILITY_VIOLATION` | Returns a blocked status response, writes a `MUTATION_REJECTED` audit event, and denies the update. |
+
+---
+
+## 5. Architectural Map of Components
+
+The Part 11 eSignature workflow is fully realized and integrated across the following source paths:
+
+- **Identity & Step-up Gateway Authentication**:
+  - `apps/gateway/main.py` (Verify password and issue `X-Sig-Token`)
+  - `packages/security/middleware.py` (Intercept and validate token claims)
+  - `docs/SDLC/Signature_Token_Cryptographic_Contract.md` (Formal JWT specification)
+- **Reusable Frontend Modal**:
+  - `apps/web/src/components/SignatureCaptureModal.vue` (Credential capture, auto-clear, and error mapping)
+- **eTMF Service Execution**:
+  - `apps/etmf/main.py` (Sign-off endpoint: `POST /api/v1/etmf/documents/{document_id}/sign-off`)
+  - `apps/etmf/models.py` (Persistence schema: `TMFDocument.signature_manifestation`)
+  - `tests/test_etmf_signing_lifecycle.py` (E2E signing lifecycle and Merkle seal verification)
+- **Metadata Designer Execution**:
+  - `apps/designer/main.py` (Protocol approval endpoint: `POST /api/v1/studies/{study_id}/versions/{version_id}/approve`)
+  - `apps/designer/delta.py` (Approve study delta and lock protocol graph nodes)

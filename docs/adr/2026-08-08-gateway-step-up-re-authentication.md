@@ -11,7 +11,7 @@
 Pursuant to FDA 21 CFR Part 11 and EU Annex 11, executing critical clinical mutations requires explicit, double-keying re-authentication immediately before signature application.
 Downstream microservices require a high-assurance, short-lived, verifiable signature token instead of direct handling of user credentials/passwords.
 
-This decision implements requirements under Trace-8.
+This decision implements requirements under Trace-8, Trace-13, and PRD-SYS-001.
 
 ## 2. Decision Drivers & Constraints
 * **Part 11 GxP Compliance:** Absolute assurance of active signer re-authentication via credentials.
@@ -37,13 +37,19 @@ This decision implements requirements under Trace-8.
 * **Positive Impact:**
   * Strict single-use tracking using the unique `jti` claim.
   * Extensible design supporting multi-form approvals using optional `batch_id` mapping.
+  * Decoupled backend and frontend: Reusable frontend components like `apps/web/src/components/SignatureCaptureModal.vue` consume this contract seamlessly by retrieving the token via the API Gateway and forwarding it to downstream mutation paths (e.g. `/api/v1/etmf/documents/{document_id}/sign-off`).
 * **Negative Impact:**
-  * None.
+  * Replay tracking requires cache storage (retained strictly until token expiration, ensuring highly efficient lookup and memory safety).
 
 ## 6. Implementation & Verification
 * **Files Modified:**
   * `apps/gateway/main.py`
   * `packages/security/middleware.py`
-  * `tests/test_gateway.py`
+  * `apps/etmf/main.py`
+  * `apps/designer/main.py`
+  * `apps/web/src/components/SignatureCaptureModal.vue`
 * **Verification:**
-  * Executed `uv run pytest tests/test_gateway.py` and `tests/test_security_middleware.py`.
+  * Automated testing coverage in:
+    - `tests/test_gateway.py` and `tests/test_security_middleware.py` (Validation of JWT payload claims, HS256 signatures, temporal expiration, and replay protection).
+    - `tests/test_etmf_signing_lifecycle.py` (Integration of `X-Sig-Token` step-up verification, post-signature locking, `IMMUTABILITY_VIOLATION` response, and `TMFAuditLog` ledger integration).
+    - `tests/test_signature_manifestation.py` (Validation of cryptographic self-signed X.509 certificate generation, asymmetric private-key signing, and non-repudiation manifestation models).
