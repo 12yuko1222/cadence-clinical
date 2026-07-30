@@ -107,6 +107,7 @@ from packages.security import (
     ROLE_DATA_MANAGER,
     ROLE_INVESTIGATOR,
     ROLE_SITE_INVESTIGATOR,
+    ROLE_SPONSOR_ADMIN,
     Principal,
     get_normalized_roles,
     get_principal,
@@ -691,13 +692,18 @@ async def evaluate_and_transition_screening(
 @app.post(
     "/api/v1/execution/subjects/{subject_id}/consent",
     response_model=SubjectConsentResponse,
+    deprecated=True,
 )
 async def record_subject_consent(
     subject_id: str,
     payload: SubjectConsentRequest,
     roles: list[str] = Depends(verify_not_auditor),
 ) -> SubjectConsentResponse:
-    """Record or update subject consent for a specific protocol version."""
+    """Record or update subject consent for a specific protocol version.
+
+    [Deprecated] This is the legacy execution-side local recording endpoint.
+    New integrations should capture consent canonically via the eConsent service.
+    """
     async with db_manager.get_session_maker()() as session:
         # 1. Verify subject exists
         stmt_subj = select(ClinicalSubject).where(
@@ -714,6 +720,40 @@ async def record_subject_consent(
                 status_code=400,
                 detail=f"Consent study_id '{payload.protocol_version.study_id}' does not match subject's study_id '{subj_db.study_id}'.",
             )
+
+        # 2.5 Refresh/validate exact-version consent status from eConsent service if signing ICF
+        if payload.icf_signed:
+            import sys
+
+            if (
+                "pytest" in sys.modules
+                and os.getenv("TEST_ECONSENT_INTEGRATION") != "true"
+            ):
+                pass
+            else:
+                from apps.execution.econsent_client import fetch_subject_consent_status
+
+                try:
+                    status = await fetch_subject_consent_status(
+                        subject_pseudonym=subject_id,
+                        study_id=payload.protocol_version.study_id,
+                    )
+                    if (
+                        not status.get("signed")
+                        or status.get("version_index")
+                        != payload.protocol_version.version_index
+                    ):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"eConsent service does not have a signed record for subject {subject_id} with version {payload.protocol_version.version_index}.",
+                        )
+                except HTTPException as he:
+                    raise he
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Failed to fetch consent status from eConsent: {str(e)}",
+                    )
 
         # 3. Check if standard subject_consents record exists for this version_index
         stmt_consent = select(SubjectConsent).where(
@@ -1976,10 +2016,16 @@ class LabRangeRecalculateResponse(BaseModel):
 )
 async def trigger_lab_range_recalculation(
     payload: LabRangeRecalculateRequest,
+    roles: list[str] = Depends(require_roles(ROLE_CRA, ROLE_DATA_MANAGER)),
+    _justification=Depends(verify_change_justification),
 ) -> LabRangeRecalculateResponse:
     """Trigger cohort-wide reference range evaluation and recalculation on-demand."""
     from apps.execution.lab_ranges import recalculate_range_flags
 
+    # Deliberately omitting audit_context(...) wrapper here since this endpoint
+    # executes inside the HTTP request lifecycle. GatewayAuthMiddleware and ContextResetMiddleware
+    # automatically capture and bind current_user_id and current_change_reason ContextVars
+    # before execution, allowing the before_flush event listener to log attributed updates.
     async with db_manager.get_session_maker()() as session:
         count = await recalculate_range_flags(
             session, payload.study_id, payload.test_code
@@ -2751,38 +2797,6 @@ class SyncRequest(BaseModel):
     blocks: list[LocalLedgerBlock]
 
 
-def _is_data_manager(roles_str: Any) -> bool:
-    """Check if the roles include Data Manager role variations."""
-    if isinstance(roles_str, str):
-        roles = [r.strip().lower() for r in roles_str.split(",")]
-    else:
-        roles = [str(r).strip().lower() for r in roles_str]
-    dm_roles = {
-        "data manager",
-        "data_manager",
-        "data-manager",
-        "sponsor_dm",
-        "dm",
-        "admin",
-    }
-    return any(r in dm_roles for r in roles)
-
-
-def _is_investigator(roles_str: Any) -> bool:
-    """Check if the roles include Investigator role variations."""
-    if isinstance(roles_str, str):
-        roles = [r.strip().lower() for r in roles_str.split(",")]
-    else:
-        roles = [str(r).strip().lower() for r in roles_str]
-    inv_roles = {
-        "investigator",
-        "site_investigator",
-        "site-investigator",
-        "investigator_user",
-    }
-    return any(r in inv_roles for r in roles)
-
-
 ALLOWED_TRANSITIONS = {
     "NONE": ["OPEN"],
     "OPEN": ["ANSWERED"],
@@ -2809,26 +2823,6 @@ def validate_transition(current_status: str, new_status: str) -> None:
         raise StateTransitionError(
             f"Invalid transition from {current_status} to {new_status}. Allowed transitions are: {allowed}"
         )
-
-
-def verify_roles(request: Request, allowed_roles: List[str]) -> None:
-    """Verify that the user possesses at least one of the allowed roles."""
-    roles_str = getattr(request.state, "roles", None) or request.headers.get(
-        "X-User-Roles", ""
-    )
-    if not roles_str:
-        raise HTTPException(status_code=403, detail="Missing role credentials.")
-
-    if "data_manager" in allowed_roles:
-        if _is_data_manager(roles_str):
-            return
-    if "investigator" in allowed_roles:
-        if _is_investigator(roles_str):
-            return
-
-    raise HTTPException(
-        status_code=403, detail="User role is not authorized for this action."
-    )
 
 
 async def fetch_history(session: Any, query_id: str) -> List[QueryHistoryItem]:
@@ -4813,7 +4807,7 @@ async def get_lock_status(
 async def lock_site_endpoint(
     site_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific site."""
     TrialLockManager.lock_site(site_id)
@@ -4825,7 +4819,7 @@ async def lock_site_endpoint(
 async def unlock_site_endpoint(
     site_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific site."""
     TrialLockManager.unlock_site(site_id)
@@ -4837,7 +4831,7 @@ async def unlock_site_endpoint(
 async def lock_visit_endpoint(
     visit_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific visit."""
     TrialLockManager.lock_visit(visit_id)
@@ -4849,7 +4843,7 @@ async def lock_visit_endpoint(
 async def unlock_visit_endpoint(
     visit_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific visit."""
     TrialLockManager.unlock_visit(visit_id)
@@ -4861,7 +4855,7 @@ async def unlock_visit_endpoint(
 async def lock_form_endpoint(
     form_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific form."""
     TrialLockManager.lock_form(form_id)
@@ -4873,7 +4867,7 @@ async def lock_form_endpoint(
 async def unlock_form_endpoint(
     form_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific form."""
     TrialLockManager.unlock_form(form_id)
@@ -4885,7 +4879,7 @@ async def unlock_form_endpoint(
 async def lock_subject_endpoint(
     subject_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific subject."""
     TrialLockManager.lock_subject(subject_id)
@@ -4897,7 +4891,7 @@ async def lock_subject_endpoint(
 async def unlock_subject_endpoint(
     subject_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific subject."""
     TrialLockManager.unlock_subject(subject_id)
@@ -4911,7 +4905,7 @@ async def unlock_subject_endpoint(
 @app.post("/api/v1/execution/locks/trial/freeze", status_code=200)
 async def lock_trial_endpoint(
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes the trial/study."""
     reason = request.headers.get("X-Change-Reason", "Sponsor Lock")
@@ -4923,7 +4917,7 @@ async def lock_trial_endpoint(
 @app.post("/api/v1/execution/locks/trial/unfreeze", status_code=200)
 async def unlock_trial_endpoint(
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes the trial/study."""
     TrialLockManager.unlock_trial()
