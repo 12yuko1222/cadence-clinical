@@ -512,3 +512,18 @@ The Part 11 eSignature workflow is fully realized and integrated across the foll
 - **Metadata Designer Execution**:
   - `apps/designer/main.py` (Protocol approval endpoint: `POST /api/v1/studies/{study_id}/versions/{version_id}/approve`)
   - `apps/designer/delta.py` (Approve study delta and lock protocol graph nodes)
+
+---
+
+# Data Lifecycle Specification: SDTM/ADaM Export Privacy & De-identification
+
+## 1. Overview
+Structured biostatistical exports (CDISC SDTM and ADaM formats) must undergo an automated privacy and de-identification pass before external distribution or regulatory submission. This workflow ensures deterministic pseudonymization of subject identifiers, stable per-subject date-shifting, and age capping under the authoritative policy [ADR-108](./adr/2026-08-26-sdtm-adam-export-privacy.md).
+
+## 2. Privacy Transformation Mechanics
+The de-identification transform operates on assembled datasets immediately before serialization into CDISC Dataset-JSON format:
+1. **Deterministic Pseudonymization**: Subject identifiers (`USUBJID`, `SUBJID`) and site identifiers (`SITEID`) are hashed deterministically using HMAC-SHA256 and the secure `BIOSTAT_EXPORT_SALT` token. This guarantees referential integrity across separate datasets, domains, and exports.
+2. **Stable Per-Subject Date Shifting**: A stable numeric offset in the range `[-365, 365]` days is derived deterministically from the subject's original `USUBJID` before pseudonymization. All dates associated with that subject are shifted by this exact offset:
+   - **SDTM string dates** (e.g. `AESTDTC`, `RFSTDTC` etc.) are shifted preserving partial dates and null-flavor placeholders.
+   - **ADaM numeric dates** (e.g. `TRTSDT`, `ASTDT` etc.) are shifted by adding the offset directly to the SAS day integer value.
+3. **Age Generalization**: Any subject age value exceeding 89 is capped at `89`.

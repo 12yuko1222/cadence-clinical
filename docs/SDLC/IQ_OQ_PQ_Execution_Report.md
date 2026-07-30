@@ -11,6 +11,8 @@ Based on the executed automated verification suite, the platform meets all prede
 ### Validation Result Summary
 - **Total Automated Test Cases Run:** 1457
 - **Passed:** 1457 🟢
+- **Total Automated Test Cases Run:** 1463
+- **Passed:** 1463 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -241,6 +243,17 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_normalize_sex` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_supp_record_row_conversion` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_variable_metadata_validation` | `tests.test_biostat` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_age_capping_thresholds` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_authorization_allowed_role_succeeds` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_authorization_disallowed_role_receives_403` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dataset_json_validation_passes_after_transform` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_date_shift_stable_and_interval_preserving` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_error_redaction_and_scrubbing_on_failed_export` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_identical_pseudonymization_across_datasets_and_supp` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_partial_dates_shifted_without_fabricating_precision` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_pseudonymization_determinism_and_hex_format` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_scrub_error_message_direct` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_source_records_are_not_mutated` | `tests.test_biostat_deidentification` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_adae_trtemfl_logic` | `tests.test_biostat_export` | ADAM-ADAE-TRTEMFL-01 | 🟢 PASSED | < 1s |
 | `test_advs_chg_pchg_computations` | `tests.test_biostat_export` | ADAM-ADVS-CHG-01 | 🟢 PASSED | < 1s |
 | `test_api_adam_export_success` | `tests.test_biostat_export` | API-ADAM-EXPORT-01 | 🟢 PASSED | < 1s |
