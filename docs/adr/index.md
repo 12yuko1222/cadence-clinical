@@ -76,6 +76,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-08: Expose Authenticated SDTM/ADaM Dataset-JSON Export Endpoints](2026-08-08-expose-authenticated-sdtm-adam-dataset-json-export-endpoints.md)
 - [2026-08-09: Medical Coding Engine and Query Subsystem Integration](2026-08-09-medical-coding-engine-query-integration.md)
 - [2026-08-09: Signed NCI Thesaurus CT Web Client](2026-08-09-nci-thesaurus-signed-web-client.md)
+- [2026-08-26: Durable Dictionary-Import Worker and Recovery Contract](2026-08-26-durable-dictionary-import-worker.md)
 - [2026-08-09: E2B(R3) ICSR XML Export and Structural Validation](2026-08-09-safety-e2b-icsr-xml-export-pipeline.md)
 - [2026-08-11: Bidirectional Field Parity and RFC 7807 Validation Schemas](2026-08-11-bidirectional-field-parity-and-rfc7807-validation-schemas.md)
 - [2026-08-14: Biostatistical Export Pipeline Interoperability and Architecture](2026-08-14-biostatistical-export-pipeline-interoperability.md)
