@@ -14,23 +14,23 @@ def test_data_lifecycle_protocol_amendment_traceability() -> None:
     content = lifecycle_path.read_text(encoding="utf-8")
 
     # Verify the header exists
-    assert (
-        "# Data Lifecycle Specification: Protocol Amendment Lifecycle" in content
-    ), "The new H1 section header must be present in docs/DATA_LIFECYCLE.md"
+    assert "# Data Lifecycle Specification: Protocol Amendment Lifecycle" in content, (
+        "The new H1 section header must be present in docs/DATA_LIFECYCLE.md"
+    )
 
     # Enforce strictly no citation of PRD-UNI-003
-    assert (
-        "PRD-UNI-003" not in content
-    ), "The non-existent requirement PRD-UNI-003 must not be cited in DATA_LIFECYCLE.md"
+    assert "PRD-UNI-003" not in content, (
+        "The non-existent requirement PRD-UNI-003 must not be cited in DATA_LIFECYCLE.md"
+    )
 
     # Validate that only authorized PRD/TDD trace IDs are present in the Protocol Amendment section
     # Let's extract the Protocol Amendment section text
     sections = content.split(
         "# Data Lifecycle Specification: Protocol Amendment Lifecycle"
     )
-    assert (
-        len(sections) >= 2
-    ), "Expected at least one Protocol Amendment Lifecycle section split"
+    assert len(sections) >= 2, (
+        "Expected at least one Protocol Amendment Lifecycle section split"
+    )
 
     amendment_section = sections[1]
 
@@ -40,9 +40,9 @@ def test_data_lifecycle_protocol_amendment_traceability() -> None:
     valid_prd_ids = {"PRD-SYS-001", "PRD-MDR-002", "PRD-SUB-007"}
 
     for match in prd_matches:
-        assert (
-            match in valid_prd_ids
-        ), f"Found invalid or unauthorized requirements citation in amendment lifecycle: '{match}'"
+        assert match in valid_prd_ids, (
+            f"Found invalid or unauthorized requirements citation in amendment lifecycle: '{match}'"
+        )
 
     # Confirm correct citations are explicitly present in the section
     assert "PRD-SYS-001" in prd_matches, "PRD-SYS-001 must be cited"
@@ -51,6 +51,6 @@ def test_data_lifecycle_protocol_amendment_traceability() -> None:
 
     # Confirm valid design and QA trace IDs are present
     assert "TDD §3.4/§3.5" in amendment_section, "TDD §3.4/§3.5 must be cited"
-    assert (
-        "QA §5.1 TC-VAL-LOG-001" in amendment_section
-    ), "QA §5.1 TC-VAL-LOG-001 must be cited"
+    assert "QA §5.1 TC-VAL-LOG-001" in amendment_section, (
+        "QA §5.1 TC-VAL-LOG-001 must be cited"
+    )
