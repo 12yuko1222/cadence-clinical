@@ -79,6 +79,10 @@ def create_mock_study_version(study_id: str, version_data: Dict[str, Any]):
             payload["created_at"] = str(version_data["created_at"])
         if "parent_version" in version_data:
             payload["parent_version"] = version_data["parent_version"]
+        if "branch_name" in version_data and version_data["branch_name"] is not None:
+            payload["branch_name"] = version_data["branch_name"]
+        if "base_version" in version_data and version_data["base_version"] is not None:
+            payload["base_version"] = version_data["base_version"]
 
         secret = os.getenv(
             "SIGNING_SECRET", "designer-amendment-secure-key-12345"
