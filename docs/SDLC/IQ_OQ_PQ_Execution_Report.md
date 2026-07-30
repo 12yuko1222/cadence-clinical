@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1338
-- **Passed:** 1338 🟢
+- **Total Automated Test Cases Run:** 1370
+- **Passed:** 1370 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -601,6 +601,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_uninitialized_database_manager` | `tests.test_etmf` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_view_download_audit_logging` | `tests.test_etmf` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_watermarked_document_viewing_and_download` | `tests.test_etmf` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_document_version_history_lineage` | `tests.test_etmf_binder_structure_and_history` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_empty_binder_structure` | `tests.test_etmf_binder_structure_and_history` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_partial_binder_structure` | `tests.test_etmf_binder_structure_and_history` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_versions_404_not_found` | `tests.test_etmf_binder_structure_and_history` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_bulk_archival_all_or_nothing_rollback` | `tests.test_etmf_bulk_archival` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_bulk_archival_authorization_and_rejections` | `tests.test_etmf_bulk_archival` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_bulk_archival_partial_success` | `tests.test_etmf_bulk_archival` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -944,6 +948,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_notifications_health_check` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_webhook_delivery_channel_failure_and_retry_backoff` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_webhook_delivery_channel_success` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_doa_signoff_automatic_archival_handoff` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_doa_signoff_tampered_payload_rejected` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_completeness_participation` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_openapi_aggregation_with_org` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_org_proxy_routing` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cro_affiliation_validation` | `tests.test_org_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_delegation_of_authority_flow` | `tests.test_org_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gxp_audit_logging_and_actor_context` | `tests.test_org_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1050,10 +1059,14 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_no_aging_queries` | `tests.test_queries_escalation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_startup_shutdown_and_resilience` | `tests.test_queries_escalation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_threshold_boundaries_and_escalation` | `tests.test_queries_escalation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_concurrent_randomization_unique_and_monotonic` | `tests.test_randomization_concurrency` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_forced_failure_rolls_back_atomically` | `tests.test_randomization_concurrency` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_randomization_entities_audit_trail_and_soft_delete` | `tests.test_randomization_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_randomization_entities_hard_delete_prevented` | `tests.test_randomization_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_randomization_entities_trial_lock_conformity` | `tests.test_randomization_persistence` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_can_access_site` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cross_site_query_read_isolation` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cross_site_unblind_denied_with_alert` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_etmf_audit_logs_gated_to_auditors` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_etmf_document_transition_auditor_forbidden` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_etmf_edl_creation_auditor_forbidden` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1073,6 +1086,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_role_aliases_normalization` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_role_normalization_list` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_role_normalization_string` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rtsm_role_aliases_normalization` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rtsm_role_aware_masking` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_rtsm_role_permissions` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_is_auditor_allows_auditors` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_is_auditor_denies_non_auditors` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_not_auditor_allows_others` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1329,6 +1345,15 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_validate_study_terminology_endpoint_not_found` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_study_terminology_endpoint_success` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_study_terminology_fully_valid` | `tests.test_terminology_validation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_publish_notification_non_2xx_failure` | `tests.test_tickets_notifications_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_publish_notification_success` | `tests.test_tickets_notifications_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_publish_notification_transport_exception` | `tests.test_tickets_notifications_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_notification_failure_isolation` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_notification_idempotency` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_ticket_assignment_notification` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_ticket_comment_notification` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_ticket_transition_notification` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_update_ticket_notifications` | `tests.test_tickets_notifications_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_comments_creation_and_retrieval_scoped` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_list_ticket_audit_logs_endpoint` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_missing_change_reason_fails_mutations` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1336,15 +1361,22 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_ticket_audit_log_immutable_ledger` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_ticket_concurrent_reference_generation` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_ticket_scoped_audit_logs` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_pagination` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_query_boundaries` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_time_filtering` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_auditor_comments_access` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_database_schema_creation` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_enums_and_models_attributes` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_get_by_reference` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_health_check` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_in_scope_success_and_self_audit` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_lifecycle` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_optimistic_locking_and_explicit_endpoints` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_rbac_auditor_cannot_mutate_but_can_read` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_scope_aware_filtering` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_site_scope_filtering_audit_logs_unfiltered` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_terminal_state_rejection` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_tickets_unauthorized_site_scope_blocking` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_validation_invalid_enums` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unauthenticated_requests_are_rejected` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_active_version_selection` | `tests.test_tmf_reference_model` | PRD-TMF-001 | 🟢 PASSED | < 1s |

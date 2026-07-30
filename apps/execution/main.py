@@ -90,6 +90,7 @@ from apps.execution.edit_checks import (
 )
 from apps.execution.outliers import recalculate_cohort_outliers
 from apps.execution.query_service import QueryService, StateTransitionError
+from apps.execution.rtsm_authz import redact_response, verify_site_access
 from apps.execution.rtsm_supply import (
     InsufficientStockError,
     SiteInventoryNotFoundError,
@@ -109,11 +110,11 @@ from packages.security import (
     Principal,
     get_normalized_roles,
     get_principal,
-    mask_payload,
     require_roles,
     verify_not_auditor,
 )
 from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.rbac import SITE_SCOPED_ROLES, can_access_study, mask_payload
 from packages.security.signing import generate_canonical_signature
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
@@ -757,6 +758,17 @@ async def record_subject_consent(
         )
 
 
+class SubjectRandomizationResponse(BaseModel):
+    """Pydantic schema for returning blinded subject randomization details."""
+
+    subject_id: str
+    status: str
+    stratum_key: Optional[str] = None
+    randomized_at: datetime
+    kit_reference: Optional[str] = None
+    treatment_arm: Optional[str] = None
+
+
 class SubjectUnblindResponse(BaseModel):
     """Pydantic schema for returning emergency unblind details."""
 
@@ -794,6 +806,13 @@ async def unblind_subject(
 
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
+
+        verify_site_access(
+            principal,
+            subject.site_id,
+            study_id=subject.study_id,
+            subject_id=subject.subject_id,
+        )
 
         # Perform the transition inside a try-except to catch transition errors
         try:
@@ -873,8 +892,79 @@ async def unblind_subject(
         }
 
         # Apply masking dynamically based on the principal's access level
-        masked_response = mask_payload(response_dict, principal)
+        masked_response = redact_response(response_dict, principal)
         return SubjectUnblindResponse(**masked_response)
+
+
+@app.post(
+    "/api/v1/execution/subjects/{subject_id}/randomize",
+    response_model=SubjectRandomizationResponse,
+)
+async def randomize_subject_endpoint(
+    subject_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+    roles: list[str] = Depends(
+        require_roles(
+            ROLE_SITE_INVESTIGATOR, ROLE_INVESTIGATOR, ROLE_CRC, "investigator"
+        )
+    ),
+) -> SubjectRandomizationResponse:
+    """Execute GxP compliant subject randomization allocation and block-index advancement."""
+    # Ensure change justification headers are present and valid
+    verify_change_justification(request)
+    change_reason = request.headers.get("X-Change-Reason")
+
+    # Fetch subject to resolve study_id
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(ClinicalSubject).where(ClinicalSubject.subject_id == subject_id)
+        result = await session.execute(stmt)
+        subject = result.scalars().first()
+        if not subject:
+            raise HTTPException(status_code=404, detail="Subject not found")
+        study_id = subject.study_id
+
+    # Execute randomization via service
+    from apps.execution.cryptography import AllocationKeyManager
+    from apps.execution.randomization_service import randomize_subject
+
+    try:
+        assignment = await randomize_subject(
+            study_id=study_id,
+            subject_id=subject_id,
+            change_reason=change_reason,
+            user_id=principal.user_id,
+        )
+    except InvalidStateTransitionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        msg = str(e)
+        if "not found" in msg.lower():
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Decrypt allocation plaintext for response (which will then be masked/blinded)
+    async with db_manager.get_session_maker()() as session:
+        key_mgr = AllocationKeyManager()
+        await key_mgr.load_from_db(session)
+        decrypted = key_mgr.decrypt(assignment.encrypted_allocation)
+        allocated_arm = decrypted.get("allocation")
+
+    response_dict = {
+        "subject_id": assignment.subject_id,
+        "status": "RANDOMIZED",
+        "stratum_key": assignment.stratum_key,
+        "randomized_at": assignment.randomized_at,
+        "kit_reference": assignment.kit_reference,
+        "treatment_arm": allocated_arm,
+    }
+
+    masked_response = mask_payload(response_dict, principal)
+    return SubjectRandomizationResponse(**masked_response)
 
 
 @app.post("/api/v1/execution/visits", response_model=VisitResponse)
@@ -2787,6 +2877,7 @@ async def list_queries(
     subject_id: Optional[str] = None,
     visit_id: Optional[str] = None,
     status: Optional[str] = None,
+    principal: Principal = Depends(get_principal),
 ) -> List[ClinicalQueryResponse]:
     """Retrieve a list of clinical queries with optional filtering.
 
@@ -2799,6 +2890,9 @@ async def list_queries(
     Returns:
         List[ClinicalQueryResponse]: List of matching queries including audit history.
     """
+    if study_id and not can_access_study(principal, study_id):
+        return []
+
     async with db_manager.get_session_maker()() as session:
         stmt = select(ClinicalQuery).where(ClinicalQuery.is_deleted.is_(False))
         if study_id:
@@ -2810,6 +2904,13 @@ async def list_queries(
         if status:
             stmt = stmt.where(ClinicalQuery.status == status)
 
+        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+        if user_site_roles or principal.assigned_sites:
+            stmt = stmt.where(ClinicalQuery.site_id.in_(principal.assigned_sites))
+
+        if principal.assigned_studies:
+            stmt = stmt.where(ClinicalQuery.study_id.in_(principal.assigned_studies))
+
         res = await session.execute(stmt)
         queries = res.scalars().all()
 
@@ -2817,42 +2918,48 @@ async def list_queries(
         for q in queries:
             history = await fetch_history(session, q.id)
             responses.append(
-                ClinicalQueryResponse(
-                    id=q.id,
-                    study_id=q.study_id,
-                    subject_id=q.subject_id,
-                    visit_id=q.visit_id,
-                    domain=q.domain,
-                    test_code=q.test_code,
-                    status=q.status,
-                    explanation=q.explanation,
-                    response=q.response,
-                    created_at=q.created_at,
-                    updated_at=q.updated_at,
-                    history=history,
-                    observation_id=q.observation_id,
-                    field_link=q.field_link,
-                    message=q.message,
-                    origin=q.origin,
-                    priority=q.priority,
-                    rule_id=q.rule_id,
-                    created_by=q.created_by,
-                    responder=q.responder,
-                    resolver=q.resolver,
-                    resolved_at=q.resolved_at,
-                    cancellation_reason=q.cancellation_reason,
-                    escalated_at=q.escalated_at,
-                    form_id=q.form_id,
-                    field_id=q.field_id,
-                    query_type=q.query_type,
-                    action_required=q.action_required,
+                redact_response(
+                    ClinicalQueryResponse(
+                        id=q.id,
+                        study_id=q.study_id,
+                        subject_id=q.subject_id,
+                        visit_id=q.visit_id,
+                        domain=q.domain,
+                        test_code=q.test_code,
+                        status=q.status,
+                        explanation=q.explanation,
+                        response=q.response,
+                        created_at=q.created_at,
+                        updated_at=q.updated_at,
+                        history=history,
+                        observation_id=q.observation_id,
+                        field_link=q.field_link,
+                        message=q.message,
+                        origin=q.origin,
+                        priority=q.priority,
+                        rule_id=q.rule_id,
+                        created_by=q.created_by,
+                        responder=q.responder,
+                        resolver=q.resolver,
+                        resolved_at=q.resolved_at,
+                        cancellation_reason=q.cancellation_reason,
+                        escalated_at=q.escalated_at,
+                        form_id=q.form_id,
+                        field_id=q.field_id,
+                        query_type=q.query_type,
+                        action_required=q.action_required,
+                    ),
+                    principal,
                 )
             )
         return responses
 
 
 @app.get("/api/v1/execution/queries/{query_id}", response_model=ClinicalQueryResponse)
-async def get_query(query_id: str) -> ClinicalQueryResponse:
+async def get_query(
+    query_id: str,
+    principal: Principal = Depends(get_principal),
+) -> ClinicalQueryResponse:
     """Query a single clinical query by ID, returning its full audit history.
 
     Args:
@@ -2870,36 +2977,43 @@ async def get_query(query_id: str) -> ClinicalQueryResponse:
         if not q:
             raise HTTPException(status_code=404, detail="Clinical query not found")
 
+        verify_site_access(
+            principal, q.site_id, study_id=q.study_id, subject_id=q.subject_id
+        )
+
         history = await fetch_history(session, q.id)
-        return ClinicalQueryResponse(
-            id=q.id,
-            study_id=q.study_id,
-            subject_id=q.subject_id,
-            visit_id=q.visit_id,
-            domain=q.domain,
-            test_code=q.test_code,
-            status=q.status,
-            explanation=q.explanation,
-            response=q.response,
-            created_at=q.created_at,
-            updated_at=q.updated_at,
-            history=history,
-            observation_id=q.observation_id,
-            field_link=q.field_link,
-            message=q.message,
-            origin=q.origin,
-            priority=q.priority,
-            rule_id=q.rule_id,
-            created_by=q.created_by,
-            responder=q.responder,
-            resolver=q.resolver,
-            resolved_at=q.resolved_at,
-            cancellation_reason=q.cancellation_reason,
-            escalated_at=q.escalated_at,
-            form_id=q.form_id,
-            field_id=q.field_id,
-            query_type=q.query_type,
-            action_required=q.action_required,
+        return redact_response(
+            ClinicalQueryResponse(
+                id=q.id,
+                study_id=q.study_id,
+                subject_id=q.subject_id,
+                visit_id=q.visit_id,
+                domain=q.domain,
+                test_code=q.test_code,
+                status=q.status,
+                explanation=q.explanation,
+                response=q.response,
+                created_at=q.created_at,
+                updated_at=q.updated_at,
+                history=history,
+                observation_id=q.observation_id,
+                field_link=q.field_link,
+                message=q.message,
+                origin=q.origin,
+                priority=q.priority,
+                rule_id=q.rule_id,
+                created_by=q.created_by,
+                responder=q.responder,
+                resolver=q.resolver,
+                resolved_at=q.resolved_at,
+                cancellation_reason=q.cancellation_reason,
+                escalated_at=q.escalated_at,
+                form_id=q.form_id,
+                field_id=q.field_id,
+                query_type=q.query_type,
+                action_required=q.action_required,
+            ),
+            principal,
         )
 
 
@@ -3898,8 +4012,12 @@ async def list_form_submissions(
     subject_id: Optional[str] = None,
     visit_id: Optional[str] = None,
     form_id: Optional[str] = None,
+    principal: Principal = Depends(get_principal),
 ) -> List[FormSubmissionResponse]:
     """List form submissions with filters."""
+    if study_id and not can_access_study(principal, study_id):
+        return []
+
     async with db_manager.get_session_maker()() as session:
         stmt = select(FormSubmission).where(FormSubmission.is_deleted.is_(False))
         if study_id:
@@ -3911,10 +4029,59 @@ async def list_form_submissions(
         if form_id:
             stmt = stmt.where(FormSubmission.form_id == form_id)
 
+        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+        if user_site_roles or principal.assigned_sites:
+            stmt = stmt.where(FormSubmission.site_id.in_(principal.assigned_sites))
+
+        if principal.assigned_studies:
+            stmt = stmt.where(FormSubmission.study_id.in_(principal.assigned_studies))
+
         res = await session.execute(stmt)
         subs = res.scalars().all()
 
         return [
+            redact_response(
+                FormSubmissionResponse(
+                    id=sub.id,
+                    study_id=sub.study_id,
+                    site_id=sub.site_id,
+                    subject_id=sub.subject_id,
+                    visit_id=sub.visit_id,
+                    form_id=sub.form_id,
+                    status=sub.status,
+                    version=sub.version,
+                    is_deleted=sub.is_deleted,
+                    signature_manifest=sub.signature_manifest,
+                ),
+                principal,
+            )
+            for sub in subs
+        ]
+
+
+@app.get(
+    "/api/v1/execution/form-submissions/{submission_id}",
+    response_model=FormSubmissionResponse,
+)
+async def get_form_submission(
+    submission_id: str,
+    principal: Principal = Depends(get_principal),
+) -> FormSubmissionResponse:
+    """Retrieve a single form submission by ID."""
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(FormSubmission).where(
+            FormSubmission.id == submission_id, FormSubmission.is_deleted.is_(False)
+        )
+        res = await session.execute(stmt)
+        sub = res.scalars().first()
+        if not sub:
+            raise HTTPException(status_code=404, detail="Form submission not found")
+
+        verify_site_access(
+            principal, sub.site_id, study_id=sub.study_id, subject_id=sub.subject_id
+        )
+
+        return redact_response(
             FormSubmissionResponse(
                 id=sub.id,
                 study_id=sub.study_id,
@@ -3926,37 +4093,8 @@ async def list_form_submissions(
                 version=sub.version,
                 is_deleted=sub.is_deleted,
                 signature_manifest=sub.signature_manifest,
-            )
-            for sub in subs
-        ]
-
-
-@app.get(
-    "/api/v1/execution/form-submissions/{submission_id}",
-    response_model=FormSubmissionResponse,
-)
-async def get_form_submission(submission_id: str) -> FormSubmissionResponse:
-    """Retrieve a single form submission by ID."""
-    async with db_manager.get_session_maker()() as session:
-        stmt = select(FormSubmission).where(
-            FormSubmission.id == submission_id, FormSubmission.is_deleted.is_(False)
-        )
-        res = await session.execute(stmt)
-        sub = res.scalars().first()
-        if not sub:
-            raise HTTPException(status_code=404, detail="Form submission not found")
-
-        return FormSubmissionResponse(
-            id=sub.id,
-            study_id=sub.study_id,
-            site_id=sub.site_id,
-            subject_id=sub.subject_id,
-            visit_id=sub.visit_id,
-            form_id=sub.form_id,
-            status=sub.status,
-            version=sub.version,
-            is_deleted=sub.is_deleted,
-            signature_manifest=sub.signature_manifest,
+            ),
+            principal,
         )
 
 
