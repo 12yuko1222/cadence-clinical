@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1284
-- **Passed:** 1284 🟢
+- **Total Automated Test Cases Run:** 1290
+- **Passed:** 1290 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -295,6 +295,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_successful_assembly_and_synopsis` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unresolved_reference_invalid_attribute` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unresolved_reference_non_existent_id` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dual_custody_negative_duplicate_shares` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_dual_custody_negative_malformed_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_dual_custody_negative_mismatched_versions` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_dual_custody_negative_single_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_dual_custody_negative_tampered_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_dual_custody_positive` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
 | `test_encryption_decryption_with_rotation` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_key_splitting` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_cra_allocations_rbac_reassignment_workload` | `tests.test_ctms` | PRD-CTMS-003, Trace-6 | 🟢 PASSED | < 1s |
