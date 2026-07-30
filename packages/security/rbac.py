@@ -138,7 +138,11 @@ ROLE_ALIASES = {
 # Actions: "create", "read", "update", "delete"
 ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     ROLE_SYSADMIN: {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {"create", "update", "amend", "transition", "instantiate", "read"},
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
@@ -185,7 +189,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "eisf_document": {"create", "read", "update", "delete", "sync"},
     },
     ROLE_SPONSOR_DESIGNER: {
-        "study_design": {"create", "read", "update", "delete"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {"create", "update", "amend", "transition", "instantiate", "read"},
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
         "protocol_version": {"sign", "transition_approved"},
@@ -199,7 +207,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "protocol_section": {"review", "read"},
     },
     ROLE_SPONSOR_DM: {
-        "study_design": {"read"},
+        "study_design": {"read", "approve"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
@@ -435,7 +446,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         }
     },
     "admin": {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
