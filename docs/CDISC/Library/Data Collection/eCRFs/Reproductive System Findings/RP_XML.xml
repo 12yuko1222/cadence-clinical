@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Reproductive System Findings" FileType="Snapshot" CreationDateTime="2021-05-18T15:59:36-06:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Reproductive System Findings">
+		<GlobalVariables>
+			<StudyName>Reproductive System Findings</StudyName>
+			<StudyDescription>Reproductive System Findings</StudyDescription>
+			<ProtocolName>Reproductive System Findings</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Reproductive System Findings" Name="Reproductive System Findings">
+			<FormDef OID="RP_REPRODUCTIVE_SYSTEM_FINDINGS" Name="Form RP - Reproductive System Findings" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">RP - Reproductive System Findings</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_32" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_32" Name="RP - Reproductive System Findings" Repeating="No" Domain="RP">
+				<Description>
+					<TranslatedText xml:lang="en">RP - Reproductive System Findings</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.RPPERF" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.RPREASND" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.RPDAT" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.RPORRES" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.RPORRES_MENOSTAT" Mandatory="No" OrderNumber="5"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.RPDAT" Name="RPDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">RPDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Collection Date</TranslatedText>
+					<TranslatedText xml:lang="en">Collection Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Collection Date"/>
+				<Alias Context="completionInstructions" Name="Record date of collection using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="This should be a complete date. The date of collection may be determined from the date of visit (VISDAT)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable RPDTC in ISO 8601 format."/>
+				<Alias Name="RPDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RPREASND" Name="RPREASND" DataType="text" Length="20">
+				<Description>
+					<TranslatedText xml:lang="en">RPREASND</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Reason Not Done</TranslatedText>
+					<TranslatedText xml:lang="en">Reason Not Done</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Reason Not Done"/>
+				<Alias Context="completionInstructions" Name="Provide the reason the measurement or test was not done."/>
+				<Alias Context="implementationNotes" Name="The reason the data are not available may be chosen from a sponsor-defined list (e.g., broken equipment, subject refused) or entered as free text. When PCREASND is used, the SDTMIG variable PCSTAT should also be populated in the SDTM-based dataset."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="RPREASND" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RPORRES" Name="RPORRES_CHILDPOT" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">RPORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was the subject of child bearing potential?</TranslatedText>
+					<TranslatedText xml:lang="en">Was the subject of child bearing potential?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record reproductive system finding."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="CHILDPOT_RPORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RPORRES_MENOSTAT" Name="MENOSTAT_RPORRES" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">RPORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Menopause Status</TranslatedText>
+					<TranslatedText xml:lang="en">Menopause Status</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="MENOSTAT"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record reproductive system finding."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="MENOSTAT_RPORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RPPERF" Name="RPPERF" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">RPPERF</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was a reproductive system evaluation performed?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Reproductive System Evaluation Performed"/>
+				<Alias Context="completionInstructions" Name="Indicate whether or not a planned reproductive system evaluation was done."/>
+				<Alias Context="implementationNotes" Name="This may be implemented for a series of reproductive system evaluations, or a specific reproductive system test. This general prompt question is used as a data management tool to verify that missing results are confirmed missing."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to derive a value into the SDTMIG variable RPSTAT. If the CDASH field RPPERF=&quot;N&quot;, the value of RPSTAT will be &quot;NOT DONE&quot;. If RPPERF=&quot;Y&quot;, RPSTAT should be null. A combination of SDTMIG variables (e.g., RPCAT and RPSCAT, RPTPT) is used to indicate that multiple tests were not done. In this situation, the SDTMIG variable RPTESTCD would be populated as RPALL and an appropriate test name (RPTEST) provided. See SDTMIG v3.2 Section 4.1.5.1.2."/>
+				<Alias Name="RPPERF" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="MENOSTAT" Name="Menopausal status" DataType="text">
+				<CodeListItem CodedValue="PRE" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Premenopausal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="POST" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Postmenopausal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

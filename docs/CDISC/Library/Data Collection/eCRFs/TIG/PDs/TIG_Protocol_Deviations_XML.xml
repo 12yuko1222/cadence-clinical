@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-20T18:16:15"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_PROTOCOL_DEVIATIONS"
+                  Name="Tobacco Implementation Guide-Protocol Deviations"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect Subject Inclusion/Exclusion Criteria.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_ PROT_DEV_ANY" Mandatory="Yes" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_PROT_DEV_DETAILS" Mandatory="No" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_ PROT_DEV_ANY"
+                       Name="Any Protocol Deviations"
+                       Repeating="No">
+            <Description>
+               <TranslatedText xml:lang="en">DV - Protocol Deviations</TranslatedText>
+            </Description>
+            <ItemRef ItemOID="DV_TIG_PROT_DEV_ANY.DVYN" Mandatory="Yes" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_PROT_DEV_DETAILS"
+                       Name="Protocol Deviations"
+                       Repeating="No">
+            <ItemRef ItemOID="DV_TIG_PROT_DVSPID" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="DV_TIG_PROT_DEV_DETAILS.DCDECOD"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="DV_TIG_PROT_DEV_DETAILS.DVTERM"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="DV_TIG_PROT_DEV.DVSTDAT" Mandatory="No" OrderNumber="4"/>
+            <ItemRef ItemOID="DV_TIG_PROT_DVENDAT" Mandatory="No" OrderNumber="5"/>
+         </ItemGroupDef>
+         <ItemDef OID="DV_TIG_PROT_DEV_DETAILS.DCDECOD"
+                  Name="DVDECOD"
+                  DataType="text"
+                  Length="35"
+                  SDSVarName="DVDECOD">
+            <Question>
+               <TranslatedText>What was the protocol deviation?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="Deviations"/>
+            <Alias Name="Record protocol deviations identified and/or select the appropriate code from the list of protocol deviation terms."
+                   Context="completionInstructions"/>
+            <Alias Name="DVDECOD" Context="CDASH"/>
+            <Alias Name="Protocol Deviation" Context="prompt"/>
+            <Alias Name="DVDECOD" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="DV_TIG_PROT_DVENDAT"
+                  Name="DVENDAT"
+                  DataType="date"
+                  SDSVarName="DVENDTC">
+            <Question>
+               <TranslatedText>What was the protocol deviation end date?</TranslatedText>
+            </Question>
+            <Alias Name="DVSTDTC" Context="SDTM"/>
+            <Alias Name="Record the end date for the protocol deviation using this format. This should be the date the protocol deviation stopped, not the date it was discovered or reported."
+                   Context="completionInstructions"/>
+            <Alias Name="DVSTDAT" Context="CDASH"/>
+            <Alias Name="End Date" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="DV_TIG_PROT_DVSPID"
+                  Name="DVSPID"
+                  DataType="date"
+                  SDSVarName="DVSPID">
+            <Question>
+               <TranslatedText>What is the protocol deviation identifier?</TranslatedText>
+            </Question>
+            <Alias Name="DV Number" Context="prompt"/>
+            <Alias Name="DVSPID" Context="SDTM"/>
+            <Alias Name="DVSPID" Context="CDASH"/>
+            <Alias Name="If collected on the CRF, applicant may insert instructions to ensure each record has a unique identifier."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="DV_TIG_PROT_DEV.DVSTDAT"
+                  Name="DVSTDAT"
+                  DataType="date"
+                  SDSVarName="DVSTDTC">
+            <Question>
+               <TranslatedText>What was the protocol deviation start date?</TranslatedText>
+            </Question>
+            <Alias Name="DVSTDTC" Context="SDTM"/>
+            <Alias Name="DVSTDAT" Context="CDASH"/>
+            <Alias Name="Start Date" Context="prompt"/>
+            <Alias Name="Record the start date for the protocol deviation using this format. This should be the start or occurrence of the protocol deviation, not the date it was discovered or reported."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="DV_TIG_PROT_DEV_DETAILS.DVTERM"
+                  Name="DVTERM"
+                  DataType="text"
+                  Length="35"
+                  SDSVarName="DVTERM">
+            <Description>
+               <TranslatedText xml:lang="en">DVTERM</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What was the protocol deviation term?</TranslatedText>
+            </Question>
+            <Alias Name="(Specify) Protocol Deviation" Context="prompt"/>
+            <Alias Name="DVTERM" Context="CDASH"/>
+            <Alias Name="DVTERM" Context="SDTM"/>
+            <Alias Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."
+                   Context="mappingInstructions"/>
+            <Alias Name="DVTERM and DVDECOD may have the same value. If the CRF is collecting protocol deviations using a free text field, then DVTERM should be used to store the free text response. Sponsors may use either DVDECOD or DVTERM on the CRF, but a value in DVTERM is required in the SDTM-based datasets."
+                   Context="implementationNotes"/>
+            <Alias Name="Record the appropriate code from the list of protocol deviation terms."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="DV_TIG_PROT_DEV_ANY.DVYN"
+                  Name="DVYN"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Were there any protocol deviations?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="Any Deviations" Context="prompt"/>
+            <Alias Name="DVYN" Context="CDASH"/>
+            <Alias Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank.  "
+                   Context="implementationNotes"/>
+            <Alias Name="Not Submitted" Context="SDTM"/>
+            <Alias Name="Enter Yes if a protocol deviation occurred and No if none occurred. Ensure that any adverse event which triggers a protocol deviation (e.g., concomitant medication use, newly discovered medical history) is noted on the respective CRF."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="Deviations" Name="Protocol Deviations" DataType="text">
+            <CodeListItem CodedValue="Prohibited Medications" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Prohibited Medications</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Informed Consent Issues" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Informed Consent Issues</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Inclusion Exclusion Criteria Violations" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Inclusion Exclusion Criteria Violations</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Adverse Event Not Reported in Timeline" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Adverse Event Not Reported in Timeline</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Procedure not performed per protocol" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Procedure not performed per protocol</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Visit out of window" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Visit out of window</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Other" OrderNumber="7">
+               <Decode>
+                  <TranslatedText>Other</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

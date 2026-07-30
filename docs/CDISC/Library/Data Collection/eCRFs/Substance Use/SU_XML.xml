@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Substance Use" FileType="Snapshot" CreationDateTime="2021-05-18T15:28:42-06:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Substance Use aCRF">
+		<GlobalVariables>
+			<StudyName>Substance Use aCRF</StudyName>
+			<StudyDescription>Substance Use</StudyDescription>
+			<ProtocolName>Substance Use</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Substance Use aCRF" Name="Substance Use">
+			<FormDef OID="SU_TOBACCO" Name="Form SU - Substance Use" Repeating="No">
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_7b" Mandatory="No" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_7b" Name="Substance Use_Tobacco" Repeating="No">
+				<ItemRef ItemOID="IT.SUCAT" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.SUNCF" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.SUTRT Tobacco" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.SUDOS" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.SUDOSU" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.SUDOSFRQ" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.SUSTDAT" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.SUENDAT" Mandatory="No" OrderNumber="8"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.SUDOS" Name="SUDOS" DataType="text" Length="15">
+				<Question>
+					<TranslatedText xml:lang="en">What was the amount?</TranslatedText>
+				</Question>
+				<Alias Name="SUDOS" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUDOSFRQ" Name="SUDOSFRQ" DataType="text" Length="6">
+				<Description>
+					<TranslatedText xml:lang="en">SUDOSFRQ</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What [is/was] the frequency?</TranslatedText>
+					<TranslatedText xml:lang="en">Frequency</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71113.FREQSU"/>
+				<Alias Context="prompt" Name="Frequency"/>
+				<Alias Context="completionInstructions" Name="Record how often the subject regularly [uses / consumes] (the) [substance]."/>
+				<Alias Context="implementationNotes" Name="When possible, the options for dose/amount frequency are preprinted on the CRF. (e.g., PER DAY, PER WEEK, OCCASIONAL)."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="SUDOSFRQ" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUSTDAT" Name="SUSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">SUSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the start date of use?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the substance use using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The sponsor may choose to capture a complete date or any variation thereof (e.g., month and year, year)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable SUSTDTC in ISO 8601 format."/>
+				<Alias Name="SUSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUENDAT" Name="SUENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">SUENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the end date of use?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="End Date"/>
+				<Alias Context="completionInstructions" Name="Record the end date of the substance use using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The sponsor may choose to capture a complete date or any variation thereof (e.g., month and year, year)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable SUENDTC in ISO 8601 format."/>
+				<Alias Name="SUENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUNCF" Name="SUNCF" DataType="text" Length="7">
+				<Description>
+					<TranslatedText>SUNCF</TranslatedText>
+					<TranslatedText xml:lang="en">Has the subject ever [used/consumed] [SUTRT/SUCAT]?</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Has the subject ever used tobacco?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C78738.NCF"/>
+				<Alias Context="prompt" Name="([Substance]) Usage"/>
+				<Alias Context="completionInstructions" Name="Check the appropriate box to indicate if the subject has ever used/consumed tobacco/alcohol/caffeine, currently consumes tobacco/alcohol/caffeine, or formerly used/consumed tobacco/alcohol/caffeine."/>
+				<Alias Context="implementationNotes" Name="The 3 options (NEVER, CURRENT, FORMER) are sponsor-defined in relation to the protocol. If the sponsor has specific definitions, these definitions are detailed in the instructions to the site. As this type of response does not correspond exactly to an SDTM variable, CDASH recommends using the CDASHIG variable SUNCF. Sponsors must decide how to populate the appropriate relative timing variables when the SDTM-based datasets are created. For example, If SUNCF =&quot;Never&quot;, the value of SUOCCUR will be &quot;N&quot; and all relative timing variables will be null. If the sponsor chooses to populate the relative start references (SUSTRTPT, SUSTRF) the value will be &quot;BEFORE&quot; when SUNCF= &quot;CURRENT&quot; and &quot;FORMER&quot;. If the sponsor also chooses to use relative end references (SUENRF, SUENRTPT) , the SUENRTPT value will be &quot;ONGOING&quot; when SUNCF=&quot;CURREN&quot; while the value of SUENRF will be &quot;DURING/AFTER&quot;.   Note: When using SUSTRTPT and/or SUENRTPT, these must refer to a &quot;time point anchor&quot; such as SCREENING in SUSTTPT/SUENTPT."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to populate SUOCCUR and relative timing variables."/>
+				<Alias Name="SUNCF" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUCAT" Name="SUCAT" DataType="text" Length="12">
+				<Description>
+					<TranslatedText xml:lang="en">SUCAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is/was the category of the substance (used)?</TranslatedText>
+					<TranslatedText xml:lang="en">Substance Used Category</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Substance (Used) Category]; NULL"/>
+				<Alias Context="completionInstructions" Name="Record the Substance Used category, if not preprinted on the CRF."/>
+				<Alias Context="implementationNotes" Name="Sponsor-defined controlled terminology (e.g., TOBACCO, ALCOHOL, CAFFEINE). Sponsors may require different types of substance use data (e.g., illicit drug use, cigarettes); the value for category may be preprinted on the CRF. If a more detailed type of substance appears on the CRF (e.g., CIGARETTES, CIGARS, rather than TOBACCO), SUCAT is TOBACCO and SUTRT is CIGARETTES. If the sponsor does not specify a type of tobacco on the CRF, SUTRT is TOBACCO. If SUCAT is not collected (e.g. it is self-evident from the protocol design), it could be populated during the SDTM-based dataset creation process."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="SUCAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUTRT Tobacco" Name="SUTRT" DataType="text" Length="12">
+				<Description>
+					<TranslatedText xml:lang="en">SUCAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What [is/was] the [name/type] of (the) substance used?</TranslatedText>
+					<TranslatedText xml:lang="en">Type of Tobacco</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="SUTRT - tobacco"/>
+				<Alias Context="prompt" Name="[Type of Substance]"/>
+				<Alias Context="implementationNotes" Name="Sponsors may require different types of substance use data (e.g., illicit drug use, cigarettes); the value for category may be preprinted on the CRF as a label for the prompt for Substance Use. If a more detailed type of substance appears on the CRF (e.g., CIGARETTES, CIGARS rather than TOBACCO), SUCAT should be TOBACCO and SUTRT should be CIGARETTES."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="SUTRT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SUDOSU" Name="SUDOSU" DataType="text" Length="15">
+				<Question>
+					<TranslatedText xml:lang="en">What was the unit?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71620.UNITSU"/>
+				<Alias Name="SUDOSU" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="SUTRT - tobacco" Name="Substance Use - tobacco" DataType="text">
+				<CodeListItem CodedValue="CIGARETTES" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Cigarettes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="E-CIGARETTES" OrderNumber="2">
+					<Decode>
+						<TranslatedText>e-Cigarettes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CIGARS" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Cigars</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PIPE" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Pipe</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SMOKELESS TOBACCO" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Smokeless tobacco</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C78738.NCF" Name="Never/Current/Former Classification" DataType="text">
+				<Description>
+					<TranslatedText>A classification of usage or experience that falls into three categories; never, current, or former.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="CURRENT">
+					<Decode>
+						<TranslatedText>Current</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="FORMER">
+					<Decode>
+						<TranslatedText>Previous</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NEVER">
+					<Decode>
+						<TranslatedText>Never</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C71113.FREQSU" Name="Frequency Substance Use" DataType="text">
+				<Description>
+					<TranslatedText>The terminology that includes terms pertaining to frequency within CDISC.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="QD" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Daily</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="1 TIME PER WEEK" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Once Weekly</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="QM" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Monthly</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PA" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Per Year</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C71620.UNITSU" Name="Unit Substance Use" DataType="text">
+				<Description>
+					<TranslatedText>Terminology codelist used for units within CDISC.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="PACK" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Pack</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CIGARETTE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Cigarette</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CIGAR" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Cigar</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mL" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Milliliter</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PIPE" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Pipe</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CARTRIDGE" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Cartridge</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="POUCH" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Pouch</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-22T17:54:15"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_TOB_USAGE_HIST"
+                  Name="Tobacco Implementation Guide_Tobacco Usage History"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF ued to collect  tobacco use history. This example does not include tobacco products that are  being used as a medically acceptable therapy for smoke cessation</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TOB_Usage History" Mandatory="Yes" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_TOB_PROD_USAGE_HIST"
+                          Mandatory="No"
+                          OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_TOB_PROD_USAGE_HIST"
+                       Name="Tobacco Product Used"
+                       Repeating="No">
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUCAT"
+                     Mandatory="Yes"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUTRT"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUSCAT"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUCDUR"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUCDURU"
+                     Mandatory="No"
+                     OrderNumber="5"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUONGO"
+                     Mandatory="No"
+                     OrderNumber="6"/>
+            <ItemRef ItemOID="SU_TIG_TOB_USAGE_HIST.SUENDAT"
+                     Mandatory="No"
+                     OrderNumber="7"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TOB_Usage History" Name="Tobacco Usage History" Repeating="No">
+            <ItemRef ItemOID="FASU_TIG_TOB_USAGE_ HIST.FAOBJ"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="FASU_TIG_TOB_USAGE_ HIST.AGESTSMK_FAORRES"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="FASU_TIG_TOB_USAGE.HIST.TBCESSCO_FAORRES"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="FASU_TIG_TOB_USAGE.HIST.LDURABS_FAORRES"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+         </ItemGroupDef>
+         <ItemDef OID="FASU_TIG_TOB_USAGE_ HIST.AGESTSMK_FAORRES"
+                  Name="AGESTSMK_FAORRES"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="FAORRES">
+            <Question>
+               <TranslatedText>What was the age of the subject when they started smoking?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="AGESTSMK_FAORRES"/>
+            <Alias Name="FAORRES WHERE FATESTCD = &#34;AGESTSMK&#34;  anf FAOBJ = &#34;TOBACCO&#34;"
+                   Context="SDTM"/>
+            <Alias Name="Record the Age Category when the subject started smoking"
+                   Context="ompletionInstructions"/>
+            <Alias Name="AGESTSMK_FAORRES" Context="CDASH"/>
+            <Alias Name="Age Started Smoking" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="FASU_TIG_TOB_USAGE_ HIST.FAOBJ"
+                  Name="FAOBJ"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="FAOBJ">
+            <Question>
+               <TranslatedText>What is the object?</TranslatedText>
+            </Question>
+            <Alias Name="FAOBJ" Context="CDASH"/>
+            <Alias Name="OBJECT" Context="prompt"/>
+            <Alias Name="FAOBJ" Context="SDTM"/>
+            <Alias Name="TOBACCO" Context="pre-filled"/>
+         </ItemDef>
+         <ItemDef OID="FASU_TIG_TOB_USAGE.HIST.LDURABS_FAORRES"
+                  Name="LDURABS_FAORRES"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="FAORRES">
+            <Question>
+               <TranslatedText>What is the longest duration of previous abstinence from tobacco use?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="LDURABS_FAORRES"/>
+            <Alias Name="FAORRES WHERE FATESTCD = &#34;TBCESSCO&#34; and FAOBJ = &#34;TOBACCO&#34;"
+                   Context="SDTM"/>
+            <Alias Name="Tobacco Cessation Counseling" Context="prompt"/>
+            <Alias Name="Indicate whether the subject had previous tobacco cessation counseling"
+                   Context="completionInstructions"/>
+            <Alias Name="LDURABS_FAORRES" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUCAT"
+                  Name="SUCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SUCAT">
+            <Question>
+               <TranslatedText>What is the type of tobacco product used by the subject?</TranslatedText>
+               <TranslatedText xml:lang="(en)">Substance Use Category</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TB_SUSCAT"/>
+            <Alias Name="Substance Use Category" Context="prompt"/>
+            <Alias Name="Record the type of tobacco product used."
+                   Context="completionInstructions"/>
+            <Alias Name="SUCAT" Context="SDTM"/>
+            <Alias Name="SUCAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUCDUR"
+                  Name="SUCDUR"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="SUDUR">
+            <Question>
+               <TranslatedText>What was the duration of use of the tobacco product ?</TranslatedText>
+            </Question>
+            <Alias Name="Provide the duration for the product used"
+                   Context="completionInstructions"/>
+            <Alias Name="SUDUR" Context="SDTM"/>
+            <Alias Name="SUCDUR" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUCDURU"
+                  Name="SUCDURU"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SUDURU">
+            <Question>
+               <TranslatedText>What is the unit?</TranslatedText>
+            </Question>
+            <Alias Name="Unit" Context="prompt"/>
+            <Alias Name="Record the unit. See the protocol for a list of units"
+                   Context="completionInstructions"/>
+            <Alias Name="SUDUR" Context="SDTM"/>
+            <Alias Name="SUCDURU" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUENDAT"
+                  Name="SUENDAT"
+                  DataType="date"
+                  SDSVarName="SUENDTC">
+            <Question>
+               <TranslatedText>What is the end date?</TranslatedText>
+            </Question>
+            <Alias Name="SUENDAT" Context="SDTM"/>
+            <Alias Name="Record the date the  product used was stopped. If the subject has not stopped taking the product used leave this field blank"
+                   Context="completionInstructions"/>
+            <Alias Name="SUENDAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUONGO"
+                  Name="SUONGO"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Is the tobacco use ongoing?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="SUONGO" Context="CDASH"/>
+            <Alias Name="Record the product used as ongoing if the subject has not stopped taking the product used at the time of data collection. The end date should be left blank."
+                   Context="completionInstructions"/>
+            <Alias Name="SUENRF or SUENRTPT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUSCAT"
+                  Name="SUSCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SUSCAT">
+            <Question>
+               <TranslatedText>Is this the subject's usual brand of tobacco product?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_USUSAL_BRAND"/>
+            <Alias Name="SUSCAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_TOB_USAGE_HIST.SUTRT"
+                  Name="SUTRT"
+                  DataType="text"
+                  Length="80"
+                  SDSVarName="SUTRT">
+            <Question>
+               <TranslatedText>What was the brand name of the tobacco product?</TranslatedText>
+            </Question>
+            <Alias Name="Substance Use Category" Context="prompt"/>
+            <Alias Name="Record the brand name of the tobacco product used."
+                   Context="completionInstructions"/>
+            <Alias Name="SUTRT" Context="SDTM"/>
+            <Alias Name="SUTRT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="FASU_TIG_TOB_USAGE.HIST.TBCESSCO_FAORRES"
+                  Name="TBCESSCO_FAORRES"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="FAORRES">
+            <Question>
+               <TranslatedText>Did the subject have any tobacco cessation counseling?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="Tobacco Cessation Counseling" Context="prompt"/>
+            <Alias Name="FAORRES WHERE FATESTCD = &#34;TBCESSCO&#34; and FAOBJ=&#34;TOBACCO&#34;"
+                   Context="SDTM"/>
+            <Alias Name="TBCESSCO_FAORRES" Context="CDASH"/>
+            <Alias Name="Indicate whether the subject had previous tobacco cessation counseling"
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <CodeList OID="LDURABS_FAORRES"
+                   Name="Abstinence from Tobacco Use"
+                   DataType="text">
+            <CodeListItem CodedValue="≤7 days" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>≤7 days</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="8-28 days" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>8-28 days</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="1-6 months" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>1-6 months</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="&gt;6 months" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>&gt;6 months</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="AGESTSMK_FAORRES" Name="Subject Age" DataType="text">
+            <CodeListItem CodedValue="16-24 years" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>16-24 years</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="25-34 years" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>25-34 years</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="45-64 years" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>45-64 years</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="65 years and older" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>65 years and older</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_USUSAL_BRAND" Name="TIG_USUSAL_BRAND" DataType="text">
+            <CodeListItem CodedValue="USUAL BRAND" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Usual Brand</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT USUAL BRAND" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Not Usual Brand</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TB_SUSCAT" Name="Type of Tobacco Product" DataType="text">
+            <CodeListItem CodedValue="SMOKED TOBACCO PRODUCT" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Smoked Tobacco Product</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="SMOKELESS TOBACCO PRODUCT" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Smokeless Tobacco Product</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

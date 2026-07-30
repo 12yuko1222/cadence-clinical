@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-20T18:23:17"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_ REC_PROD_USAGE"
+                  Name="Tobacco Implementation Guide -Recreational Product Usage"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect general history about recreational products usage.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_REC_PROD_USAGE_ANY"
+                          Mandatory="No"
+                          OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_REC_PROD_USAGE_DETAIL"
+                          Mandatory="No"
+                          OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_REC_PROD_USAGE_ANY"
+                       Name="Any Recreational Products Used"
+                       Repeating="No">
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_ANY.SUCAT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_ANY.SUYN"
+                     Mandatory="Yes"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_ANY.SUREASND"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_REC_PROD_USAGE_DETAIL"
+                       Name="Recreational Products Used"
+                       Repeating="No">
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_DETAIL.SUTRT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_DETAIL.SUNCF"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_DETAILSUDSTXT"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_DETAILSUDOSU"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+            <ItemRef ItemOID="SU_TIG_REC_PROD_USAGE_DETAIL.SUDOSFRQ"
+                     Mandatory="No"
+                     OrderNumber="5"/>
+         </ItemGroupDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_ANY.SUCAT"
+                  Name="SUCAT"
+                  DataType="text"
+                  Length="20">
+            <Question>
+               <TranslatedText>Substance Use Category</TranslatedText>
+            </Question>
+            <Alias Name="SUCAT" Context="SDTM"/>
+            <Alias Name="SUCAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_DETAIL.SUDOSFRQ"
+                  Name="SUDOSFRQ"
+                  DataType="text"
+                  Length="20"
+                  SDSVarName="SUDOSFRQ">
+            <Question>
+               <TranslatedText>What was the frequency of recreational product use?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_REC_PROD_FREQ"/>
+            <Alias Name="Frequency" Context="prompt"/>
+            <Alias Name="SUDOSFRQ" Context="SDTM"/>
+            <Alias Name="SUDOSFRQ" Context="CDASH"/>
+            <Alias Name="Record how often the recreational product was taken (e.g., BID, PRN)."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_DETAILSUDOSU"
+                  Name="SUDOSU"
+                  DataType="text"
+                  Length="22"
+                  SDSVarName="SUDOSU">
+            <Question>
+               <TranslatedText>What was the dose unit?</TranslatedText>
+            </Question>
+            <Alias Name="SUDOSU" Context="SDTM"/>
+            <Alias Name="SUDOSU" Context="CDASH"/>
+            <Alias Name="Record the unit. See the protocol for a list of units."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_DETAILSUDSTXT"
+                  Name="SUDSTXT"
+                  DataType="text"
+                  Length="80">
+            <Question>
+               <TranslatedText>What was the amount of the  recreational product used?</TranslatedText>
+            </Question>
+            <Alias Name="Indicate the amount of recreational product the subject consumes on a regular basis."
+                   Context="completionInstructions"/>
+            <Alias Name="SUDSTXT" Context="CDASH"/>
+            <Alias Name="SUDOSE or SUDOSTXT" Context="SDTM"/>
+            <Alias Name="Amount" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_DETAIL.SUNCF"
+                  Name="SUNCF"
+                  DataType="text"
+                  Length="80">
+            <Question>
+               <TranslatedText>Does the subject currently use or formerly use recreational product?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_CURRENT/FORMER USER"/>
+            <Alias Name="Usage" Context="prompt"/>
+            <Alias Name="SUSTTPT, SUSTRTPT, SUENTPT; SUENRTPT; SUPRESP" Context="SDTM"/>
+            <Alias Name="Check the appropriate box to indicate if the subject currently or formerly used recreational products."
+                   Context="completionInstructions"/>
+            <Alias Name="SUNCF" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_ANY.SUREASND"
+                  Name="SUREASND"
+                  DataType="text"
+                  Length="80">
+            <Question>
+               <TranslatedText>What was the reason the recreational product usage was not done?</TranslatedText>
+            </Question>
+            <Alias Name="Record the reason recreational  product usage was not done."
+                   Context="completionInstructions"/>
+            <Alias Name="SUREASND" Context="SDTM"/>
+            <Alias Name="SUREASND" Context="CDASH"/>
+            <Alias Name="Reason Not Done" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_DETAIL.SUTRT"
+                  Name="SUTRT"
+                  DataType="text"
+                  Length="80"
+                  SDSVarName="SUTRT">
+            <Question>
+               <TranslatedText>What was the recreational product used?</TranslatedText>
+            </Question>
+            <Alias Name="SUTRT" Context="SDTM"/>
+            <Alias Name="SUTRT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SU_TIG_REC_PROD_USAGE_ANY.SUYN"
+                  Name="SUYN"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Were any recreational products used?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_NO/YES/NOTDONE"/>
+            <Alias Name="SUYN" Context="CDASH"/>
+            <Alias Name="Indicate if the subject had ever used any recreational products."
+                   Context="completionInstructions"/>
+            <Alias Name="SUSTAT = &#34;NOT DONE&#34; and SUTRT=&#34;RECREATIOAL PRODUCT&#34;  where SUYN = &#34;Not Done&#34;"
+                   Context="SDTM"/>
+         </ItemDef>
+         <CodeList OID="TIG_NO/YES/NOTDONE" Name="NO/YES/NOTDONE" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT DONE" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Not Done</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_CURRENT/FORMER USER"
+                   Name="TIG_CURRENT/FORMER USER"
+                   DataType="text">
+            <CodeListItem CodedValue="FORMERLY" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Formerly</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="CURRENT" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Current</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_REC_PROD_FREQ" Name="TIG_REC_PROD_FREQ" DataType="text">
+            <CodeListItem CodedValue="OCCASIONAL" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Occasional</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="INTERMITENT" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Intermitent</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="QD" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Daily</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRN" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>PRN</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNKNOWN" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Unknown</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

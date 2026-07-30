@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-22T17:33:53"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_INC/EXC"
+                  Name="Tobacco Implementation Guide-Inclusion/Exclusion"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect Subject Inclusion/Exclusion Criteria.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_INC/EXC_ANY" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG-INC/EXC_DETAIL" Mandatory="No" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_INC/EXC_ANY" Name="Any Inc/Exc" Repeating="No">
+            <ItemRef ItemOID="IE_TIG_INC/EXC_ANY.IEYN" Mandatory="No" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG-INC/EXC_DETAIL" Name="Inc/Exc Criteria" Repeating="No">
+            <ItemRef ItemOID="IE_TIG_INC_EXC_CRITERIA.IECAT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="IE_TIG_INC_EXC_CRITERIA.IETESTCD"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+         </ItemGroupDef>
+         <ItemDef OID="IE_TIG_INC_EXC_CRITERIA.IECAT"
+                  Name="IECAT"
+                  DataType="text"
+                  Length="25"
+                  SDSVarName="IECAT">
+            <Question>
+               <TranslatedText>What was the category of the criterion?</TranslatedText>
+            </Question>
+            <Alias Name="IECAT" Context="CDASH"/>
+            <Alias Name="Record whether the criterion exception was Inclusion or Exclusion"
+                   Context="completionInstructions"/>
+            <Alias Name="IECAT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="IE_TIG_INC_EXC_CRITERIA.IETESTCD"
+                  Name="IETESTCD"
+                  DataType="text"
+                  Length="16"
+                  SDSVarName="IETESTCD">
+            <Question>
+               <TranslatedText>What was the identifier of the inclusion criterion the subject did not meet or the exclusion criterion the subject met?</TranslatedText>
+            </Question>
+            <Alias Name="IETESTCD" Context="SDTM"/>
+            <Alias Name="If the subject was not eligible, record the identifying code for each criterion that was an exception."
+                   Context="completionInstructions"/>
+            <Alias Name="IETESTCD" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="IE_TIG_INC/EXC_ANY.IEYN"
+                  Name="IEYN"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Were all eligibility criteria met?</TranslatedText>
+            </Question>
+            <Alias Name="Record Yes if all eligibility criteria were met at the time the subject was enrolled. Record No if the subject did not meet all criteria at the time the subject was enrolled"
+                   Context="completionInstructions"/>
+            <Alias Name="IEYN" Context="CDASH"/>
+            <Alias Name="NOT SUBMITTED" Context="SDTM"/>
+         </ItemDef>
+      </MetaDataVersion>
+   </Study>
+</ODM>

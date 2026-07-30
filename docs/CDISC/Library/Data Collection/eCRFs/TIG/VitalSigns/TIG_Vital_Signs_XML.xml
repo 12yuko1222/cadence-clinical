@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-22T17:58:59"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_VITAL_SIGNS"
+                  Name="Tobacco Implementation Guide-Vital Signs"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example of a CRF used to collect vital signs.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_VITAL_SIGNS" Mandatory="No" OrderNumber="1"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_VITAL_SIGNS" Name="Vital Signs" Repeating="No">
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.VSDAT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.VSTIM" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.HEIGHT" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.HEIGHTU" Mandatory="No" OrderNumber="4"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.WEIGHT" Mandatory="No" OrderNumber="5"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.WEIGHTU" Mandatory="No" OrderNumber="6"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.TEMP" Mandatory="No" OrderNumber="7"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.TEMPU" Mandatory="No" OrderNumber="8"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.RESP" Mandatory="No" OrderNumber="9"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.RESPU" Mandatory="No" OrderNumber="10"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.SYSBP" Mandatory="No" OrderNumber="11"/>
+            <ItemRef ItemOID="VS_TIG_VITL_SIGNS.SYSBP" Mandatory="No" OrderNumber="12"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.DIABP" Mandatory="No" OrderNumber="13"/>
+            <ItemRef ItemOID="VS_TIG_VITL_SIGNS.DIABP" Mandatory="No" OrderNumber="14"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.PULSE" Mandatory="No" OrderNumber="15"/>
+            <ItemRef ItemOID="VS_TIG_VITAL_SIGNS.PULSEU" Mandatory="No" OrderNumber="16"/>
+         </ItemGroupDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.DIABP"
+                  Name="DIABP"
+                  DataType="integer"
+                  Length="3"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the diastolic blood pressure measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRES where VSTESTCD = &#34;DIABP&#34;" Context="SDTM"/>
+            <Alias Name="Record the diastolic blood pressure result."
+                   Context="completionInstructions"/>
+            <Alias Name="DIABP" Context="CDASH"/>
+            <Alias Name="Diastolic Blood Pressure" Context="Prompt"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITL_SIGNS.DIABP"
+                  Name="DIABPU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the diastolic blood pressure unit?</TranslatedText>
+            </Question>
+            <Alias Name="DIABPU" Context="CDASH"/>
+            <Alias Name="Diastolic Blood Pressure  Unit" Context="prompt"/>
+            <Alias Name="mmHg" Context="pre-filled"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;DIABP&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.HEIGHT"
+                  Name="HEIGHT"
+                  DataType="float"
+                  Length="3"
+                  SignificantDigits="1"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the result of the height measurement?</TranslatedText>
+            </Question>
+            <Alias Name="HEIGHT" Context="CDASH"/>
+            <Alias Name="VSORRES where VSTESTCD = &#34;HEIGHT&#34;SBP&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.HEIGHTU"
+                  Name="HEIGHTU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the height measurement?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66770.VSRESU.HGT"/>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;HEIGHT&#34;" Context="SDTM"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="HEIGHTU" Context="CDASH"/>
+            <Alias Name="Height Unit" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.PULSE"
+                  Name="PULSE"
+                  DataType="integer"
+                  Length="3"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the pulse meaurement?</TranslatedText>
+            </Question>
+            <Alias Name="Pulse" Context="Prompt"/>
+            <Alias Name="VSORRES where VSTESTCD = &#34;PULSE&#34;" Context="SDTM"/>
+            <Alias Name="Pulse" Context="CDASH"/>
+            <Alias Name="Record the pulse result." Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.PULSEU"
+                  Name="PULSEU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the pulse measurement??</TranslatedText>
+            </Question>
+            <Alias Name="PULSE" Context="CDASH"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="Pulse Unit" Context="prompt"/>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;PULSE&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.RESP"
+                  Name="RESP"
+                  DataType="float"
+                  Length="3"
+                  SignificantDigits="1"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the result of the respiratory rate measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRES where VSTESTCD = &#34;RESP&#34;" Context="SDTM"/>
+            <Alias Name="RESP" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.RESPU"
+                  Name="RESPU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the respiratory rate measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;RESP&#34;" Context="SDTM"/>
+            <Alias Name="breaths/min" Context="pre-filled"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="Respiratory Unit" Context="prompt"/>
+            <Alias Name="RESPUU" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.SYSBP"
+                  Name="SYSBP"
+                  DataType="integer"
+                  Length="3"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the systolic blood pressure measurement?</TranslatedText>
+            </Question>
+            <Alias Name="SYSBP" Context="CDASH"/>
+            <Alias Name="Record the systolic blood pressure result."
+                   Context="completionInstructions"/>
+            <Alias Name="Systolic Blood Pressure" Context="Prompt"/>
+            <Alias Name="VSORRES where VSTESTCD = &#34;SYSBP&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITL_SIGNS.SYSBP"
+                  Name="SYSBPU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the systolic blood pressure measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;SYSBP&#34;" Context="SDTM"/>
+            <Alias Name="mmHg" Context="pre-filled"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="SYSBPU" Context="CDASH"/>
+            <Alias Name="Systolic Blood Pressure  Unit" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.TEMP"
+                  Name="TEMP"
+                  DataType="float"
+                  Length="3"
+                  SignificantDigits="1"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the result of the temperature measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRES where VSTESTCD = &#34;TEMP&#34;" Context="SDTM"/>
+            <Alias Name="TEMP" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.TEMPU"
+                  Name="TEMPU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the temperature measurement?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66770.VSRESU.TEMP"/>
+            <Alias Name="Temperature Unit" Context="prompt"/>
+            <Alias Name="TEMPU" Context="CDASH"/>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;TEMP&#34;" Context="SDTM"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.VSDAT"
+                  Name="VSDAT"
+                  DataType="date"
+                  SDSVarName="VSDTC">
+            <Question>
+               <TranslatedText>What was the date of the measurements?</TranslatedText>
+            </Question>
+            <Alias Name="Record date of measurements." Context="completionInstructions"/>
+            <Alias Name="Date" Context="prompt"/>
+            <Alias Name="VSDAT" Context="CDASH"/>
+            <Alias Name="VSDTC" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.VSTIM"
+                  Name="VSTIM"
+                  DataType="time"
+                  SDSVarName="VSDTC">
+            <Question>
+               <TranslatedText>What was the time of the measurements?</TranslatedText>
+            </Question>
+            <Alias Name="VSTIM" Context="CDASH"/>
+            <Alias Name="Record time of measurement." Context="[completionInstructions]"/>
+            <Alias Name="Time" Context="prompt"/>
+            <Alias Name="VSDTC" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.WEIGHT"
+                  Name="WEIGHT"
+                  DataType="float"
+                  Length="3"
+                  SignificantDigits="1"
+                  SDSVarName="VSORRES">
+            <Question>
+               <TranslatedText>What was the result of the weight measurement?</TranslatedText>
+            </Question>
+            <Alias Name="VSORRES where VSTESTCD = &#34;WEIGHT&#34;&#34;" Context="SDTM"/>
+            <Alias Name="WEIGHT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="VS_TIG_VITAL_SIGNS.WEIGHTU"
+                  Name="WEIGHTTU"
+                  DataType="text"
+                  Length="15"
+                  SDSVarName="VSORRESU">
+            <Question>
+               <TranslatedText>What was the unit of the weight measurement?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66770.VSRESU.WGT"/>
+            <Alias Name="Record or select the original unit in which these data were collected, if not pre-printed on CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="VSORRESU where VSTESTCD = &#34;WEIGHT&#34;&#34;" Context="SDTM"/>
+            <Alias Name="WEIGHTU" Context="CDASH"/>
+            <Alias Name="Weight Unit" Context="prompt"/>
+         </ItemDef>
+         <CodeList OID="CL.C66770.VSRESU.HGT"
+                   Name="Units for Vital Signs Results Height"
+                   DataType="text">
+            <Description>
+               <TranslatedText>The unit used to record and describe the result of a test investigating a vital sign. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="cm" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Centimeter</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="in" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Inch</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66770.VSRESU.TEMP"
+                   Name="Units for Vital Signs Results Tempature"
+                   DataType="text">
+            <Description>
+               <TranslatedText>The unit used to record and describe the result of a test investigating a vital sign. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="C" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Celsius</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="F" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Fahrenheit</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66770.VSRESU.WGT"
+                   Name="Units for Vital Signs Results Weight"
+                   DataType="text">
+            <Description>
+               <TranslatedText>The unit used to record and describe the result of a test investigating a vital sign. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="kg" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Kilogram</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="LB" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Pound</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>
