@@ -3,16 +3,17 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sae_icsr import IndividualCaseSafetyReport
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.safety.database import db_manager
 from apps.safety.models import (
     Base,
     SAEDiscrepancy,
+    SAEReconciliationJob,
     SAEReconciliationRun,
     SafetyAuditLog,
     SafetyCaseICSR,
@@ -117,6 +118,25 @@ class SAEReconciliationRunResponse(BaseModel):
     reason_for_change: str
     version_index: int
     discrepancies: List[SAEDiscrepancyResponse] = []
+
+
+class SAEReconciliationJobRequest(BaseModel):
+    study_id: str = Field(..., description="The study identifier for reconciliation")
+
+
+class SAEReconciliationJobResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    study_id: str
+    status: str
+    error_message: Optional[str] = None
+    run_id: Optional[str] = None
+    result_summary: Optional[Dict[str, Any]] = None
+    created_at: str
+    created_by: str
+    reason_for_change: str
+    version_index: int
 
 
 DATABASE_URL = os.getenv("SAFETY_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
@@ -238,6 +258,50 @@ def map_run_to_response(
             for d in discrepancies
         ],
     )
+
+
+def map_job_to_reconciliation_response(
+    job: SAEReconciliationJob, result_summary: Optional[Dict[str, Any]] = None
+) -> SAEReconciliationJobResponse:
+    return SAEReconciliationJobResponse(
+        id=job.id,
+        study_id=job.study_id,
+        status=job.status,
+        error_message=job.error_message,
+        run_id=job.run_id,
+        result_summary=result_summary,
+        created_at=job.created_at.isoformat(),
+        created_by=job.created_by,
+        reason_for_change=job.reason_for_change,
+        version_index=job.version_index,
+    )
+
+
+async def get_job_result_summary(session: AsyncSession, run_id: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not run_id:
+        return None
+    try:
+        # Query SAEReconciliationRun to make sure it exists, and count the discrepancies
+        stmt_run = select(SAEReconciliationRun).where(SAEReconciliationRun.id == run_id)
+        res_run = await session.execute(stmt_run)
+        run = res_run.scalars().first()
+        if not run:
+            return None
+
+        # Count discrepancies
+        stmt_disc_count = select(func.count(SAEDiscrepancy.id)).where(SAEDiscrepancy.run_id == run_id)
+        res_disc_count = await session.execute(stmt_disc_count)
+        count = res_disc_count.scalar() or 0
+
+        return {
+            "discrepancy_count": count,
+            "run_id": run_id,
+            "study_id": run.study_id,
+            "run_date": run.run_date.isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to build result summary for run {run_id}: {e}")
+        return None
 
 
 # Safety Cases / ICSR Endpoints
@@ -661,6 +725,346 @@ async def trigger_sae_reconciliation(
     await session.commit()
 
     return map_run_to_response(run, discrepancies)
+
+
+# Helper alert and background task implementation
+async def send_medical_monitor_alert(
+    job_id: str,
+    run_id: str,
+    study_id: str,
+    discrepancy_count: int,
+    test_client: Optional[Any],
+    session: AsyncSession,
+    user_id: str,
+    change_reason: str,
+) -> None:
+    import os
+    import time
+
+    import httpx
+
+    from packages.security.signing import generate_gateway_signature
+
+    gateway_secret_env = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345")
+    gateway_secret = (
+        gateway_secret_env.encode("utf-8")
+        if isinstance(gateway_secret_env, str)
+        else gateway_secret_env
+    )
+
+    caller_user_id = "safety-service"
+    roles = "sponsor_statistician"
+    timestamp = str(time.time())
+
+    signature = generate_gateway_signature(
+        user_id=caller_user_id,
+        roles=roles,
+        timestamp=timestamp,
+        secret=gateway_secret,
+        change_reason=change_reason,
+    )
+
+    headers = {
+        "X-User-Id": caller_user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": signature,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+
+    payload = {
+        "recipient_role": "sponsor_mm",
+        "category": "ALERTS",
+        "priority": "HIGH",
+        "channels": "IN_APP",
+        "message_content": f"SAE reconciliation run {run_id} identified {discrepancy_count} discrepancies for study {study_id}.",
+        "related_entity_id": run_id,
+        "related_entity_type": "SAEReconciliationRun",
+    }
+
+    notifications_url = os.getenv("NOTIFICATIONS_URL") or "http://localhost:8006"
+    url = f"{notifications_url.rstrip('/')}/api/v1/notifications"
+
+    try:
+        if test_client is not None:
+            response = await test_client.post(
+                url, json=payload, headers=headers, timeout=10.0
+            )
+        else:
+            async with httpx.AsyncClient(timeout=10.0) as cli:
+                response = await cli.post(url, json=payload, headers=headers)
+
+        if response.status_code == 201:
+            logger.info("Successfully dispatched alert to Sponsor Medical Monitor.")
+            await write_safety_audit_log(
+                session=session,
+                user_id=user_id,
+                action="RECONCILIATION_ALERT_SENT",
+                details=f"Sponsor Medical Monitor alert successfully dispatched for run {run_id}. Identified {discrepancy_count} discrepancies.",
+                record_id=job_id,
+                change_reason=change_reason,
+            )
+        else:
+            logger.error(
+                f"Notifications service returned error {response.status_code}: {response.text}"
+            )
+            await write_safety_audit_log(
+                session=session,
+                user_id=user_id,
+                action="RECONCILIATION_ALERT_FAILED",
+                details=f"Sponsor Medical Monitor alert dispatch failed with status {response.status_code}.",
+                record_id=job_id,
+                change_reason=change_reason,
+            )
+    except Exception as e:
+        logger.exception("Failed to dispatch Sponsor Medical Monitor alert")
+        await write_safety_audit_log(
+            session=session,
+            user_id=user_id,
+            action="RECONCILIATION_ALERT_FAILED",
+            details=f"Sponsor Medical Monitor alert dispatch exception: {str(e)[:200]}.",
+            record_id=job_id,
+            change_reason=change_reason,
+        )
+
+
+async def reconciliation_worker(
+    job_id: str,
+    study_id: str,
+    user_id: str,
+    change_reason: str,
+    test_client: Optional[Any] = None,
+) -> None:
+    session_maker = db_manager.get_session_maker()
+    async with session_maker() as session:
+        try:
+            # 1. Update status to PROCESSING
+            stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == job_id)
+            result = await session.execute(stmt)
+            job = result.scalars().first()
+            if not job:
+                logger.error(f"Reconciliation job {job_id} not found in database.")
+                return
+
+            job.status = "PROCESSING"
+            await session.flush()
+
+            await write_safety_audit_log(
+                session=session,
+                user_id=user_id,
+                action="RECONCILIATION_JOB_PROCESSING",
+                details=f"SAE reconciliation job {job_id} status changed to PROCESSING.",
+                record_id=job_id,
+                change_reason=change_reason,
+            )
+            await session.commit()
+
+            # 2. Run reconciliation logic
+            from apps.safety.reconciliation import run_reconciliation
+            results = await run_reconciliation(
+                study_id=study_id,
+                session=session,
+                created_by=user_id,
+                reason_for_change=change_reason,
+                client=test_client,
+            )
+
+            run = results["run"]
+            discrepancies = results["discrepancies"]
+
+            # 3. Update status to COMPLETED
+            stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == job_id)
+            result = await session.execute(stmt)
+            job = result.scalars().first()
+            if job:
+                job.status = "COMPLETED"
+                job.run_id = run.id
+                await session.flush()
+
+                await write_safety_audit_log(
+                    session=session,
+                    user_id=user_id,
+                    action="RECONCILIATION_JOB_COMPLETED",
+                    details=f"SAE reconciliation job {job_id} status changed to COMPLETED. Created run {run.id}.",
+                    record_id=job_id,
+                    change_reason=change_reason,
+                )
+                await session.commit()
+
+                # 4. Handle alerts for material discrepancies
+                if len(discrepancies) > 0:
+                    await send_medical_monitor_alert(
+                        job_id=job_id,
+                        run_id=run.id,
+                        study_id=study_id,
+                        discrepancy_count=len(discrepancies),
+                        test_client=test_client,
+                        session=session,
+                        user_id=user_id,
+                        change_reason=change_reason,
+                    )
+                    await session.commit()
+
+        except Exception as e:
+            logger.exception(f"Error processing reconciliation job {job_id}")
+            # Ensure safe transition to FAILED with non-sensitive error
+            try:
+                stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == job_id)
+                result = await session.execute(stmt)
+                job = result.scalars().first()
+                if job:
+                    job.status = "FAILED"
+                    err_msg = str(e)
+                    if "\n" in err_msg:
+                        err_msg = err_msg.split("\n")[0]
+                    job.error_message = err_msg[:200]
+                    await session.flush()
+
+                    await write_safety_audit_log(
+                        session=session,
+                        user_id=user_id,
+                        action="RECONCILIATION_JOB_FAILED",
+                        details=f"SAE reconciliation job {job_id} status changed to FAILED. Error: {err_msg[:200]}",
+                        record_id=job_id,
+                        change_reason=change_reason,
+                    )
+                    await session.commit()
+            except Exception as inner_e:
+                logger.error(f"Failed to record FAILED status for job {job_id}: {inner_e}")
+
+
+# SAE Reconciliation jobs endpoints
+@app.post(
+    "/api/v1/safety/reconciliation/jobs",
+    response_model=SAEReconciliationJobResponse,
+    status_code=202,
+)
+async def trigger_sae_reconciliation_job(
+    request: Request,
+    payload: SAEReconciliationJobRequest,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_db_session),
+) -> SAEReconciliationJobResponse:
+    """
+    Triggers asynchronous SAE reconciliation job. Returns HTTP 202 Accepted.
+    """
+    user_id, user_role, change_reason = get_user_context(request)
+    if not change_reason:
+        raise HTTPException(
+            status_code=403, detail="Missing change justification reason"
+        )
+
+    import uuid
+    job_id = str(uuid.uuid4())
+
+    job = SAEReconciliationJob(
+        id=job_id,
+        study_id=payload.study_id,
+        status="PENDING",
+        created_by=user_id,
+        reason_for_change=change_reason,
+        version_index=1,
+    )
+    session.add(job)
+    await session.flush()
+
+    await write_safety_audit_log(
+        session=session,
+        user_id=user_id,
+        action="RECONCILIATION_JOB_CREATE",
+        details=f"Created SAE reconciliation job {job_id} with status PENDING.",
+        record_id=job_id,
+        change_reason=change_reason,
+        version_index=1,
+    )
+    await session.commit()
+
+    test_client = getattr(request.app.state, "test_httpx_client", None)
+    background_tasks.add_task(
+        reconciliation_worker,
+        job_id=job_id,
+        study_id=payload.study_id,
+        user_id=user_id,
+        change_reason=change_reason,
+        test_client=test_client,
+    )
+
+    return map_job_to_reconciliation_response(job, None)
+
+
+@app.get(
+    "/api/v1/safety/reconciliation/jobs",
+    response_model=List[SAEReconciliationJobResponse],
+)
+async def list_reconciliation_jobs(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> List[SAEReconciliationJobResponse]:
+    """
+    List all safety reconciliation jobs.
+    """
+    user_id, user_role, change_reason = get_user_context(request)
+
+    stmt = select(SAEReconciliationJob).order_by(SAEReconciliationJob.created_at.desc())
+    result = await session.execute(stmt)
+    jobs = result.scalars().all()
+
+    response_jobs = []
+    for j in jobs:
+        summary = await get_job_result_summary(session, j.run_id)
+        response_jobs.append(map_job_to_reconciliation_response(j, summary))
+
+    await write_safety_audit_log(
+        session=session,
+        user_id=user_id,
+        action="RECONCILIATION_JOB_LIST",
+        details="Listed SAE reconciliation jobs.",
+        change_reason=change_reason,
+        version_index=1,
+    )
+    await session.commit()
+
+    return response_jobs
+
+
+@app.get(
+    "/api/v1/safety/reconciliation/jobs/{id}",
+    response_model=SAEReconciliationJobResponse,
+)
+async def get_reconciliation_job(
+    request: Request,
+    id: str,
+    session: AsyncSession = Depends(get_db_session),
+) -> SAEReconciliationJobResponse:
+    """
+    Retrieve a specific safety reconciliation job by ID (polling).
+    """
+    user_id, user_role, change_reason = get_user_context(request)
+
+    stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == id)
+    result = await session.execute(stmt)
+    job = result.scalars().first()
+
+    if not job:
+        raise HTTPException(
+            status_code=404, detail=f"Reconciliation job with ID '{id}' not found."
+        )
+
+    summary = await get_job_result_summary(session, job.run_id)
+
+    await write_safety_audit_log(
+        session=session,
+        user_id=user_id,
+        action="RECONCILIATION_JOB_VIEW",
+        details=f"Viewed reconciliation job ID: {id}.",
+        record_id=id,
+        change_reason=change_reason,
+        version_index=job.version_index,
+    )
+    await session.commit()
+
+    return map_job_to_reconciliation_response(job, summary)
 
 
 @app.get(
