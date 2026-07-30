@@ -55,6 +55,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-13: Standalone In-Application Ticketing Service and Platform Integration](2026-08-13-tickets-service-scaffold-and-gateway-integration.md)
 - [2026-08-15: Bidirectional API Contract Enforcement and Legacy Whitelisting](2026-08-15-bidirectional-api-contract-enforcement.md)
 - [2026-08-17: Centralized Permission-Based Authorization and Dynamic Mappings](2026-08-17-centralized-permission-auth.md)
+- [2026-08-21: eTMF Inbound-Email Webhook and Binder Routing](2026-08-21-etmf-inbound-email-webhook-and-binder-routing.md)
 
 ### 3. Clinical Data Interoperability & Standards
 
@@ -78,6 +79,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-14: Biostatistical Export Pipeline Interoperability and Architecture](2026-08-14-biostatistical-export-pipeline-interoperability.md)
 
 ### 4. Clinical Operations & Business Modules
+- [2026-07-30: Protocol Ingestion and CRF Draft Generation Workflow](2026-07-30-protocol-ingestion-and-crf-draft-generation-workflow.md)
 
 - [2026-07-25: ADR 2026-07-25: Data-Driven Expected Document Lists (EDLs) & Completeness Tracking](2026-07-25-data-driven-edl-model-and-completeness.md)
 - [2026-07-25: ADR 2026-07-25: eTMF Quality Control Review Lifecycle & Validated State Machine](2026-07-25-etmf-qc-review-workflow.md)

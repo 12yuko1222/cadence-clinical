@@ -452,6 +452,219 @@
         }
       }
     },
+    "/api/v1/designer/ingestion/upload": {
+      "post": {
+        "summary": "Upload Protocol Ingestion",
+        "operationId": "upload_protocol_ingestion_api_v1_designer_ingestion_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_protocol_ingestion_api_v1_designer_ingestion_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/designer/ingestion/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Ingestion Job Status",
+        "operationId": "get_ingestion_job_status_api_v1_designer_ingestion_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/designer/ingestion/candidates/{candidate_id}": {
+      "get": {
+        "summary": "Get Ingestion Candidate",
+        "operationId": "get_ingestion_candidate_api_v1_designer_ingestion_candidates__candidate_id__get",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/items/{item_id}/transition": {
+      "post": {
+        "summary": "Transition Ingestion Item",
+        "operationId": "transition_ingestion_item_api_v1_designer_ingestion_candidates__candidate_id__items__item_id__transition_post",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/promote": {
+      "post": {
+        "summary": "Promote Ingestion Candidate",
+        "operationId": "promote_ingestion_candidate_api_v1_designer_ingestion_candidates__candidate_id__promote_post",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}": {
       "delete": {
         "summary": "Retire Arm Endpoint",
@@ -1835,6 +2048,128 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{study_id}/versions/{version_id}/sign-off": {
+      "post": {
+        "summary": "Approve Study Version Endpoint",
+        "description": "Approve and cryptographically sign a Metadata Designer clinical protocol version, producing\na 21 CFR Part 11 compliant persisted signature manifestation, recording immutable Action history,\nand locks the protocol version by transitioning its status to APPROVED.\nLocked statuses (APPROVED, SIGNED) block any subsequent edits via immutability checks across both Neo4j and mock databases.\nSuccessfully approved protocols are archived as PROTOCOL_SIGNOFF artifacts to the eTMF service asynchronously.",
+        "operationId": "approve_study_version_endpoint_api_v1_studies__study_id__versions__version_id__sign_off_post",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveProtocolRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approve Study Version Endpoint Api V1 Studies  Study Id  Versions  Version Id  Sign Off Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{study_id}/versions/{version_id}/approve": {
+      "post": {
+        "summary": "Approve Study Version Endpoint",
+        "description": "Approve and cryptographically sign a Metadata Designer clinical protocol version, producing\na 21 CFR Part 11 compliant persisted signature manifestation, recording immutable Action history,\nand locks the protocol version by transitioning its status to APPROVED.\nLocked statuses (APPROVED, SIGNED) block any subsequent edits via immutability checks across both Neo4j and mock databases.\nSuccessfully approved protocols are archived as PROTOCOL_SIGNOFF artifacts to the eTMF service asynchronously.",
+        "operationId": "approve_study_version_endpoint_api_v1_studies__study_id__versions__version_id__approve_post",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveProtocolRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Approve Study Version Endpoint Api V1 Studies  Study Id  Versions  Version Id  Approve Post"
+                }
               }
             }
           },
@@ -4670,6 +5005,19 @@
         ],
         "title": "AllowableUnit"
       },
+      "ApproveProtocolRequest": {
+        "properties": {
+          "signing_reason": {
+            "$ref": "#/components/schemas/SigningReason",
+            "description": "Reason for signing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "signing_reason"
+        ],
+        "title": "ApproveProtocolRequest"
+      },
       "ArmAttributes": {
         "properties": {
           "arm_type": {
@@ -4896,6 +5244,20 @@
           "file"
         ],
         "title": "Body_upload_mapping_csv_api_v1_mappings_upload_post"
+      },
+      "Body_upload_protocol_ingestion_api_v1_designer_ingestion_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_protocol_ingestion_api_v1_designer_ingestion_upload_post"
       },
       "CDASHMapping": {
         "properties": {
@@ -6798,6 +7160,19 @@
         "title": "ProcedureProperties",
         "description": "Properties specific to a clinical Procedure / Activity."
       },
+      "PromoteRequest": {
+        "properties": {
+          "change_reason": {
+            "type": "string",
+            "title": "Change Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "change_reason"
+        ],
+        "title": "PromoteRequest"
+      },
       "ProtocolAmendRequest": {
         "properties": {
           "amendment_type": {
@@ -6902,6 +7277,22 @@
         ],
         "title": "RulePreviewResponse",
         "description": "Response for rule preview/validation request."
+      },
+      "SigningReason": {
+        "type": "string",
+        "enum": [
+          "AUTHOR",
+          "REVIEW",
+          "APPROVAL",
+          "SPONSOR_APPROVAL",
+          "INVESTIGATOR_SIGNATURE",
+          "TECHNICAL_QC",
+          "CLINICAL_QC",
+          "DATA_LOCK",
+          "SYSTEM_SEAL"
+        ],
+        "title": "SigningReason",
+        "description": "Controlled reasons for creating an electronic signature in compliance with 21 CFR Part 11."
       },
       "SoACellView": {
         "properties": {
@@ -7488,6 +7879,57 @@
         ],
         "title": "TimingWindowProperties",
         "description": "Properties specific to a Timing Window. Enforces cross-field conditional justification."
+      },
+      "TransitionItemRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "TransitionItemRequest"
       },
       "UpdateArmRequest": {
         "properties": {

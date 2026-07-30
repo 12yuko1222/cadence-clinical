@@ -84,6 +84,7 @@ async def test_etmf_signing_happy_path():
     - Transitions document to SIGNED and APPROVED.
     - Generates immutable SIGN and APPROVE audit logs.
     - Successfully integrates with the Merkle ledger seal cycle.
+    @req: Trace-13
     """
     client = TestClient(app)
     admin_headers = get_auth_headers(
@@ -175,6 +176,7 @@ async def test_etmf_signing_happy_path():
 async def test_etmf_signing_reauth_failures():
     """
     Verify rejection of missing, expired, or mismatched re-authentication tokens.
+    @req: Trace-13
     """
     client = TestClient(app)
     admin_headers = get_auth_headers(
@@ -284,6 +286,7 @@ async def test_etmf_post_signature_locking():
     - Reject transition, redact, auto-redact, manual-redact, and re-ingest.
     - All return 403 Forbidden with IMMUTABILITY_VIOLATION.
     - Write a MUTATION_REJECTED action to audit logs.
+    @req: Trace-13
     """
     client = TestClient(app)
     admin_headers = get_auth_headers(

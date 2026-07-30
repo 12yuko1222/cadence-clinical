@@ -352,6 +352,7 @@ DIA_V3_2_0_COMPLETE_RAW = {
 
 # Cadence-specific custom extensions
 CADENCE_EXTENSIONS_RAW = {
+    "05.02.98": ("Medical License", "05.02", 5),
     "05.02.99": ("Cadence Investigator Portal Training Certificate", "05.02", 5),
     "10.01.99": ("Cadence Custom Data Integrity Log", "10.01", 10),
 }

@@ -25,6 +25,7 @@ This matrix details the distribution of core compliance and tracking features ac
 | **Multi-Tenant Scoping**          | Metadata partitioned by validated sponsor IDs, blank context blocked | N/A | v1.8.0 | Supported |
 | **Governance & State Machine**    | Allowed transition validations and role gates (DRAFT to ARCHIVED) | N/A | v1.8.0 | Supported |
 | **In-Use Locks & Amendments**     | In-use template mutation write blocking, formal `/amend` cloning workflow | N/A | v1.8.0 | Supported |
+| **Native Part 11 eSignatures**    | Certificate-bound protocol-approval signing & graph version locking | Certificate-bound document-signing with 60s gateway step-up token, replay prevention & immutability locking | v1.9.0 | Supported |
 
 ---
 
@@ -49,6 +50,7 @@ The table below specifies how individual clinical domain entities are processed,
 | **Biostatistical Exports** | Execution | SQLite/PostgreSQL | Audit-logged `BiostatExport` transactions with Dataset-JSON validation |
 | **Global Library Objects** | Designer | Neo4j/Mock DB | Graph node versioning via `PREVIOUS_VERSION` chains and metadata JSON serialization |
 | **Study Library Instances** | Designer | Neo4j/Mock DB | Copy-on-instantiation clones linked via `INSTANTIATED_FROM` with local overrides |
+| **Signature Manifestations** | Designer & eTMF Services | Neo4j & SQLite/PostgreSQL | On-the-fly transient RSA/X.509 cryptographic signing of canonical JSON payloads |
 
 ---
 

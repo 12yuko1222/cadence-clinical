@@ -101,6 +101,7 @@ def receive_before_flush(session: Session, flush_context, instances):
             "safety_audit_logs",
             "sae_reconciliation_runs",
             "sae_discrepancies",
+            "sae_reconciliation_jobs",
             "tickets",
             "ticket_audit_logs",
             "ticket_comments",

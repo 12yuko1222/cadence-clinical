@@ -359,7 +359,7 @@ async def upgrade_existing_tables(conn) -> None:
             return []
         return [col["name"] for col in insp.get_columns(table_name)]
 
-    # 1. Update clinical_observations with lab reference snapshot columns and site_id
+    # 1. Update clinical_observations with lab reference snapshot columns, site_id, and SDV verification columns
     obs_cols = await conn.run_sync(
         lambda sc: get_table_columns(sc, "clinical_observations")
     )
@@ -371,6 +371,10 @@ async def upgrade_existing_tables(conn) -> None:
             ("lab_out_of_range", "BOOLEAN"),
             ("matched_normal_bounds", "VARCHAR(255)"),
             ("site_id", "VARCHAR(255)"),
+            ("is_sdv_verified", "BOOLEAN NOT NULL DEFAULT FALSE"),
+            ("sdv_verified_by", "VARCHAR(255)"),
+            ("sdv_verified_at", "TIMESTAMP"),
+            ("page_id", "VARCHAR(255)"),
         ]
         for col_name, col_type in new_obs_cols:
             if col_name not in obs_cols:
