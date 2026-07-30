@@ -147,8 +147,9 @@ async def start_background_etmf_expiration_scanner(
     if interval is None:
         interval = float(
             os.getenv(
-                "ETMF_EXPIRATION_SCANNER_INTERVAL_SECONDS", "86400.0"
-            )  # deid-ignore
+                "ETMF_EXPIRATION_SCANNER_INTERVAL_SECONDS",
+                "86400.0",  # deid-ignore
+            )
         )
     _should_run = True
 
