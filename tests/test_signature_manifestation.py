@@ -132,7 +132,9 @@ def test_asymmetric_sign_and_verify(crypto_material):
 
 
 def test_signature_manifestation_lifecycle(crypto_material):
-    """Validates the model serialization, signing, and verification lifecycle."""
+    """Validates the model serialization, signing, and verification lifecycle.
+    @req: Trace-13
+    """
     content = "clinical-trial-observation-42"
     content_hash = compute_sha256_hash(content)
 
