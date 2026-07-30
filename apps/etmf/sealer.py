@@ -47,7 +47,7 @@ async def execute_etmf_audit_sealing_cycle(
     # 2. Fetch all unsealed audit records
     unsealed_query = await db.execute(
         text(
-            "SELECT id, timestamp, user_id, user_role, action, document_id, details "
+            "SELECT id, timestamp, user_id, user_role, action, document_id, details, reason_for_change "
             "FROM tmf_audit_logs WHERE cryptographic_seal IS NULL ORDER BY timestamp ASC, id ASC LIMIT :limit;"
         ),
         {"limit": limit},
@@ -78,6 +78,12 @@ async def execute_etmf_audit_sealing_cycle(
             else None,
             "details": str(rec.details),
         }
+        # Keep serialization byte-for-byte identical for legacy NULL/None rows
+        if hasattr(rec, "reason_for_change") and rec.reason_for_change is not None:
+            record_payload["reason_for_change"] = str(rec.reason_for_change)
+        elif "reason_for_change" in rec._mapping and rec._mapping["reason_for_change"] is not None:
+            record_payload["reason_for_change"] = str(rec._mapping["reason_for_change"])
+
         serialized = json.dumps(record_payload, sort_keys=True).encode("utf-8")
         rec_hash = hashlib.sha256(serialized).hexdigest()
         record_hashes.append(rec_hash)
@@ -156,7 +162,7 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
             # 2. Fetch all records associated with this seal
             records_query = await db.execute(
                 text(
-                    "SELECT id, timestamp, user_id, user_role, action, document_id, details "
+                    "SELECT id, timestamp, user_id, user_role, action, document_id, details, reason_for_change "
                     "FROM tmf_audit_logs WHERE cryptographic_seal = :seal ORDER BY timestamp ASC, id ASC;"
                 ),
                 {"seal": curr_hash_in_db},
@@ -187,6 +193,11 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
                     else None,
                     "details": str(rec.details),
                 }
+                if hasattr(rec, "reason_for_change") and rec.reason_for_change is not None:
+                    record_payload["reason_for_change"] = str(rec.reason_for_change)
+                elif "reason_for_change" in rec._mapping and rec._mapping["reason_for_change"] is not None:
+                    record_payload["reason_for_change"] = str(rec._mapping["reason_for_change"])
+
                 serialized = json.dumps(record_payload, sort_keys=True).encode("utf-8")
                 rec_hash = hashlib.sha256(serialized).hexdigest()
                 record_hashes.append(rec_hash)

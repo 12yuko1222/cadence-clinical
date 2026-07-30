@@ -150,3 +150,4 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-23: Ticket Read Audit Policy and Paginated Audit Log Retrieval](2026-08-23-ticket-read-audit-policy-and-pagination.md)
 - [2026-08-23: Delegation of Authority Log Archive Destination and Taxonomy Mapping Decisions](2026-08-23-doa-archive-destination-and-taxonomy.md)
 - [2026-08-24: Support Tickets SLA/Overdue Escalation and Notification De-Duplication](2026-08-24-tickets-escalation-and-deduplication.md)
+- [2026-08-26: ADR 112: Site-Aware Synchronized Document Deduplication](2026-08-26-site-aware-synchronized-document-deduplication.md)
