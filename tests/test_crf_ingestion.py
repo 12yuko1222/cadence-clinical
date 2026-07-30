@@ -1,18 +1,21 @@
 import hashlib
 import hmac
+import io
 import json
 import time
-import io
+
 import docx
 import pytest
 from fastapi.testclient import TestClient
 
-from apps.designer.main import app as designer_app
-from apps.designer.main import MOCK_PROTOCOL_INGESTIONS
 from apps.designer.db import MOCK_STUDY_VERSIONS
+from apps.designer.main import MOCK_PROTOCOL_INGESTIONS
+from apps.designer.main import app as designer_app
 
 
-def get_designer_auth_headers(roles="sponsor_designer", change_reason="system_operation", user_id="123"):
+def get_designer_auth_headers(
+    roles="sponsor_designer", change_reason="system_operation", user_id="123"
+):
     """
     Generates v2 gateway HMAC signature headers for the given roles and change reason.
     """
@@ -56,7 +59,9 @@ def test_pdf_ingestion_success(client):
 
     Requirements: PRD-SYS-001
     """
-    pdf_bytes = b"%PDF-1.4\n%...\nSample Protocol content for Visit 1 and Vitals form\n%%EOF"
+    pdf_bytes = (
+        b"%PDF-1.4\n%...\nSample Protocol content for Visit 1 and Vitals form\n%%EOF"
+    )
     file_payload = {"file": ("protocol.pdf", pdf_bytes, "application/pdf")}
 
     response = client.post(
@@ -86,12 +91,20 @@ def test_docx_ingestion_success(client):
     Requirements: PRD-SYS-001
     """
     doc = docx.Document()
-    doc.add_paragraph("This is a study protocol containing Visit 1 details and Blood pressure questions.")
+    doc.add_paragraph(
+        "This is a study protocol containing Visit 1 details and Blood pressure questions."
+    )
     out = io.BytesIO()
     doc.save(out)
     docx_bytes = out.getvalue()
 
-    file_payload = {"file": ("protocol.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    file_payload = {
+        "file": (
+            "protocol.docx",
+            docx_bytes,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    }
 
     response = client.post(
         "/api/v1/designer/ingestion/upload",
@@ -111,7 +124,9 @@ def test_low_confidence_classification(client):
 
     Requirements: PRD-SYS-001
     """
-    pdf_bytes = b"%PDF-1.4\n%...\nSample Protocol content containing low-confidence text\n%%EOF"
+    pdf_bytes = (
+        b"%PDF-1.4\n%...\nSample Protocol content containing low-confidence text\n%%EOF"
+    )
     file_payload = {"file": ("protocol.pdf", pdf_bytes, "application/pdf")}
 
     response = client.post(
@@ -228,13 +243,19 @@ def test_candidate_item_review_transitions(client):
     # 5. Edit with mandatory reason
     response = client.post(
         f"/api/v1/designer/ingestion/candidates/{candidate_id}/items/cand_field_1/transition",
-        json={"status": "EDITED", "reason": "Correcting parsed spelling", "label": "Systolic Blood Pressure (mmHg)"},
+        json={
+            "status": "EDITED",
+            "reason": "Correcting parsed spelling",
+            "label": "Systolic Blood Pressure (mmHg)",
+        },
         headers=get_designer_auth_headers(),
     )
     assert response.status_code == 200
     candidate = response.json()
     assert candidate["items"]["cand_field_1"]["review_status"] == "EDITED"
-    assert candidate["items"]["cand_field_1"]["label"] == "Systolic Blood Pressure (mmHg)"
+    assert (
+        candidate["items"]["cand_field_1"]["label"] == "Systolic Blood Pressure (mmHg)"
+    )
 
 
 def test_promotion_gates_and_draft_creation(client):
