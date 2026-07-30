@@ -81,6 +81,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-14: Biostatistical Export Pipeline Interoperability and Architecture](2026-08-14-biostatistical-export-pipeline-interoperability.md)
 
 ### 4. Clinical Operations & Business Modules
+- [2026-08-25: CTMS Offline Sync Reconciliation and Structural Clinical Queries](2026-08-25-ctms-offline-sync-reconciliation-and-structural-clinical-queries.md)
 - [2026-08-23: Tickets-to-Notifications Integration Architecture](2026-08-23-tickets-notifications-integration.md)
 - [2026-07-30: Protocol Ingestion and CRF Draft Generation Workflow](2026-07-30-protocol-ingestion-and-crf-draft-generation-workflow.md)
 
@@ -120,6 +121,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-18: Document Redaction Architecture, Regulatory Data-Handling, and Compliance Profiles](2026-08-18-document-redaction-architecture.md)
 
 ### 6. Frontend & Design System
+- [2026-07-30: Deprecate legacy econsent helper in packages ui](2026-07-30-deprecate-legacy-econsent-helper-in-packages-ui.md)
 - [2026-07-30: eConsent Visual Editor and Subject Consent Portal UI Architecture](2026-07-30-econsent-visual-editor-and-subject-consent-portal-ui-architecture.md)
 
 - [2026-07-22: ADR 2026-07-22: Modular pnpm Workspace for Frontend Development](2026-07-22-pnpm-frontend-workspace.md)

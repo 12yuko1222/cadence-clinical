@@ -33,6 +33,9 @@ ROLE_PHARMACIST = "pharmacist"
 ROLE_UNBLINDED_STATISTICIAN = "unblinded_statistician"
 ROLE_IDMC = "idmc"
 ROLE_EMERGENCY_UNBLINDER = "emergency_unblinder"
+ROLE_PRINCIPAL_INVESTIGATOR = "principal_investigator"
+ROLE_AUTHORIZED_ER_PHYSICIAN = "authorized_er_physician"
+ROLE_LEAD_INVESTIGATOR = "lead_investigator"
 
 
 ROLE_ALIASES = {
@@ -94,10 +97,20 @@ ROLE_ALIASES = {
     "site investigator": ROLE_INVESTIGATOR,
     "site_investigator": ROLE_INVESTIGATOR,
     "site-investigator": ROLE_INVESTIGATOR,
-    "principal investigator": ROLE_INVESTIGATOR,
-    "pi": ROLE_INVESTIGATOR,
-    "principal_investigator": ROLE_INVESTIGATOR,
-    "principalinvestigator": ROLE_INVESTIGATOR,
+    "principal investigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "pi": ROLE_PRINCIPAL_INVESTIGATOR,
+    "principal_investigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "principalinvestigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "authorized er physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorized_er_physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorized-er-physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorederphysician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "er physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "er_physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "lead investigator": ROLE_LEAD_INVESTIGATOR,
+    "lead_investigator": ROLE_LEAD_INVESTIGATOR,
+    "lead-investigator": ROLE_LEAD_INVESTIGATOR,
+    "leadinvestigator": ROLE_LEAD_INVESTIGATOR,
     "investigator_user": ROLE_INVESTIGATOR,
     "crc": ROLE_CRC,
     "clinical research coordinator": ROLE_CRC,
@@ -134,7 +147,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -196,7 +209,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -312,7 +325,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
-        "ctms_monitoring_visit": {"create", "update", "read"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -333,7 +346,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
-        "ctms_monitoring_visit": {"read", "sign_off"},
+        "ctms_monitoring_visit": {"read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -432,7 +445,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -480,7 +493,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     "system": {
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -539,6 +552,19 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     },
 }
 
+# Derive PI / ER-Physician / Lead-Investigator permissions from the base
+# ROLE_INVESTIGATOR grant set so a single edit propagates to all three personas.
+# Each derivative role adds rtsm_unblind:write (controlled by the emergency-
+# unblinding endpoint) and full eISF document access beyond the base.
+_PI_BASE_PERMISSIONS: dict = {
+    **ROLE_PERMISSIONS[ROLE_INVESTIGATOR],
+    "rtsm_unblind": {"write"},
+    "eisf_document": {"create", "read", "update", "delete", "sync"},
+}
+ROLE_PERMISSIONS[ROLE_PRINCIPAL_INVESTIGATOR] = _PI_BASE_PERMISSIONS.copy()
+ROLE_PERMISSIONS[ROLE_AUTHORIZED_ER_PHYSICIAN] = _PI_BASE_PERMISSIONS.copy()
+ROLE_PERMISSIONS[ROLE_LEAD_INVESTIGATOR] = _PI_BASE_PERMISSIONS.copy()
+
 
 # Field-level blinding/masking rules from §2.3
 # These are applied to sensitive fields for blinded users.
@@ -567,6 +593,9 @@ SITE_SCOPED_ROLES: Set[str] = {
     ROLE_CRA_CANONICAL,
     "monitor",
     ROLE_EXTERNAL_MONITOR,
+    ROLE_PRINCIPAL_INVESTIGATOR,
+    ROLE_AUTHORIZED_ER_PHYSICIAN,
+    ROLE_LEAD_INVESTIGATOR,
 }
 
 UNMASKED_ALLOCATION_FIELDS: Set[str] = {
@@ -587,6 +616,11 @@ UNMASKED_SUPPLY_FIELDS: Set[str] = {
 }
 
 # Role-aware masking policy mapping unblinded RTSM roles to visible fields.
+# NOTE: Routine investigator personas (PI, ER Physician, Lead Investigator) do NOT
+# receive blanket unmasked-allocation or unmasked-supply grants here. Allocation
+# field visibility for those roles is conferred only via the controlled emergency-
+# unblinding endpoint, which returns the decrypted value directly in its response
+# without persisting wide-open field visibility in the session principal.
 ROLE_UNMASKED_FIELDS: Dict[str, Set[str]] = {
     ROLE_UNBLINDED_STATISTICIAN: UNMASKED_ALLOCATION_FIELDS,
     ROLE_IDMC: UNMASKED_ALLOCATION_FIELDS,
@@ -641,32 +675,29 @@ def has_permission(principal: Principal, permission: str) -> bool:
 
 def can_access_site(principal: Principal, site_id: str) -> bool:
     """
-    Checks if the principal has access to a specific site.
-    Site-scoped users are restricted to their assigned_sites.
-    Sponsor/SysAdmin users with empty assigned_sites are allowed global access.
+    Determine whether a principal is permitted to access a given site.
+
+    Site-scoped roles (e.g., investigators, CRCs, CRAs, ER physicians, lead
+    investigators) are restricted to the sites listed in *principal.assigned_sites*.
+    Sponsor/SysAdmin principals with an empty *assigned_sites* list are granted
+    global access. The function is fail-closed: a site-scoped user with no
+    assigned sites is denied access everywhere.
+
+    Args:
+        principal: The authenticated principal making the request.
+        site_id: The site identifier to check access for.
+
+    Returns:
+        True if the principal may access the site; False otherwise.
     """
     # Fail-closed handling for missing/empty site_id on legacy/study-level rows
     if site_id is None or str(site_id).strip() == "":
-        site_scoped_roles = {
-            ROLE_INVESTIGATOR,
-            ROLE_CRC,
-            ROLE_CRA_CANONICAL,
-            "monitor",
-            ROLE_EXTERNAL_MONITOR,
-        }
-        user_site_roles = [r for r in principal.roles if r in site_scoped_roles]
+        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
         if user_site_roles or principal.assigned_sites:
             return False
         return True
 
-    site_scoped_roles = {
-        ROLE_INVESTIGATOR,
-        ROLE_CRC,
-        ROLE_CRA_CANONICAL,
-        "monitor",
-        ROLE_EXTERNAL_MONITOR,
-    }
-    user_site_roles = [r for r in principal.roles if r in site_scoped_roles]
+    user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
 
     if user_site_roles:
         return site_id in principal.assigned_sites
@@ -1140,6 +1171,29 @@ ROLE_EXPANSIONS = {
         "site-investigator",
         "site_investigator",
         "investigator_user",
+        "principal_investigator",
+        "principal investigator",
+        "pi",
+        "authorized_er_physician",
+        "authorized er physician",
+        "lead_investigator",
+        "lead investigator",
+    },
+    "principal_investigator": {
+        "principal_investigator",
+        "principal investigator",
+        "pi",
+        "principalinvestigator",
+    },
+    "authorized_er_physician": {
+        "authorized_er_physician",
+        "authorized er physician",
+        "authorized-er-physician",
+    },
+    "lead_investigator": {
+        "lead_investigator",
+        "lead investigator",
+        "lead-investigator",
     },
     "data manager": {
         "data manager",
