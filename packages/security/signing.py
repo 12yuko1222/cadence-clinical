@@ -123,7 +123,8 @@ def verify_gateway_signature(
     # for requests signed before tenant propagation was introduced.
     # Note: This is safe because scope-level variables (site_id, sponsor_id, unblinded_access)
     # are kept completely intact in the payload serialization.
-    if tenant_id:
+    has_other_scopes = bool(site_id or sponsor_id or unblinded_access)
+    if tenant_id and has_other_scopes:
         fallback_tenant_expected = generate_gateway_signature(
             user_id=user_id,
             roles=roles,

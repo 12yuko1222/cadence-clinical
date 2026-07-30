@@ -1101,3 +1101,151 @@ async def test_cross_site_query_read_isolation(monkeypatch) -> None:
         query_ids = [q["id"] for q in queries]
         assert q_chicago.id in query_ids
         assert q_boston.id not in query_ids
+
+
+from typing import Optional
+from fastapi import FastAPI, Depends, Request
+from packages.security.rbac import Principal, get_principal, get_principal_sync
+from packages.security.middleware import GatewayAuthMiddleware
+
+rbac_test_app = FastAPI()
+rbac_test_app.add_middleware(GatewayAuthMiddleware)
+
+@rbac_test_app.get("/test-principal")
+async def handle_get_test_principal(principal: Principal = Depends(get_principal)):
+    return principal.model_dump()
+
+@rbac_test_app.get("/test-principal-sync")
+async def handle_get_test_principal_sync(request: Request):
+    principal = get_principal_sync(request)
+    return principal.model_dump()
+
+
+def test_principal_agreement_with_middleware_coercion() -> None:
+    """
+    In tests/test_rbac.py, add tests that:
+    1. build a signed scoped request (using the local get_auth_headers/generate_signature pattern
+       extended with site_id/sponsor_id/unblinded_access),
+    2. drive it through a TestClient/request path that populates request.state,
+    3. assert get_principal/get_principal_sync return assigned_sites, sponsor_id, and unblinded_access
+       matching the normalized values produced by the middleware/context.
+    4. Add a mismatch/normalization case (e.g., list vs CSV site input, "yes" unblinded coercion)
+       proving Principal agrees with normalize_scope_values's canonical output.
+    5. Include a scope-free case asserting Principal reports empty site/sponsor and unblinded_access=False.
+    """
+    client = TestClient(rbac_test_app)
+
+    # Helper to generate signed headers for scoped requests
+    def get_scoped_auth_headers(
+        roles: str = "sponsor_designer",
+        change_reason: str = "Authorized change",
+        site_id: Optional[str] = None,
+        sponsor_id: Optional[str] = None,
+        unblinded_access: bool = False,
+        tenant_id: str = "tenant_default",
+    ) -> dict:
+        timestamp = str(time.time())
+        user_id = "test_user_agreement"
+        sig = generate_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            version="2",
+            change_reason=change_reason,
+            site_id=site_id,
+            sponsor_id=sponsor_id,
+            unblinded_access=unblinded_access,
+            tenant_id=tenant_id,
+        )
+        headers = {
+            "X-User-Id": user_id,
+            "X-User-Roles": roles,
+            "X-Gateway-Timestamp": timestamp,
+            "X-Gateway-Signature": sig,
+            "X-Signature-Version": "2",
+            "X-Change-Reason": change_reason,
+            "X-Tenant-Id": tenant_id,
+        }
+        if site_id is not None:
+            headers["X-Site-Id"] = site_id
+        if sponsor_id is not None:
+            headers["X-Sponsor-Id"] = sponsor_id
+        if unblinded_access:
+            headers["X-Unblinded-Access"] = "true"
+        return headers
+
+    # --- Part 1: Signed scoped request ---
+    headers_scoped = get_scoped_auth_headers(
+        site_id="site_A,site_B",
+        sponsor_id="sponsor_01",
+        unblinded_access=True,
+    )
+
+    # Test Depends(get_principal) endpoint
+    res_async = client.get("/test-principal", headers=headers_scoped)
+    assert res_async.status_code == 200
+    data_async = res_async.json()
+    assert data_async["assigned_sites"] == ["site_A", "site_B"]
+    assert data_async["sponsor_id"] == "sponsor_01"
+    assert data_async["unblinded_access"] is True
+
+    # Test get_principal_sync endpoint
+    res_sync = client.get("/test-principal-sync", headers=headers_scoped)
+    assert res_sync.status_code == 200
+    data_sync = res_sync.json()
+    assert data_sync["assigned_sites"] == ["site_A", "site_B"]
+    assert data_sync["sponsor_id"] == "sponsor_01"
+    assert data_sync["unblinded_access"] is True
+
+
+    # --- Part 2: Mismatch / Normalization Case (coercion agreement) ---
+    # We pass duplicate unblinded-access headers, spaces in sponsor CSV, etc.
+    # Note: TestClient headers list can simulate multiple headers/whitespace.
+    timestamp_norm = str(time.time())
+    # The signature is generated with normalized values:
+    # site_id="site_X,site_Y", sponsor_id="sponsor_X,sponsor_Y", unblinded_access=True
+    sig_norm = generate_signature(
+        user_id="test_user_agreement",
+        roles="sponsor_designer",
+        timestamp=timestamp_norm,
+        version="2",
+        change_reason="Authorized change",
+        site_id="site_X,site_Y",
+        sponsor_id="sponsor_X,sponsor_Y",
+        unblinded_access=True,
+        tenant_id="tenant_default",
+    )
+
+    headers_norm_list = [
+        ("X-User-Id", "test_user_agreement"),
+        ("X-User-Roles", "sponsor_designer"),
+        ("X-Gateway-Timestamp", timestamp_norm),
+        ("X-Gateway-Signature", sig_norm),
+        ("X-Signature-Version", "2"),
+        ("X-Change-Reason", "Authorized change"),
+        ("X-Site-Id", "  site_X,site_Y  "),  # whitespace normalization
+        ("X-Sponsor-Id", " sponsor_X,sponsor_Y "),  # CSV and whitespace
+        ("X-Unblinded-Access", "yes"),  # "yes" unblinded coercion
+    ]
+
+    res_norm = client.get("/test-principal", headers=headers_norm_list)
+    assert res_norm.status_code == 200
+    data_norm = res_norm.json()
+    assert data_norm["assigned_sites"] == ["site_X", "site_Y"]
+    assert data_norm["sponsor_id"] == "sponsor_X,sponsor_Y"
+    assert data_norm["unblinded_access"] is True
+
+
+    # --- Part 3: Scope-free Case ---
+    headers_free = get_scoped_auth_headers(
+        site_id=None,
+        sponsor_id=None,
+        unblinded_access=False,
+    )
+
+    res_free = client.get("/test-principal", headers=headers_free)
+    assert res_free.status_code == 200
+    data_free = res_free.json()
+    assert data_free["assigned_sites"] == []
+    assert data_free["sponsor_id"] is None
+    assert data_free["unblinded_access"] is False
