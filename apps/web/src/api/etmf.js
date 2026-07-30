@@ -8,8 +8,16 @@ export const etmfService = {
   /**
    * Retrieves the list of document metadata.
    */
-  getDocuments(options = {}) {
-    return apiClient.get(`/api/v1/etmf/documents`, options);
+  getDocuments(params = {}) {
+    const query = new URLSearchParams();
+    if (params.study_id) query.append("study_id", params.study_id);
+    if (params.zone !== undefined) query.append("zone", params.zone);
+    if (params.search) query.append("search", params.search);
+    const queryString = query.toString();
+    const path = queryString
+      ? `/api/v1/etmf/documents?${queryString}`
+      : "/api/v1/etmf/documents";
+    return apiClient.get(path);
   },
 
   /**
@@ -29,7 +37,47 @@ export const etmfService = {
   /**
    * Retrieves the eTMF completeness tracking dashboard metrics.
    */
-  getCompleteness(options = {}) {
-    return apiClient.get(`/api/v1/etmf/completeness`, options);
+  getCompleteness(params = {}) {
+    const query = new URLSearchParams();
+    if (params.study_id) query.append("study_id", params.study_id);
+    if (params.milestone) query.append("milestone", params.milestone);
+    if (params.site_id) query.append("site_id", params.site_id);
+    const queryString = query.toString();
+    const path = queryString
+      ? `/api/v1/etmf/completeness?${queryString}`
+      : "/api/v1/etmf/completeness";
+    return apiClient.get(path);
+  },
+
+  /**
+   * Verifies re-supplied credentials to obtain a short-lived signature token (sig_token).
+   */
+  async verifySignature({ username, password, totp = null, action }) {
+    return apiClient.post("/api/v1/auth/signature-verification", {
+      username,
+      password,
+      totp,
+      action,
+    });
+  },
+
+  /**
+   * Performs the electronic signature and approval on an eTMF document.
+   */
+  async signDocument(
+    documentId,
+    { signingReason },
+    { changeReason, sigToken }
+  ) {
+    return apiClient.post(
+      `/api/v1/etmf/documents/${documentId}/sign-off`,
+      { signing_reason: signingReason },
+      {
+        changeReason,
+        headers: {
+          "X-Sig-Token": sigToken,
+        },
+      }
+    );
   },
 };
