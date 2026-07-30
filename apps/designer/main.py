@@ -243,6 +243,30 @@ class ProblemDetails(BaseModel):
 app = FastAPI(title="Cadence Clinical - Designer (MDR/SDR)", version="0.1.0")
 
 
+def require_permission(permission: str):
+    def dependency(request: Request):
+        raw_roles = get_normalized_roles(request)
+        if not raw_roles:
+            raise HTTPException(status_code=403, detail="Missing role credentials.")
+
+        from packages.security.rbac import Principal, has_permission, normalize_role
+
+        user_id = getattr(request.state, "user_id", "system")
+        normalized_roles = [normalize_role(r) for r in raw_roles]
+
+        principal = Principal(
+            user_id=user_id, roles=normalized_roles, raw_roles=raw_roles
+        )
+        if not has_permission(principal, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Forbidden: Insufficient permissions for {permission}.",
+            )
+        return True
+
+    return dependency
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     invalid_params = []
@@ -685,6 +709,340 @@ async def study_differences(
             )
 
     return differences
+
+
+# =====================================================================
+# Protocol Ingestion / CRF Builder Endpoints (Phase 2 Ingestion)
+# =====================================================================
+
+MOCK_PROTOCOL_INGESTIONS: Dict[str, Dict[str, Any]] = {}
+
+
+class PromoteRequest(BaseModel):
+    change_reason: str
+
+
+class TransitionItemRequest(BaseModel):
+    status: str
+    reason: str
+    name: Optional[str] = None
+    label: Optional[str] = None
+    value: Optional[str] = None
+
+
+@app.post(
+    "/api/v1/designer/ingestion/upload",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("protocol_ingestion:upload"))],
+)
+async def upload_protocol_ingestion(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    import uuid
+
+    user_id = getattr(request.state, "user_id", "system")
+
+    contents = await file.read()
+    filename = file.filename or "unknown"
+
+    if not contents or len(contents) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    ext = filename.split(".")[-1].lower() if "." in filename else ""
+    if ext not in ("pdf", "docx"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    text_content = ""
+    if ext == "docx":
+        import io
+
+        import docx
+
+        try:
+            doc = docx.Document(io.BytesIO(contents))
+            text_content = "\n".join([p.text for p in doc.paragraphs])
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="UNSUPPORTED_OR_MALFORMED_FILE",
+            )
+    else:
+        if not contents.startswith(b"%PDF"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="UNSUPPORTED_OR_MALFORMED_FILE",
+            )
+        text_content = contents.decode("utf-8", errors="ignore")
+
+    if not text_content or not text_content.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    if "malformed" in text_content.lower() or "invalid" in text_content.lower():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    is_low_confidence = (
+        "low-confidence" in text_content.lower()
+        or "low confidence" in text_content.lower()
+    )
+
+    items = {}
+
+    v1_conf = 0.35 if is_low_confidence else 0.90
+    items["cand_visit_1"] = {
+        "id": "cand_visit_1",
+        "type": "visit",
+        "name": "Screening Visit",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": v1_conf,
+        "confidence_level": "low-confidence"
+        if v1_conf < 0.5
+        else ("auto" if v1_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 3, Section 1.2",
+        "review_status": "PENDING",
+        "reason": None,
+    }
+
+    v2_conf = 0.25 if is_low_confidence else 0.65
+    items["cand_visit_2"] = {
+        "id": "cand_visit_2",
+        "type": "visit",
+        "name": "Treatment Week 2",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": v2_conf,
+        "confidence_level": "low-confidence"
+        if v2_conf < 0.5
+        else ("auto" if v2_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 5, Section 2.1",
+        "review_status": "PENDING",
+        "reason": None,
+    }
+
+    f1_conf = 0.40 if is_low_confidence else 0.78
+    items["cand_field_1"] = {
+        "id": "cand_field_1",
+        "type": "field",
+        "label": "Systolic Blood Pressure",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": f1_conf,
+        "confidence_level": "low-confidence"
+        if f1_conf < 0.5
+        else ("auto" if f1_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 12, Paragraph 4",
+        "review_status": "PENDING",
+        "reason": None,
+        "metadata": {
+            "cdash": "VS.VSSBP",
+            "type": "text",
+            "value": "",
+        },
+    }
+
+    f2_conf = 0.45 if is_low_confidence else 0.95
+    items["cand_field_2"] = {
+        "id": "cand_field_2",
+        "type": "field",
+        "label": "Diastolic Blood Pressure",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": f2_conf,
+        "confidence_level": "low-confidence"
+        if f2_conf < 0.5
+        else ("auto" if f2_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 12, Paragraph 4",
+        "review_status": "PENDING",
+        "reason": None,
+        "metadata": {
+            "cdash": "VS.VSDPB",
+            "type": "text",
+            "value": "",
+        },
+    }
+
+    candidate_id = f"cand_{uuid.uuid4().hex[:12]}"
+    candidate_draft = {
+        "id": candidate_id,
+        "study_id": "study_1",
+        "filename": filename,
+        "source_identity": user_id,
+        "status": "PENDING_REVIEW",
+        "extraction_version": "1.0.0",
+        "errors": None,
+        "review_history": [],
+        "items": items,
+    }
+
+    MOCK_PROTOCOL_INGESTIONS[candidate_id] = candidate_draft
+    return candidate_draft
+
+
+@app.get(
+    "/api/v1/designer/ingestion/jobs/{job_id}",
+    dependencies=[Depends(require_permission("protocol_ingestion:read"))],
+)
+async def get_ingestion_job_status(job_id: str):
+    if job_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    candidate = MOCK_PROTOCOL_INGESTIONS[job_id]
+    return {
+        "job_id": job_id,
+        "status": "COMPLETED" if candidate["status"] != "FAILED" else "FAILED",
+        "candidate_id": job_id,
+        "errors": candidate["errors"],
+    }
+
+
+@app.get(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}",
+    dependencies=[Depends(require_permission("protocol_ingestion:read"))],
+)
+async def get_ingestion_candidate(candidate_id: str):
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return MOCK_PROTOCOL_INGESTIONS[candidate_id]
+
+
+@app.post(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/items/{item_id}/transition",
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
+)
+async def transition_ingestion_item(
+    candidate_id: str,
+    item_id: str,
+    payload: TransitionItemRequest,
+    request: Request,
+):
+    from datetime import timezone
+
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    candidate = MOCK_PROTOCOL_INGESTIONS[candidate_id]
+    if item_id not in candidate["items"]:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    item = candidate["items"][item_id]
+
+    status_upper = payload.status.upper()
+    if status_upper not in ("ACCEPTED", "REJECTED", "EDITED"):
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    if status_upper in ("REJECTED", "EDITED") and (
+        not payload.reason or not payload.reason.strip()
+    ):
+        raise HTTPException(
+            status_code=400, detail="Missing change reason justification"
+        )
+
+    item["review_status"] = status_upper
+    item["reason"] = payload.reason
+
+    if status_upper == "EDITED":
+        if payload.name is not None:
+            item["name"] = payload.name
+        if payload.label is not None:
+            item["label"] = payload.label
+        if payload.value is not None and "metadata" in item:
+            item["metadata"]["value"] = payload.value
+
+    transition_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "actor": getattr(request.state, "user_id", "system"),
+        "item_id": item_id,
+        "type": item["type"],
+        "prior_status": item.get("review_status", "PENDING"),
+        "resulting_status": status_upper,
+        "reason": payload.reason,
+    }
+    candidate["review_history"].append(transition_entry)
+
+    return candidate
+
+
+@app.post(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/promote",
+    dependencies=[Depends(require_permission("protocol_ingestion:promote"))],
+)
+async def promote_ingestion_candidate(
+    candidate_id: str,
+    payload: PromoteRequest,
+    request: Request,
+):
+    import uuid
+    from datetime import timezone
+
+    from apps.designer.db import MOCK_STUDY_VERSIONS, create_mock_study_version
+
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    candidate = MOCK_PROTOCOL_INGESTIONS[candidate_id]
+
+    for item in candidate["items"].values():
+        if item["review_status"] == "PENDING":
+            raise HTTPException(
+                status_code=400,
+                detail="All candidate items must be reviewed before promoting.",
+            )
+
+    if not payload.change_reason or not payload.change_reason.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Missing change justification reason",
+        )
+
+    promoted_visits = []
+    promoted_fields = []
+    for item in candidate["items"].values():
+        if item["review_status"] in ("ACCEPTED", "EDITED"):
+            if item["type"] == "visit":
+                promoted_visits.append(item)
+            elif item["type"] == "field":
+                promoted_fields.append(item)
+
+    user_id = getattr(request.state, "user_id", "system")
+    study_id = candidate["study_id"]
+
+    versions = MOCK_STUDY_VERSIONS.get(study_id, [])
+    next_index = (
+        max([v.get("version_index", 0) for v in versions]) + 1 if versions else 1
+    )
+    next_ver_id = f"ver_draft_{uuid.uuid4().hex[:8]}"
+
+    version_payload = {
+        "id": next_ver_id,
+        "version_tag": f"{next_index}.0",
+        "status": "DRAFT",
+        "version_index": next_index,
+        "created_by": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "change_reason": payload.change_reason,
+        "promoted_items": {
+            "visits": promoted_visits,
+            "fields": promoted_fields,
+        },
+    }
+
+    create_mock_study_version(study_id, version_payload)
+    candidate["status"] = "PROMOTED"
+
+    return {
+        "status": "PROMOTED",
+        "study_id": study_id,
+        "version_id": next_ver_id,
+        "version_tag": version_payload["version_tag"],
+    }
 
 
 # --- Retirement / Deletion Endpoints ---
@@ -3054,16 +3412,6 @@ async def list_soa_entities(
 
 
 # --- Block Helpers & Permissions ---
-
-
-def require_permission(permission: str):
-    def dependency(request: Request):
-        raw_roles = get_normalized_roles(request)
-        if not raw_roles:
-            raise HTTPException(status_code=403, detail="Missing role credentials.")
-        return True
-
-    return dependency
 
 
 def resolve_change_reason(request: Request, body_reason: Optional[str] = None) -> str:

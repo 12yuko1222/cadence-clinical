@@ -1036,6 +1036,59 @@
         }
       }
     },
+    "/api/v1/etmf/studies/{study_id}/artifacts/{artifact_type}/history": {
+      "get": {
+        "summary": "Get Artifact History",
+        "description": "Retrieve the chronological, ordered version history of a specific artifact type within a study.\nAll views are logged to the immutable audit trail.",
+        "operationId": "get_artifact_history_api_v1_etmf_studies__study_id__artifacts__artifact_type__history_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "artifact_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Artifact Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentResponse"
+                  },
+                  "title": "Response Get Artifact History Api V1 Etmf Studies  Study Id  Artifacts  Artifact Type  History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/etmf/documents/{document_id}/transitions": {
       "get": {
         "summary": "Get Document Transition History",
@@ -1655,6 +1708,27 @@
               }
             ],
             "title": "Redaction Manifest Json"
+          },
+          "reason_for_change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason For Change"
+          },
+          "protocol_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProtocolVersionRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1966,6 +2040,17 @@
             ],
             "title": "Metadata Json",
             "description": "Optional metadata fields"
+          },
+          "protocol_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProtocolVersionRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional shared protocol version reference"
           }
         },
         "type": "object",
@@ -2135,6 +2220,51 @@
         ],
         "title": "PaginatedAuditLogResponse",
         "description": "Paginated representation of eTMF audit trail logs."
+      },
+      "ProtocolVersionRef": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Unique identifier of the clinical study (e.g. 'STUDY-101')."
+          },
+          "version_tag": {
+            "type": "string",
+            "title": "Version Tag",
+            "description": "The semantic or alphanumeric version tag representing the protocol version (e.g. '1.0', 'v2.1')."
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index",
+            "description": "Chronological, incrementing index of the protocol version (must be >= 1)."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProtocolVersionStatus",
+            "description": "Current controlled status of this protocol version."
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "version_tag",
+          "version_index",
+          "status"
+        ],
+        "title": "ProtocolVersionRef",
+        "description": "Pydantic v2 model representing a reference to a specific clinical trial protocol version.\n\nThis contract is shared between Execution, eTMF, and other services to prevent\nthe duplication of ad-hoc protocol reference fields and ensure consistent cross-service\npayload structures, validation, and serialization."
+      },
+      "ProtocolVersionStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "ACTIVE",
+          "LOCKED",
+          "PUBLISHED",
+          "ARCHIVED",
+          "FROZEN"
+        ],
+        "title": "ProtocolVersionStatus",
+        "description": "Controlled vocabulary of statuses for a clinical protocol or study version."
       },
       "RedactRequest": {
         "properties": {

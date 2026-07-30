@@ -17,6 +17,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1287 🟢
 - **Total Automated Test Cases Run:** 1285
 - **Passed:** 1285 🟢
+- **Total Automated Test Cases Run:** 1291
+- **Passed:** 1291 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -307,6 +309,13 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_dual_custody_negative_single_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
 | `test_dual_custody_negative_tampered_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
 | `test_dual_custody_positive` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_candidate_item_review_transitions` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_docx_ingestion_success` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_low_confidence_classification` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_malformed_or_unsupported_document` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_pdf_ingestion_success` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_promotion_gates_and_draft_creation` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_unauthorized_upload` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_encryption_decryption_with_rotation` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_key_splitting` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_cra_allocations_rbac_reassignment_workload` | `tests.test_ctms` | PRD-CTMS-003, Trace-6 | 🟢 PASSED | < 1s |

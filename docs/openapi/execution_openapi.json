@@ -3311,6 +3311,87 @@
         }
       }
     },
+    "/api/v1/execution/migration-rules": {
+      "post": {
+        "summary": "Create Migration Rule",
+        "description": "Create a new protocol version migration rule.",
+        "operationId": "create_migration_rule_api_v1_execution_migration_rules_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrationRuleCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationRuleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Migration Rules",
+        "description": "List migration rules for a clinical study.",
+        "operationId": "list_migration_rules_api_v1_execution_migration_rules_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Study Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MigrationRuleResponse"
+                  },
+                  "title": "Response List Migration Rules Api V1 Execution Migration Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/execution/audit/integrity": {
       "get": {
         "summary": "Get Execution Audit Integrity",
@@ -5084,6 +5165,155 @@
         ],
         "title": "MedDRATargetLevelEnum"
       },
+      "MigrationRuleCreate": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "source_version": {
+            "type": "string",
+            "title": "Source Version"
+          },
+          "target_version": {
+            "type": "string",
+            "title": "Target Version"
+          },
+          "rule_type": {
+            "type": "string",
+            "title": "Rule Type"
+          },
+          "source_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Field"
+          },
+          "target_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Field"
+          },
+          "default_value_string": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value String"
+          },
+          "default_value_float": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value Float"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "source_version",
+          "target_version",
+          "rule_type"
+        ],
+        "title": "MigrationRuleCreate"
+      },
+      "MigrationRuleResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "source_version": {
+            "type": "string",
+            "title": "Source Version"
+          },
+          "target_version": {
+            "type": "string",
+            "title": "Target Version"
+          },
+          "rule_type": {
+            "type": "string",
+            "title": "Rule Type"
+          },
+          "source_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Field"
+          },
+          "target_field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Field"
+          },
+          "default_value_string": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value String"
+          },
+          "default_value_float": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value Float"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "source_version",
+          "target_version",
+          "rule_type"
+        ],
+        "title": "MigrationRuleResponse"
+      },
       "ObservationCreate": {
         "properties": {
           "subject_id": {
@@ -5357,6 +5587,28 @@
               }
             ],
             "title": "Matched Normal Bounds"
+          },
+          "protocol_version_tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Version Tag"
+          },
+          "protocol_version_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Version Index"
           }
         },
         "type": "object",
@@ -7274,6 +7526,28 @@
           "study_id": {
             "type": "string",
             "title": "Study Id"
+          },
+          "protocol_version_tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Version Tag"
+          },
+          "protocol_version_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Version Index"
           }
         },
         "type": "object",
