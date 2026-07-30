@@ -63,6 +63,7 @@ def build_docx_template() -> str:
     TEMPLATES_DIR/protocol_template.docx.
     """
     import uuid
+
     template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
     temp_path = template_path + f".tmp.{uuid.uuid4().hex}"
     doc = Document()

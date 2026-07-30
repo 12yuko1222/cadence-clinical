@@ -60,6 +60,7 @@ def setup_default_template():
     Ensure a baseline protocol template exists for standard tests.
     """
     from apps.designer.rendering import TEMPLATES_DIR
+
     template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
     if not os.path.exists(template_path):
         build_docx_template()
@@ -93,6 +94,7 @@ def test_build_docx_template(tmp_path, monkeypatch):
     Requirements: PRD-SYS-001
     """
     from apps.designer import rendering
+
     monkeypatch.setattr(rendering, "TEMPLATES_DIR", str(tmp_path))
     path = rendering.build_docx_template()
     assert os.path.exists(path)
