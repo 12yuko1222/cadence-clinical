@@ -202,15 +202,9 @@ class TMFDocument(Base):
     correlation_key: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True, index=True
     )
-    content_checksum: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True
-    )
-    source_system: Mapped[Optional[str]] = mapped_column(
-        String(255), nullable=True
-    )
-    sync_status: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True
-    )
+    content_checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source_system: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
 
 class DocumentQCTransition(Base):

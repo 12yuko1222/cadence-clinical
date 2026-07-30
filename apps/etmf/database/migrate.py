@@ -523,7 +523,9 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             )
             if audit_cols and "reason_for_change" not in audit_cols:
                 await conn.execute(
-                    text("ALTER TABLE tmf_audit_logs ADD COLUMN reason_for_change VARCHAR(1000);")
+                    text(
+                        "ALTER TABLE tmf_audit_logs ADD COLUMN reason_for_change VARCHAR(1000);"
+                    )
                 )
         elif dialect_name == "postgresql":
             try:

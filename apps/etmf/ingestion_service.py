@@ -272,10 +272,7 @@ async def ingest_tmf_document(
     # 6. Check if a document version already exists
     if correlation_key:
         # Scope lookup and latest version by stable correlation identity
-        stmt = (
-            select(TMFDocument)
-            .where(TMFDocument.correlation_key == correlation_key)
-        )
+        stmt = select(TMFDocument).where(TMFDocument.correlation_key == correlation_key)
     else:
         # Fall back to study_id + artifact_code + site_id
         stmt = (
@@ -307,7 +304,7 @@ async def ingest_tmf_document(
             # To be safe, we can query if any document has is_redacted=True and matches correlation_key
             stmt_red = select(TMFDocument).where(
                 TMFDocument.correlation_key == correlation_key,
-                TMFDocument.is_redacted.is_(True)
+                TMFDocument.is_redacted.is_(True),
             )
             res_red = await session.execute(stmt_red)
             if res_red.scalars().first():

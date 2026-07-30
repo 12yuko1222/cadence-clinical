@@ -25,10 +25,13 @@ async def setup_test_etmf_db():
     await db_manager.close()
 
 
-def get_auth_headers_with_user(user_id: str, roles: str = "admin", change_reason: str = "") -> dict:
+def get_auth_headers_with_user(
+    user_id: str, roles: str = "admin", change_reason: str = ""
+) -> dict:
     import time
 
     from apps.gateway.main import generate_signature
+
     timestamp = str(time.time())
     sig = generate_signature(
         user_id, roles, timestamp, version="2", change_reason=change_reason
@@ -62,7 +65,9 @@ async def test_eisf_to_etmf_e2e_boundaries() -> None:
         "content": "Dr. Smith CV content",
         "mime_type": "application/pdf",
         "correlation_key": "corr:study-100:site-boston-01:investigator-cv:smith",
-        "content_checksum": hashlib.sha256("Dr. Smith CV content".encode("utf-8")).hexdigest(),
+        "content_checksum": hashlib.sha256(
+            "Dr. Smith CV content".encode("utf-8")
+        ).hexdigest(),
         "source_system": "eISF",
     }
 
@@ -92,7 +97,9 @@ async def test_eisf_to_etmf_e2e_boundaries() -> None:
         res_audit = await session.execute(stmt_audit)
         audit_logs = res_audit.scalars().all()
         assert len(audit_logs) >= 1
-        assert audit_logs[0].reason_for_change == "Synchronized site document propagation"
+        assert (
+            audit_logs[0].reason_for_change == "Synchronized site document propagation"
+        )
 
     # 2. Replayed Identical Payload - Durable no-op
     resp2 = client.post("/api/v1/etmf/ingest", json=payload, headers=headers)
@@ -104,7 +111,9 @@ async def test_eisf_to_etmf_e2e_boundaries() -> None:
 
     # Verify no new versions are created
     async with db_manager.get_session_maker()() as session:
-        stmt = select(TMFDocument).where(TMFDocument.correlation_key == payload["correlation_key"])
+        stmt = select(TMFDocument).where(
+            TMFDocument.correlation_key == payload["correlation_key"]
+        )
         res = await session.execute(stmt)
         docs = res.scalars().all()
         assert len(docs) == 1
@@ -115,12 +124,16 @@ async def test_eisf_to_etmf_e2e_boundaries() -> None:
         noop_logs = res_noop.scalars().all()
         assert len(noop_logs) >= 1
         assert "Durable no-op" in noop_logs[0].details
-        assert noop_logs[0].reason_for_change == "Synchronized site document propagation"
+        assert (
+            noop_logs[0].reason_for_change == "Synchronized site document propagation"
+        )
 
     # 3. Changed Content for the Same correlation_key - Creates exactly one new version
     changed_payload = dict(payload)
     changed_payload["content"] = "Dr. Smith CV content revised V2"
-    changed_payload["content_checksum"] = hashlib.sha256(changed_payload["content"].encode("utf-8")).hexdigest()
+    changed_payload["content_checksum"] = hashlib.sha256(
+        changed_payload["content"].encode("utf-8")
+    ).hexdigest()
 
     resp3 = client.post("/api/v1/etmf/ingest", json=changed_payload, headers=headers)
     assert resp3.status_code == 201
@@ -132,7 +145,11 @@ async def test_eisf_to_etmf_e2e_boundaries() -> None:
 
     # Verify database has exactly two versions
     async with db_manager.get_session_maker()() as session:
-        stmt = select(TMFDocument).where(TMFDocument.correlation_key == payload["correlation_key"]).order_by(TMFDocument.version_index.asc())
+        stmt = (
+            select(TMFDocument)
+            .where(TMFDocument.correlation_key == payload["correlation_key"])
+            .order_by(TMFDocument.version_index.asc())
+        )
         res = await session.execute(stmt)
         docs = res.scalars().all()
         assert len(docs) == 2
@@ -211,9 +228,11 @@ async def test_sealer_retains_and_validates_reason_for_change(monkeypatch) -> No
     Asserts that audit sealing correctly computes ledger hashes with reason_for_change,
     detects tampering on reason_for_change, and validates legacy rows where reason_for_change is NULL.
     """
+
     # Prevent trial locking attempt to hit actual network
     async def mock_lock(reason, is_testing=None):
         pass
+
     monkeypatch.setattr("apps.etmf.sealer.trigger_global_trial_lock", mock_lock)
 
     async with db_manager.get_session_maker()() as session:

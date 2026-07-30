@@ -1231,7 +1231,10 @@ async def sync_documents(
                     correlation_key=correlation_key,
                     content_checksum=checksum,
                     source_system=item.source_system,
-                    reason_for_change=request.headers.get("X-Change-Reason") or item.metadata_json.get("change_reason") if item.metadata_json else None,
+                    reason_for_change=request.headers.get("X-Change-Reason")
+                    or item.metadata_json.get("change_reason")
+                    if item.metadata_json
+                    else None,
                 )
 
             created_count += 1
@@ -1282,7 +1285,10 @@ async def sync_documents(
                     correlation_key=correlation_key,
                     content_checksum=checksum,
                     source_system=item.source_system,
-                    reason_for_change=request.headers.get("X-Change-Reason") or item.metadata_json.get("change_reason") if item.metadata_json else None,
+                    reason_for_change=request.headers.get("X-Change-Reason")
+                    or item.metadata_json.get("change_reason")
+                    if item.metadata_json
+                    else None,
                 )
 
             updated_count += 1
@@ -1473,7 +1479,10 @@ async def sync_documents(
                         correlation_key=correlation_key,
                         content_checksum=merged_checksum,
                         source_system=item.source_system,
-                        reason_for_change=request.headers.get("X-Change-Reason") or item.metadata_json.get("change_reason") if item.metadata_json else None,
+                        reason_for_change=request.headers.get("X-Change-Reason")
+                        or item.metadata_json.get("change_reason")
+                        if item.metadata_json
+                        else None,
                     )
 
                 updated_count += 1
