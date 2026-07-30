@@ -125,6 +125,36 @@ class SAEDiscrepancy(Base):
     )
 
 
+class SAEReconciliationJob(Base):
+    """
+    Represents a tracked background job for SAE reconciliation.
+    """
+
+    __tablename__ = "sae_reconciliation_jobs"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    study_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(50), default="PENDING", nullable=False
+    )  # PENDING, PROCESSING, COMPLETED, FAILED
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    run_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("sae_reconciliation_runs.id"), nullable=True, index=True
+    )
+
+    # 21 CFR Part 11 Compliance Auditing Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason_for_change: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    run: Mapped[Optional["SAEReconciliationRun"]] = relationship("SAEReconciliationRun")
+
+
 class SafetyAuditLog(Base):
     """
     Represents an immutable, chronological append-only audit ledger of actions performed on Safety records.

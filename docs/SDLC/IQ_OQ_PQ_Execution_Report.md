@@ -13,6 +13,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1290 🟢
 - **Total Automated Test Cases Run:** 1293
 - **Passed:** 1293 🟢
+- **Total Automated Test Cases Run:** 1287
+- **Passed:** 1287 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1087,6 +1089,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_pure_comparison_missing_on_either_side` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_pure_comparison_same_code_different_terms` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_reconciliation_persistence_and_audit` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_notifications_gxp_medical_monitor_alert` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_reconciliation_job_failure_path` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_trigger_and_poll_reconciliation_job_success` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_icsr_version_and_reason_for_change_rendering` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_invalid_namespace_fails` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_invalid_root_tag_fails` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
