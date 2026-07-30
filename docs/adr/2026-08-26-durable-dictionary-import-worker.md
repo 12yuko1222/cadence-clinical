@@ -165,9 +165,18 @@ To support this durable execution model, the `DictionaryImportJob` table in `app
 | `original_filename` | `String(255)` | Yes | Original name of the uploaded dictionary package. |
 | `file_size` | `Integer` | Yes | Size of the uploaded file in bytes. |
 | `user_id` | `String(255)` | Yes | Propagated audit context: original initiating user identifier. |
-| `change_reason` | `String(255)` | Yes | Propagated audit context: change justification text. |
-
 These additions are completely additive and preserve the existing model columns: `dictionary_type`, `dictionary_version`, `status` (reusing `ImportState`), `started_at`, `completed_at`, `progress_percentage`, `records_imported`, `errors_encountered`, and `error_details`. This preserves backward compatibility and ensures standard shadow trigger-based database audits are tracked successfully.
+
+#### Schema Migration, Backfill, and Rollback Strategy
+
+1. **Migration & Backfill Defaults**:
+   - For existing rows, non-nullable columns `attempts` and `max_attempts` backfill with default values `0` and `3` respectively (`DEFAULT 0` and `DEFAULT 3`).
+   - All other added columns (`locked_by`, `lease_expires_at`, `next_retry_at`, `durable_artifact_path`, `sha256_hash`, `original_filename`, `file_size`, `user_id`, `change_reason`) are nullable (`NULL`), allowing seamless schema application without downtime or table locks on existing records.
+2. **Polling & Lease Performance Indexes**:
+   - `idx_dict_import_poll`: Composite index on `(status, next_retry_at)` to optimize `SKIP LOCKED` queries scanning for claimable (`PENDING` or `FAILED` retryable) jobs.
+   - `idx_dict_import_lease`: Composite index on `(locked_by, lease_expires_at)` to optimize background heartbeat renewals and dead-node orphan recovery sweeps.
+3. **Rollback Plan**:
+   - Downward migrations safely drop indexes `idx_dict_import_poll` and `idx_dict_import_lease` before executing `ALTER TABLE dictionary_import_jobs DROP COLUMN ...` for the 11 added fields, restoring the schema to its pre-ADR-115 state without affecting existing core import metadata.
 
 ### API & Validation Contracts
 
