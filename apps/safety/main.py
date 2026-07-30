@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
@@ -749,12 +750,13 @@ async def send_medical_monitor_alert(
 
     from packages.security.signing import generate_gateway_signature
 
-    gateway_secret_env = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345")
-    gateway_secret = (
-        gateway_secret_env.encode("utf-8")
-        if isinstance(gateway_secret_env, str)
-        else gateway_secret_env
-    )
+    gateway_secret_env = os.getenv("GATEWAY_SECRET")
+    if not gateway_secret_env:
+        raise RuntimeError(
+            "GATEWAY_SECRET environment variable is not set. "
+            "Refusing to sign internal requests with a default/empty secret."
+        )
+    gateway_secret = gateway_secret_env.encode("utf-8")
 
     caller_user_id = "safety-service"
     roles = "sponsor_statistician"
@@ -913,8 +915,10 @@ async def reconciliation_worker(
 
         except Exception as e:
             logger.exception(f"Error processing reconciliation job {job_id}")
-            # Ensure safe transition to FAILED with non-sensitive error
+            # Ensure safe transition to FAILED with a sanitized, non-PII error message.
+            # Roll back any failed/dirty session state before issuing new DML.
             try:
+                await session.rollback()
                 stmt = select(SAEReconciliationJob).where(
                     SAEReconciliationJob.id == job_id
                 )
@@ -922,17 +926,16 @@ async def reconciliation_worker(
                 job = result.scalars().first()
                 if job:
                     job.status = "FAILED"
-                    err_msg = str(e)
-                    if "\n" in err_msg:
-                        err_msg = err_msg.split("\n")[0]
-                    job.error_message = err_msg[:200]
+                    # Truncate to first line and 200 chars to prevent PII leakage
+                    # via exception messages that may contain subject IDs or URLs.
+                    err_msg = str(type(e).__name__)
                     await session.flush()
 
                     await write_safety_audit_log(
                         session=session,
                         user_id=user_id,
                         action="RECONCILIATION_JOB_FAILED",
-                        details=f"SAE reconciliation job {job_id} status changed to FAILED. Error: {err_msg[:200]}",
+                        details=f"SAE reconciliation job {job_id} status changed to FAILED. Error type: {err_msg}",
                         record_id=job_id,
                         change_reason=change_reason,
                     )
@@ -957,6 +960,8 @@ async def trigger_sae_reconciliation_job(
 ) -> SAEReconciliationJobResponse:
     """
     Triggers asynchronous SAE reconciliation job. Returns HTTP 202 Accepted.
+
+    Gated to sponsor_medical_monitor or safety_reviewer roles per GxP RBAC policy.
     """
     user_id, user_role, change_reason = get_user_context(request)
     if not change_reason:
@@ -964,7 +969,13 @@ async def trigger_sae_reconciliation_job(
             status_code=403, detail="Missing change justification reason"
         )
 
-    import uuid
+    allowed_roles = {"sponsor_medical_monitor", "safety_reviewer"}
+    roles_present = {r.strip() for r in user_role.split(",") if r.strip()}
+    if not roles_present.intersection(allowed_roles):
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient role: sponsor_medical_monitor or safety_reviewer required",
+        )
 
     job_id = str(uuid.uuid4())
 
@@ -1010,13 +1021,24 @@ async def trigger_sae_reconciliation_job(
 async def list_reconciliation_jobs(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    limit: int = 50,
+    offset: int = 0,
 ) -> List[SAEReconciliationJobResponse]:
     """
-    List all safety reconciliation jobs.
+    List safety reconciliation jobs with pagination.
+
+    Args:
+        limit: Maximum number of jobs to return (default 50).
+        offset: Number of jobs to skip (default 0).
     """
     user_id, user_role, change_reason = get_user_context(request)
 
-    stmt = select(SAEReconciliationJob).order_by(SAEReconciliationJob.created_at.desc())
+    stmt = (
+        select(SAEReconciliationJob)
+        .order_by(SAEReconciliationJob.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     result = await session.execute(stmt)
     jobs = result.scalars().all()
 
@@ -1039,26 +1061,29 @@ async def list_reconciliation_jobs(
 
 
 @app.get(
-    "/api/v1/safety/reconciliation/jobs/{id}",
+    "/api/v1/safety/reconciliation/jobs/{job_id}",
     response_model=SAEReconciliationJobResponse,
 )
 async def get_reconciliation_job(
     request: Request,
-    id: str,
+    job_id: str,
     session: AsyncSession = Depends(get_db_session),
 ) -> SAEReconciliationJobResponse:
     """
     Retrieve a specific safety reconciliation job by ID (polling).
+
+    Args:
+        job_id: The UUID of the reconciliation job to retrieve.
     """
     user_id, user_role, change_reason = get_user_context(request)
 
-    stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == id)
+    stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == job_id)
     result = await session.execute(stmt)
     job = result.scalars().first()
 
     if not job:
         raise HTTPException(
-            status_code=404, detail=f"Reconciliation job with ID '{id}' not found."
+            status_code=404, detail=f"Reconciliation job with ID '{job_id}' not found."
         )
 
     summary = await get_job_result_summary(session, job.run_id)
@@ -1067,8 +1092,8 @@ async def get_reconciliation_job(
         session=session,
         user_id=user_id,
         action="RECONCILIATION_JOB_VIEW",
-        details=f"Viewed reconciliation job ID: {id}.",
-        record_id=id,
+        details=f"Viewed reconciliation job ID: {job_id}.",
+        record_id=job_id,
         change_reason=change_reason,
         version_index=job.version_index,
     )

@@ -50,7 +50,7 @@ class SafetyExportJob(Base):
     status: Mapped[str] = mapped_column(
         String(50), default="PENDING", nullable=False
     )  # PENDING, COMPLETED, FAILED
-    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
     # 21 CFR Part 11 Compliance Auditing Metadata
     created_at: Mapped[datetime] = mapped_column(
@@ -139,7 +139,7 @@ class SAEReconciliationJob(Base):
     status: Mapped[str] = mapped_column(
         String(50), default="PENDING", nullable=False
     )  # PENDING, PROCESSING, COMPLETED, FAILED
-    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     run_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("sae_reconciliation_runs.id"), nullable=True, index=True
     )
