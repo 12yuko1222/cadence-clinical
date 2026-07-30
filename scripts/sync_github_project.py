@@ -2,8 +2,8 @@
 """
 Cadence Clinical — Automated GitHub Project & Issue Sync Tool
 
-Automates GitHub Project 17 ('Cadence-Clinical') synchronization, issue body formatting,
-board status routing, priority classification, size estimation, and developer readiness mapping.
+Automates GitHub Project 17 ('Cadence-Clinical') synchronization, body formatting with native GitHub tasklists,
+dynamic issue unblocking, label synchronization, priority classification, and developer readiness mapping.
 
 Usage:
     python3 scripts/sync_github_project.py
@@ -15,7 +15,6 @@ import re
 import subprocess
 import sys
 import time
-from collections import defaultdict
 
 PROJECT_NUMBER = 17
 OWNER = "fderuiter"
@@ -128,40 +127,72 @@ def assign_work_stream(i):
         )
 
 
-def enhance_body_if_needed(i, parent_issues, blocked_by):
-    body = (i.get("body") or "").strip()
-    if (
-        "🟢 **READY FOR DEV**" in body
-        or "🔴 **BLOCKED**" in body
-        or "🔵 **PARENT EPIC**" in body
-    ):
-        return body, False  # Already enhanced
-
+def clean_and_format_body(i, epics, issue_by_num):
     num = i["number"]
-    title = i["title"]
-    labels = [lbl["name"] for lbl in i.get("labels", [])]
-    is_blocked = "blocked" in labels
-    is_parent = num in parent_issues or "Parent" in labels or title.startswith("EPIC:")
+    body = (i.get("body") or "").strip()
+    is_epic = num in epics
+
+    lines = body.split("\n")
+    cleaned_lines = []
+
+    for line in lines:
+        line_str = line.strip()
+        if any(
+            k in line_str
+            for k in [
+                "BLOCKED",
+                "READY FOR DEV",
+                "PARENT EPIC",
+                "Developer Readiness",
+                "Work Stream",
+                "Requirements Traceability",
+                "Target Modules",
+                "🔴",
+                "🟢",
+                "🔵",
+            ]
+        ):
+            continue
+        cleaned_lines.append(line)
+
+    body_core = "\n".join(cleaned_lines).strip()
+    body_core = re.sub(r"^(---|\s+|\n)+", "", body_core).strip()
+
+    # Strip any trailing DoD or tasklist headers that were previously appended
+    body_core = re.sub(
+        r"## 📋 Definition of Done \(DoD\) Checklist.*",
+        "",
+        body_core,
+        flags=re.DOTALL,
+    ).strip()
+    body_core = re.sub(
+        r"### 🔗 Prerequisites / Dependencies.*",
+        "",
+        body_core,
+        flags=re.DOTALL,
+    ).strip()
+    body_core = re.sub(
+        r"### 📋 Child Issues / Sub-Tasks.*",
+        "",
+        body_core,
+        flags=re.DOTALL,
+    ).strip()
+    body_core = re.sub(r"\n---\n*$", "", body_core).strip()
+
+    # Extract references
+    all_refs = [
+        int(r)
+        for r in re.findall(r"#(\d+)", body)
+        if int(r) in issue_by_num and int(r) != num
+    ]
+
+    # Leaf prerequisites are non-epic references
+    prereqs = sorted(list(set([r for r in all_refs if r not in epics])))
+    # Parent child tasks are all references
+    children = sorted(list(set(all_refs)))
 
     stream_name, default_ms = assign_work_stream(i)
     current_ms = i["milestone"]["title"] if i.get("milestone") else default_ms
-
-    if is_parent:
-        status_badge = "🔵 **PARENT EPIC**"
-        readiness_note = "Parent epic tracking execution graph of child tasks."
-    elif is_blocked:
-        status_badge = "🔴 **BLOCKED**"
-        blocking_list = sorted(list(set(blocked_by.get(num, []))))
-        readiness_note = (
-            f"Blocked by prerequisite issues: {', '.join(f'#{b}' for b in blocking_list)}"
-            if blocking_list
-            else "Blocked pending upstream prerequisite completion."
-        )
-    else:
-        status_badge = "🟢 **READY FOR DEV**"
-        readiness_note = (
-            "Unblocked leaf task. Ready for immediate developer assignment."
-        )
 
     req_ids = sorted(list(set(re.findall(r"(PRD-[A-Z0-9-]+|Trace-\d+|ADR-\d+)", body))))
     req_str = (
@@ -172,7 +203,8 @@ def enhance_body_if_needed(i, parent_issues, blocked_by):
         list(
             set(
                 re.findall(
-                    r"`(apps/[^`]+|packages/[^`]+|docs/[^`]+|tests/[^`]+)`", body
+                    r"`(apps/[^`,\s]+|packages/[^`,\s]+|docs/[^`,\s]+|tests/[^`,\s]+)`",
+                    body,
                 )
             )
         )
@@ -181,30 +213,59 @@ def enhance_body_if_needed(i, parent_issues, blocked_by):
     if len(file_targets) > 4:
         files_str += f" (+{len(file_targets) - 4} more)"
 
-    enhanced_body = f"""{status_badge} | **Work Stream**: `{stream_name}` | **Milestone**: `{current_ms}`
+    metadata_block = f"""| **Work Stream**: `{stream_name}` | **Milestone**: `{current_ms}`
 
-> 💡 **Developer Readiness**: {readiness_note}
 > 🔒 **Requirements Traceability**: `{req_str}` | GxP 21 CFR Part 11 Regulated
-> 📁 **Target Modules / Files**: `{files_str}`
+> 📁 **Target Modules / Files**: `{files_str}`"""
 
----
+    tasklist_section = ""
+    if is_epic and children:
+        items = []
+        for c in children:
+            c_issue = issue_by_num.get(c, {})
+            title = c_issue.get("title", "")
+            state = c_issue.get("state", "OPEN")
+            box = "[x]" if state == "CLOSED" else "[ ]"
+            items.append(f"- {box} #{c} — {title}")
+        tasklist_section = "\n\n### 📋 Child Issues / Sub-Tasks\n" + "\n".join(items)
+    elif not is_epic and prereqs:
+        items = []
+        for p in prereqs:
+            p_issue = issue_by_num.get(p, {})
+            title = p_issue.get("title", "")
+            state = p_issue.get("state", "OPEN")
+            box = "[x]" if state == "CLOSED" else "[ ]"
+            items.append(f"- {box} #{p} — {title}")
+        tasklist_section = "\n\n### 🔗 Prerequisites / Dependencies\n" + "\n".join(
+            items
+        )
 
-{body}
-
----
-
-## 📋 Definition of Done (DoD) Checklist
+    dod_block = """## 📋 Definition of Done (DoD) Checklist
 - [ ] Implementation complete across target file paths.
 - [ ] Unit & integration tests added/updated in `tests/` (`uv run pytest`).
 - [ ] Code formatted and typed cleanly (`uv run ruff check .`).
 - [ ] GxP audit fields preserved/updated (`created_by`, `reason_for_change`, versioning) if models modified.
-- [ ] Traceability docs or ADR updated if architectural/contract changes introduced.
-"""
-    return enhanced_body, True
+- [ ] Traceability docs or ADR updated if architectural/contract changes introduced."""
+
+    formatted_body = f"""{metadata_block}
+
+---
+
+{body_core}{tasklist_section}
+
+---
+
+{dod_block}"""
+
+    was_changed = body.strip() != formatted_body.strip()
+    return formatted_body, was_changed, prereqs
 
 
 def main():
-    print("=== Cadence Clinical — Automated Project & Issue Sync ===", flush=True)
+    print(
+        "=== Cadence Clinical — Standardized Project & Dynamic Issue Sync ===",
+        flush=True,
+    )
 
     # 1. Fetch all repo issues
     print("1. Fetching all repository issues...", flush=True)
@@ -228,42 +289,55 @@ def main():
     issues = json.loads(raw_issues)
     issue_by_num = {i["number"]: i for i in issues}
 
-    # Build parent/child/blocked graph
-    parent_issues = set()
-    blocked_by = defaultdict(list)
+    epics = set()
     for i in issues:
-        num = i["number"]
-        body = i.get("body") or ""
         labels = [lbl["name"] for lbl in i.get("labels", [])]
         if "Parent" in labels or i["title"].startswith("EPIC:"):
-            parent_issues.add(num)
-        refs = re.findall(r"#(\d+)", body)
-        for r in refs:
-            r_num = int(r)
-            if r_num in issue_by_num and r_num != num:
-                if "blocked by" in body.lower() or "prerequisite" in body.lower():
-                    blocked_by[num].append(r_num)
+            epics.add(i["number"])
 
-    # Auto-format newly created issues if missing headers
+    # 2. Standardize issue bodies and update dynamic blocked status
     print(
-        "2. Checking for newly created issues requiring structure formatting...",
+        "2. Standardizing issue descriptions & updating dynamic blocked states...",
         flush=True,
     )
     open_issues = [i for i in issues if i["state"] == "OPEN"]
     formatted_count = 0
+    unblocked_count = 0
+    blocked_count = 0
     tmp_file = "/tmp/cadence_issue_body.md"
 
+    open_prereqs_by_num = {}
+
     for i in open_issues:
-        new_body, was_updated = enhance_body_if_needed(i, parent_issues, blocked_by)
-        if was_updated:
+        num = i["number"]
+        new_body, was_changed, prereqs = clean_and_format_body(i, epics, issue_by_num)
+
+        open_prereqs = [
+            p for p in prereqs if issue_by_num.get(p, {}).get("state") == "OPEN"
+        ]
+        open_prereqs_by_num[num] = open_prereqs
+
+        current_labels = [lbl["name"] for lbl in i.get("labels", [])]
+        has_blocked_label = "blocked" in current_labels
+
+        if open_prereqs and not has_blocked_label:
+            run_cmd(["gh", "issue", "edit", str(num), "--add-label", "blocked"])
+            blocked_count += 1
+        elif not open_prereqs and has_blocked_label:
+            run_cmd(["gh", "issue", "edit", str(num), "--remove-label", "blocked"])
+            unblocked_count += 1
+
+        if was_changed:
             with open(tmp_file, "w") as f:
                 f.write(new_body)
-            run_cmd(["gh", "issue", "edit", str(i["number"]), "--body-file", tmp_file])
+            run_cmd(["gh", "issue", "edit", str(num), "--body-file", tmp_file])
             formatted_count += 1
             time.sleep(0.05)
 
-    if formatted_count > 0:
-        print(f"Formatted {formatted_count} newly created issues.", flush=True)
+    print(
+        f"Reformatted {formatted_count} issues. Dynamically unblocked {unblocked_count} issues. Added blocked label to {blocked_count} issues.",
+        flush=True,
+    )
 
     # 3. Fetch project items
     print("3. Fetching items from GitHub Project 17...", flush=True)
@@ -283,10 +357,9 @@ def main():
     )
     if not raw_project:
         print(
-            "Warning: Could not fetch GitHub Project items (Project 17 requires project token scope or is unavailable).",
+            "Warning: Could not fetch GitHub Project items.",
             file=sys.stderr,
         )
-        print("Skipping project board field synchronization.", flush=True)
         return
 
     project_data = json.loads(raw_project)
@@ -355,21 +428,17 @@ def main():
             continue
 
         labels = [lbl["name"].lower() for lbl in issue.get("labels", [])]
-        title = issue["title"]
         body = issue.get("body") or ""
         state = issue["state"]
+
+        open_prereqs = open_prereqs_by_num.get(num, [])
 
         # Status
         if state == "CLOSED":
             target_status = "Done"
-        elif "🟢 **ready for dev**" in body.lower():
-            target_status = "Ready"
-        elif (
-            "🔴 **blocked**" in body.lower()
-            or "blocked" in labels
-            or "🔵 **parent epic**" in body.lower()
-            or title.startswith("EPIC:")
-        ):
+        elif "jules" in labels:
+            target_status = "In progress"
+        elif open_prereqs or num in epics:
             target_status = "Backlog"
         else:
             target_status = "Ready"
@@ -383,7 +452,7 @@ def main():
             target_priority = "P2"
 
         # Size
-        if "parent" in labels or title.startswith("EPIC:"):
+        if num in epics:
             target_size = "XL"
         elif (
             len(re.findall(r"`(apps/[^`]+|packages/[^`]+)`", body)) >= 5
@@ -448,7 +517,10 @@ def main():
 
         time.sleep(0.02)
 
-    print("✅ Project Board & Issue Automation Sync Complete!", flush=True)
+    print(
+        "✅ Standardized Project Board & Dynamic Issue Automation Sync Complete!",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 name: Actionable Developer Task
-description: Scope a developer-ready leaf task with explicit file targets, work stream tag, and DoD checklist.
+description: Scope a developer-ready leaf task with explicit file targets, work stream tag, prerequisites, and DoD checklist.
 title: "[TASK]: "
-labels: ["enhancement", "type: feature"]
+labels: ["enhancement", "type: feature", "scope: backend"]
 body:
   - type: markdown
     attributes:
@@ -29,8 +29,8 @@ body:
     id: target_files
     attributes:
       label: Target File Paths & Modules
-      description: List exact file paths to create/modify (e.g. `apps/etmf/main.py`, `apps/execution/models.py`).
-      placeholder: "e.g. apps/etmf/main.py, tests/test_etmf.py"
+      description: List exact file paths to create/modify (e.g. `apps/execution/main.py`, `tests/test_execution.py`).
+      placeholder: "e.g. apps/execution/main.py, tests/test_execution.py"
     validations:
       required: true
 
@@ -46,8 +46,8 @@ body:
   - type: textarea
     id: objective
     attributes:
-      label: Objective & Technical Specification
-      description: Clear summary of work to perform and architectural guidelines.
+      label: Context & Objective
+      description: Clear summary of work to perform and underlying rationale.
     validations:
       required: true
 
@@ -57,10 +57,22 @@ body:
       label: Acceptance Criteria
       description: Bulleted checkboxes for testable acceptance criteria.
       value: |
-        - [ ] Criterion 1
-        - [ ] Criterion 2
+        - [ ] Functional requirement implementation complete.
+        - [ ] Unit & integration tests added/updated.
+        - [ ] Contract / schema documentation verified.
     validations:
       required: true
+
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: Prerequisites / Linked Dependencies
+      description: List prerequisite issue numbers using native GitHub tasklist format (`- [ ] #123`). Leave empty if unblocked.
+      placeholder: |
+        - [ ] #123 — API schema definition
+        - [ ] #124 — Security middleware
+    validations:
+      required: false
 
   - type: checkboxes
     id: definition_of_done
@@ -74,4 +86,6 @@ body:
         - label: "Code formatted and typed cleanly (`uv run ruff check .`)."
           required: true
         - label: "GxP audit fields preserved/updated (`created_by`, `reason_for_change`, versioning) if models modified."
+          required: true
+        - label: "Traceability docs or ADR updated if architectural/contract changes introduced."
           required: true

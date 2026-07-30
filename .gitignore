@@ -130,3 +130,4 @@ Thumbs.db
 tmp_etmf/
 apps/designer/templates/*.docx
 *.docx
+scripts/sync_github_project.py
