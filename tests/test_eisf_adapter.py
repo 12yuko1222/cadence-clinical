@@ -42,6 +42,22 @@ def test_deterministic_bidirectional_mapping_success():
             "05.02.04",
         ),
         (
+            "Investigator & Staff",
+            "Financial Disclosure",
+            5,
+            "05.02",
+            "Financial Disclosure",
+            "05.02.02",
+        ),
+        (
+            "Investigator & Staff",
+            "Medical License",
+            5,
+            "05.02",
+            "Medical License",
+            "05.02.98",
+        ),
+        (
             "Protocols & Amendments",
             "Approved Protocol",
             1,
@@ -265,8 +281,15 @@ def test_eisf_mappings_resolve_through_active_catalog():
         etmf_art_type,
         etmf_code,
     ) in FORWARD_MAPPING.items():
+        if etmf_code in active_catalog.artifact_map:
+            version = active_catalog.version
+            expected_ext = False
+        else:
+            version = "v3.2.0-extended"
+            expected_ext = True
+
         # Resolve artifact dynamically through the taxonomy catalog
-        resolved = resolve_artifact(active_catalog.version, code=etmf_code)
+        resolved = resolve_artifact(version, code=etmf_code)
 
         # Verify correctness of the resolution
         artifact = resolved["artifact"]
@@ -278,7 +301,7 @@ def test_eisf_mappings_resolve_through_active_catalog():
         assert artifact.zone_code == zone
         assert parent_section.code == section
         assert parent_zone.code == zone
-        assert artifact.is_extension is False
+        assert artifact.is_extension is expected_ext
 
 
 def test_eisf_reverse_mappings_resolve_through_active_catalog():
@@ -297,8 +320,15 @@ def test_eisf_reverse_mappings_resolve_through_active_catalog():
         binder_sec,
         art_type,
     ) in REVERSE_MAPPING.items():
+        if etmf_code in active_catalog.artifact_map:
+            version = active_catalog.version
+            expected_ext = False
+        else:
+            version = "v3.2.0-extended"
+            expected_ext = True
+
         # Resolve artifact dynamically through the taxonomy catalog
-        resolved = resolve_artifact(active_catalog.version, code=etmf_code)
+        resolved = resolve_artifact(version, code=etmf_code)
 
         # Verify correctness of the resolution
         artifact = resolved["artifact"]
@@ -310,7 +340,7 @@ def test_eisf_reverse_mappings_resolve_through_active_catalog():
         assert artifact.zone_code == zone
         assert parent_section.code == section
         assert parent_zone.code == zone
-        assert artifact.is_extension is False
+        assert artifact.is_extension is expected_ext
 
 
 def test_eisf_resolve_known_extension_artifact():
