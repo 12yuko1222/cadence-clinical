@@ -277,7 +277,9 @@ def map_job_to_reconciliation_response(
     )
 
 
-async def get_job_result_summary(session: AsyncSession, run_id: Optional[str]) -> Optional[Dict[str, Any]]:
+async def get_job_result_summary(
+    session: AsyncSession, run_id: Optional[str]
+) -> Optional[Dict[str, Any]]:
     if not run_id:
         return None
     try:
@@ -289,7 +291,9 @@ async def get_job_result_summary(session: AsyncSession, run_id: Optional[str]) -
             return None
 
         # Count discrepancies
-        stmt_disc_count = select(func.count(SAEDiscrepancy.id)).where(SAEDiscrepancy.run_id == run_id)
+        stmt_disc_count = select(func.count(SAEDiscrepancy.id)).where(
+            SAEDiscrepancy.run_id == run_id
+        )
         res_disc_count = await session.execute(stmt_disc_count)
         count = res_disc_count.scalar() or 0
 
@@ -862,6 +866,7 @@ async def reconciliation_worker(
 
             # 2. Run reconciliation logic
             from apps.safety.reconciliation import run_reconciliation
+
             results = await run_reconciliation(
                 study_id=study_id,
                 session=session,
@@ -910,7 +915,9 @@ async def reconciliation_worker(
             logger.exception(f"Error processing reconciliation job {job_id}")
             # Ensure safe transition to FAILED with non-sensitive error
             try:
-                stmt = select(SAEReconciliationJob).where(SAEReconciliationJob.id == job_id)
+                stmt = select(SAEReconciliationJob).where(
+                    SAEReconciliationJob.id == job_id
+                )
                 result = await session.execute(stmt)
                 job = result.scalars().first()
                 if job:
@@ -931,7 +938,9 @@ async def reconciliation_worker(
                     )
                     await session.commit()
             except Exception as inner_e:
-                logger.error(f"Failed to record FAILED status for job {job_id}: {inner_e}")
+                logger.error(
+                    f"Failed to record FAILED status for job {job_id}: {inner_e}"
+                )
 
 
 # SAE Reconciliation jobs endpoints
@@ -956,6 +965,7 @@ async def trigger_sae_reconciliation_job(
         )
 
     import uuid
+
     job_id = str(uuid.uuid4())
 
     job = SAEReconciliationJob(

@@ -366,7 +366,13 @@ async def create_notification(
     )
 
     # GxP compliance: Explicitly identify direct Sponsor Medical Monitor alerts to bypass NotificationRouter and record PII-safe attempt
-    if payload.recipient_role and payload.recipient_role.lower() in ("sponsor_mm", "sponsor medical monitor", "medical_monitor", "medical monitor", "mm"):
+    if payload.recipient_role and payload.recipient_role.lower() in (
+        "sponsor_mm",
+        "sponsor medical monitor",
+        "medical_monitor",
+        "medical monitor",
+        "mm",
+    ):
         await write_audit_log(
             session=session,
             user_id=user_id,

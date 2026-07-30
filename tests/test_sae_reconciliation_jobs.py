@@ -50,7 +50,9 @@ async def setup_jobs_db():
         await db_manager.close()
 
 
-def get_signed_headers(roles: str = "sponsor_statistician", change_reason: str = "") -> dict:
+def get_signed_headers(
+    roles: str = "sponsor_statistician", change_reason: str = ""
+) -> dict:
     """Helper to generate gateway headers."""
     timestamp = str(time.time())
     user_id = "safety_jobs_user"
@@ -90,15 +92,42 @@ class MockAsyncClientForJobs:
                             "name": "AE",
                             "label": "Adverse Events",
                             "items": [
-                                {"name": "STUDYID", "label": "Study ID", "type": "string"},
-                                {"name": "USUBJID", "label": "Subject ID", "type": "string"},
-                                {"name": "AETERM", "label": "AE Term", "type": "string"},
-                                {"name": "AESTDTC", "label": "Start Date", "type": "string"},
-                                {"name": "AESEV", "label": "Severity", "type": "string"},
+                                {
+                                    "name": "STUDYID",
+                                    "label": "Study ID",
+                                    "type": "string",
+                                },
+                                {
+                                    "name": "USUBJID",
+                                    "label": "Subject ID",
+                                    "type": "string",
+                                },
+                                {
+                                    "name": "AETERM",
+                                    "label": "AE Term",
+                                    "type": "string",
+                                },
+                                {
+                                    "name": "AESTDTC",
+                                    "label": "Start Date",
+                                    "type": "string",
+                                },
+                                {
+                                    "name": "AESEV",
+                                    "label": "Severity",
+                                    "type": "string",
+                                },
                                 {"name": "AESER", "label": "Serious", "type": "string"},
                             ],
                             "itemData": [
-                                ["STUDY-002", "SUBJ-002", "SEVERE HEADACHE", "2026-07-25", "SEVERE", "Y"]
+                                [
+                                    "STUDY-002",
+                                    "SUBJ-002",
+                                    "SEVERE HEADACHE",
+                                    "2026-07-25",
+                                    "SEVERE",
+                                    "Y",
+                                ]
                             ],
                         }
                     },
@@ -198,7 +227,10 @@ async def test_trigger_and_poll_reconciliation_job_success():
     data = response.json()
     job_id = data["id"]
     assert job_id is not None
-    assert data["status"] in ("PENDING", "COMPLETED")  # TestClient background tasks run synchronously
+    assert data["status"] in (
+        "PENDING",
+        "COMPLETED",
+    )  # TestClient background tasks run synchronously
     assert data["study_id"] == "STUDY-002"
 
     # 2. Poll the job status (should be completed as TestClient runs background tasks synchronously)
@@ -222,7 +254,10 @@ async def test_trigger_and_poll_reconciliation_job_success():
     payload_sent = notification_call["json"]
     assert payload_sent["recipient_role"] == "sponsor_mm"
     assert payload_sent["category"] == "ALERTS"
-    assert "identified 1 discrepancies" in payload_sent["message_content"] or "1 discrepancies" in payload_sent["message_content"]
+    assert (
+        "identified 1 discrepancies" in payload_sent["message_content"]
+        or "1 discrepancies" in payload_sent["message_content"]
+    )
 
     # 4. Verify safety audit logs
     async with db_manager.get_session_maker()() as session:
@@ -269,14 +304,20 @@ async def test_reconciliation_job_failure_path():
     assert poll_data["id"] == job_id
     assert poll_data["status"] == "FAILED"
     assert poll_data["error_message"] is not None
-    assert "Simulated EDC error" in poll_data["error_message"] or "error status 500" in poll_data["error_message"] or "EDC" in poll_data["error_message"]
+    assert (
+        "Simulated EDC error" in poll_data["error_message"]
+        or "error status 500" in poll_data["error_message"]
+        or "EDC" in poll_data["error_message"]
+    )
 
     # 3. Check that no notifications were sent
     assert len(mock_client.notification_calls) == 0
 
     # 4. Verify failure audit log entry
     async with db_manager.get_session_maker()() as session:
-        stmt = select(SafetyAuditLog).where(SafetyAuditLog.action == "RECONCILIATION_JOB_FAILED")
+        stmt = select(SafetyAuditLog).where(
+            SafetyAuditLog.action == "RECONCILIATION_JOB_FAILED"
+        )
         res = await session.execute(stmt)
         logs = res.scalars().all()
         assert len(logs) == 1
@@ -321,10 +362,15 @@ async def test_notifications_gxp_medical_monitor_alert():
 
         # Verify that the direct MEDICAL_MONITOR_ALERT_ATTEMPT GxP audit log is present in the notifications datastore
         async with notifications_db_manager.get_session_maker()() as session:
-            stmt = select(NotificationAuditLog).where(NotificationAuditLog.action == "MEDICAL_MONITOR_ALERT_ATTEMPT")
+            stmt = select(NotificationAuditLog).where(
+                NotificationAuditLog.action == "MEDICAL_MONITOR_ALERT_ATTEMPT"
+            )
             res = await session.execute(stmt)
             logs = res.scalars().all()
             assert len(logs) == 1
-            assert "Direct PII-safe Sponsor Medical Monitor notification attempt recorded" in logs[0].details
+            assert (
+                "Direct PII-safe Sponsor Medical Monitor notification attempt recorded"
+                in logs[0].details
+            )
     finally:
         await notifications_db_manager.close()
