@@ -2,7 +2,7 @@ import time
 from typing import Optional
 
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.testclient import TestClient
 from jose import jwt
 
@@ -15,7 +15,11 @@ from packages.security.context import (
     current_timestamp,
     current_user_id,
 )
-from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.middleware import (
+    GatewayAuthMiddleware,
+    require_gateway_permission,
+)
+from packages.security.permissions import PermissionEnum
 from packages.security.signing import (
     generate_canonical_signature,
     verify_canonical_signature,
@@ -29,6 +33,20 @@ test_app.add_middleware(GatewayAuthMiddleware)
 @test_app.get("/secure-endpoint")
 async def secure_endpoint():
     return {"status": "success", "message": "Access Granted"}
+
+
+@test_app.get("/permission-check")
+async def permission_check_endpoint(request: Request):
+    perms = [p.value for p in getattr(request.state, "permissions", set())]
+    return {"permissions": sorted(perms)}
+
+
+@test_app.post(
+    "/datalock-protected",
+    dependencies=[Depends(require_gateway_permission(PermissionEnum.DATA_LOCK))],
+)
+async def datalock_protected_endpoint():
+    return {"status": "locked"}
 
 
 @test_app.post("/secure-endpoint")
@@ -1166,3 +1184,100 @@ def test_middleware_unblinded_access_parametrization(header_val, expected_bool) 
     response = client.get("/verify-context-scope", headers=headers)
     assert response.status_code == 200
     assert response.json()["unblinded_access"] is expected_bool
+
+
+def test_middleware_permissions_parsed_in_state() -> None:
+    """Verify GatewayAuthMiddleware attaches permissions set to request.state.
+
+    Requirements: PRD-SYS-001, 21 CFR Part 11
+    """
+    client = TestClient(test_app)
+    timestamp = str(time.time())
+    user_id = "user_cra"
+    roles = "ClinicalResearchAssociate"
+    change_reason = "monitoring view"
+
+    sig = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=change_reason,
+    )
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+
+    response = client.get("/permission-check", headers=headers)
+    assert response.status_code == 200
+    perms = response.json()["permissions"]
+    assert "sdv:verify" in perms
+    assert "study:read" in perms
+    assert "data:lock" not in perms
+
+
+def test_require_gateway_permission_enforcement() -> None:
+    """Verify require_gateway_permission dependency enforces required PermissionEnum.
+
+    Requirements: PRD-SYS-001, 21 CFR Part 11
+    """
+    client = TestClient(test_app)
+    timestamp = str(time.time())
+
+    # CRC attempt -> Missing DATA_LOCK permission -> Expect 403
+    crc_user = "user_crc"
+    crc_roles = "ClinicalResearchCoordinator"
+    crc_reason = "attempt lock"
+
+    crc_sig = generate_signature(
+        user_id=crc_user,
+        roles=crc_roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=crc_reason,
+    )
+
+    crc_headers = {
+        "X-User-Id": crc_user,
+        "X-User-Roles": crc_roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": crc_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": crc_reason,
+    }
+
+    response = client.post("/datalock-protected", headers=crc_headers)
+    assert response.status_code == 403
+    assert "Missing required permission 'data:lock'" in response.json()["detail"]
+
+    # DataManager attempt -> Possesses DATA_LOCK permission -> Expect 200
+    dm_user = "user_dm"
+    dm_roles = "DataManager"
+    dm_reason = "lock database"
+
+    dm_sig = generate_signature(
+        user_id=dm_user,
+        roles=dm_roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=dm_reason,
+    )
+
+    dm_headers = {
+        "X-User-Id": dm_user,
+        "X-User-Roles": dm_roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": dm_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": dm_reason,
+    }
+
+    response_dm = client.post("/datalock-protected", headers=dm_headers)
+    assert response_dm.status_code == 200
+    assert response_dm.json() == {"status": "locked"}
