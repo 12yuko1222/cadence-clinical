@@ -14,7 +14,7 @@ along with automatic key rotation to ensure secure and compliant operations.
 """
 
 # A simple prime for Shamir's Secret Sharing (2^127 - 1)
-PRIME = 170141183460469231731687303715884105727
+PRIME = 170141183460469231731687303715884105727  # deid-ignore
 
 
 def _eval_poly(poly: List[int], x: int) -> int:
