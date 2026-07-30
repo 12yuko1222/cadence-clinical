@@ -59,7 +59,9 @@ def setup_default_template():
     """
     Ensure a baseline protocol template exists for standard tests.
     """
-    build_docx_template()
+    # Authoritative template is checked-in and immutable.
+    # No need to rebuild it and overwrite it during parallel tests.
+    pass
 
 
 def test_sanitize_filename():
@@ -83,13 +85,15 @@ def test_get_safe_filename():
     assert filename_docx == "protocol_oncology-trial_v1.docx"
 
 
-def test_build_docx_template():
+def test_build_docx_template(tmp_path, monkeypatch):
     """
     Verify that build_docx_template successfully generates a file on disk.
 
     Requirements: PRD-SYS-001
     """
-    path = build_docx_template()
+    from apps.designer import rendering
+    monkeypatch.setattr(rendering, "TEMPLATES_DIR", str(tmp_path))
+    path = rendering.build_docx_template()
     assert os.path.exists(path)
     assert path.endswith(".docx")
 

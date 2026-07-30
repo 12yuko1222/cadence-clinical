@@ -3230,9 +3230,15 @@ async def approve_study_version_delta(
                 payload_to_sign["created_at"] = created_at_val
             if "parent_version" in version_props:
                 payload_to_sign["parent_version"] = version_props["parent_version"]
-            if "branch_name" in version_props and version_props["branch_name"] is not None:
+            if (
+                "branch_name" in version_props
+                and version_props["branch_name"] is not None
+            ):
                 payload_to_sign["branch_name"] = version_props["branch_name"]
-            if "base_version" in version_props and version_props["base_version"] is not None:
+            if (
+                "base_version" in version_props
+                and version_props["base_version"] is not None
+            ):
                 payload_to_sign["base_version"] = version_props["base_version"]
 
             secret = os.getenv(
