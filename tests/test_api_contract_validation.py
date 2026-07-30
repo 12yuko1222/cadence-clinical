@@ -224,6 +224,11 @@ def loaded_specs():
 
 
 WHITELISTED_ROUTES = {
+    ("post", "/api/v1/designer/ingestion/upload"),
+    ("get", "/api/v1/designer/ingestion/jobs/{job_id}"),
+    ("get", "/api/v1/designer/ingestion/candidates/{candidate_id}"),
+    ("post", "/api/v1/designer/ingestion/candidates/{candidate_id}/items/{item_id}/transition"),
+    ("post", "/api/v1/designer/ingestion/candidates/{candidate_id}/promote"),
     ("post", "/api/v1/studies/{study_id}/versions/{version_id}/approve"),
     ("post", "/api/v1/studies/{study_id}/versions/{version_id}/sign-off"),
     ("get", "/api/v1/studies/{study_id}/versions/{version_id}/blocks"),

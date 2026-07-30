@@ -317,6 +317,106 @@
           }
         }
       }
+    },
+    "/api/v1/safety/reconciliation/runs": {
+      "get": {
+        "summary": "List Reconciliation Runs",
+        "description": "List all safety reconciliation runs.",
+        "operationId": "list_reconciliation_runs_api_v1_safety_reconciliation_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Reconciliation Runs Api V1 Safety Reconciliation Runs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Trigger Sae Reconciliation",
+        "description": "Triggers deterministic SAE reconciliation, comparing EDC observations\nwith external safety PV database, and persisting results safely (no direct patient PII).",
+        "operationId": "trigger_sae_reconciliation_api_v1_safety_reconciliation_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SAEReconciliationRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/reconciliation/runs/{id}": {
+      "get": {
+        "summary": "Get Reconciliation Run",
+        "description": "Retrieve a specific safety reconciliation run.",
+        "operationId": "get_reconciliation_run_api_v1_safety_reconciliation_runs__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -799,6 +899,157 @@
         ],
         "title": "MedDRACoding",
         "description": "Represents MedDRA coding hierarchies consistent with the execution-service coding contract."
+      },
+      "SAEDiscrepancyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "case_event_key": {
+            "type": "string",
+            "title": "Case Event Key"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "expected_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Value"
+          },
+          "actual_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Value"
+          },
+          "meddra_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meddra Version"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "source",
+          "case_event_key",
+          "field_name",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SAEDiscrepancyResponse"
+      },
+      "SAEReconciliationRunRequest": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "The study identifier for reconciliation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id"
+        ],
+        "title": "SAEReconciliationRunRequest"
+      },
+      "SAEReconciliationRunResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "run_date": {
+            "type": "string",
+            "title": "Run Date"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "discrepancies": {
+            "items": {
+              "$ref": "#/components/schemas/SAEDiscrepancyResponse"
+            },
+            "type": "array",
+            "title": "Discrepancies",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "run_date",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SAEReconciliationRunResponse"
       },
       "SafetyAuditLogResponse": {
         "properties": {

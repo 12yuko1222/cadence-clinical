@@ -70,7 +70,7 @@ export const ingestionClient = {
   /**
    * Promotes the reviewed candidate items to a non-published DRAFT version.
    */
-  async promoteCandidate(candidateId, changeReason, options = {}) {
+  async promoteCandidate(candidateId, changeReason) {
     return apiClient.post(
       `/api/v1/designer/ingestion/candidates/${candidateId}/promote`,
       { change_reason: changeReason },
