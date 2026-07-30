@@ -4,6 +4,7 @@ import { useAuthStore } from "./auth.js";
 import { soaClient } from "../api/soaClient.js";
 import { executionService } from "../api/execution.js";
 import { evaluateAST } from "../evaluator.js";
+import { ingestionClient } from "../api/ingestionClient.js";
 
 export const useClinicalStore = defineStore("clinical", {
   state: () => {
@@ -419,6 +420,12 @@ export const useClinicalStore = defineStore("clinical", {
       activeStudyVersionId: "v_draft_01",
       soaLoading: false,
       soaError: null,
+
+      // --- Ingestion / Candidate Draft State ---
+      candidateDraft: null,
+      ingestionJobs: [],
+      ingestionLoading: false,
+      ingestionError: null,
     };
   },
   getters: {
@@ -700,6 +707,75 @@ export const useClinicalStore = defineStore("clinical", {
           { payload, error: err.message },
           changeReason
         );
+        throw err;
+      }
+    },
+
+    // --- Ingestion Store Actions ---
+    async uploadProtocolDocument(file, changeReason) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.uploadProtocol(file, { changeReason });
+        this.candidateDraft = draft;
+        this.ingestionJobs.push({
+          job_id: draft.id,
+          status: "COMPLETED",
+          candidate_id: draft.id,
+          errors: null,
+        });
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async fetchCandidateDraft(candidateId) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.getCandidate(candidateId);
+        this.candidateDraft = draft;
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async transitionCandidateItemState(candidateId, itemId, status, reason, updatedFields = {}) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.transitionItem(candidateId, itemId, status, reason, updatedFields);
+        this.candidateDraft = draft;
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async promoteCandidateDraft(candidateId, changeReason) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const res = await ingestionClient.promoteCandidate(candidateId, changeReason);
+        if (this.candidateDraft && this.candidateDraft.id === candidateId) {
+          this.candidateDraft.status = "PROMOTED";
+        }
+        this.ingestionLoading = false;
+        return res;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
         throw err;
       }
     },

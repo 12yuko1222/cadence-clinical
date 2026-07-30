@@ -26,9 +26,14 @@ ROLE_CRA_CANONICAL = "cra"
 ROLE_SUBJECT = "subject"
 ROLE_AUDITOR_CANONICAL = "auditor"
 ROLE_EXTERNAL_MONITOR = "external_monitor"
+ROLE_REVIEWER = "protocol_reviewer"
 
 
 ROLE_ALIASES = {
+    "protocol_reviewer": ROLE_REVIEWER,
+    "protocol reviewer": ROLE_REVIEWER,
+    "protocol-reviewer": ROLE_REVIEWER,
+    "reviewer": ROLE_REVIEWER,
     "external monitor": ROLE_EXTERNAL_MONITOR,
     "external_monitor": ROLE_EXTERNAL_MONITOR,
     "external-monitor": ROLE_EXTERNAL_MONITOR,
@@ -104,6 +109,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "study_design": {"read"},
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
+        "protocol_ingestion": {"upload", "read", "review", "promote"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
@@ -143,6 +149,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     ROLE_SPONSOR_DESIGNER: {
         "study_design": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
+        "protocol_ingestion": {"upload", "read", "review", "promote"},
+    },
+    ROLE_REVIEWER: {
+        "study_design": {"read"},
+        "protocol_ingestion": {"upload", "read", "review", "promote"},
     },
     ROLE_SPONSOR_DM: {
         "study_design": {"read"},
@@ -1004,6 +1015,12 @@ ROLE_EXPANSIONS = {
         "cro monitor",
         "cro_monitor",
         "cro-monitor",
+    },
+    "protocol_reviewer": {
+        "protocol_reviewer",
+        "protocol reviewer",
+        "protocol-reviewer",
+        "reviewer",
     },
 }
 
