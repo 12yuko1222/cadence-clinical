@@ -13,6 +13,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1457 🟢
 - **Total Automated Test Cases Run:** 1463
 - **Passed:** 1463 🟢
+- **Total Automated Test Cases Run:** 1454
+- **Passed:** 1454 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -758,8 +760,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_form_submission_lifecycle_happy_path` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_form_submission_locks` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_form_submission_validation` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_gateway_site_isolation_propagation` | `tests.test_gateway` | Trace-16 | 🟢 PASSED | < 1s |
 | `test_gateway_bearer_only_subject_routing_and_header_enforcement` | `tests.test_gateway` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gateway_cors_headers` | `tests.test_gateway` | PRD-UNI-001 | 🟢 PASSED | < 1s |
+| `test_gateway_proxy_eisf_headers_propagation` | `tests.test_gateway` | Trace-16 | 🟢 PASSED | < 1s |
 | `test_gateway_rate_limiting` | `tests.test_gateway` | PRD-UNI-001 | 🟢 PASSED | < 1s |
 | `test_gateway_scope_extraction_and_verification_integrity` | `tests.test_gateway` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gateway_semantic_action_issuance_and_enforcement` | `tests.test_gateway` | *Regression/Helper* | 🟢 PASSED | < 1s |

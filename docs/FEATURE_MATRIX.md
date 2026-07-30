@@ -41,6 +41,8 @@ The table below specifies how individual clinical domain entities are processed,
 | **eCRF Form Submissions** | Execution | PostgreSQL | App-Layer Event Interceptor |
 | **System Audit Logs** | Execution | PostgreSQL | Background Cryptographic Sealer & DB Triggers |
 | **TMF Documents** | eTMF Service | SQLite/PostgreSQL | Ingestion-driven validation, QC transition logging, and TMFAuditLog ledger |
+| **eISF Documents** | eISF Service | SQLite/PostgreSQL | Ingestion-driven validation, CRUD operations, site-isolation gating, and ISFAuditLog ledger |
+| **eISF Audit Logs** | eISF Service | SQLite/PostgreSQL | Append-only chronological audit logging for all site operations, views, and sync conflict resolutions |
 | **CTMS Visits & Milestones** | CTMS Service | SQLite/PostgreSQL | Explicit `CTMSAuditLog` writes & standard Part 11 fields |
 | **Protocol Deviations & CAPA**| Quality Service | SQLite/PostgreSQL | Automated `QualityAuditLog` logging, transition controls, and 21 CFR Part 11 fields |
 | **Subject Assignments** | Interop Service | SQLite/PostgreSQL | Explicit `InteropAuditLog` writes with Part 11 metadata |

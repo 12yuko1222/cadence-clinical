@@ -151,8 +151,8 @@ def test_gateway_org_proxy_routing(monkeypatch: pytest.MonkeyPatch) -> None:
         res1 = client.get("/org/health", headers={"Authorization": f"Bearer {token}"})
         assert res1.status_code == 200
         sent_req1 = mock_send.call_args.args[0]
-        # Should drop prefix and point to localhost:8010/health
-        assert str(sent_req1.url) == "http://localhost:8010/health"
+        # Should drop prefix and point to localhost:8012/health
+        assert str(sent_req1.url) == "http://localhost:8012/health"
 
         # Test routing for '/api/v1/org/organizations'
         res2 = client.get(
@@ -160,8 +160,8 @@ def test_gateway_org_proxy_routing(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert res2.status_code == 200
         sent_req2 = mock_send.call_args.args[0]
-        # Should keep path and point to localhost:8010/api/v1/org/organizations
-        assert str(sent_req2.url) == "http://localhost:8010/api/v1/org/organizations"
+        # Should keep path and point to localhost:8012/api/v1/org/organizations
+        assert str(sent_req2.url) == "http://localhost:8012/api/v1/org/organizations"
 
 
 # =====================================================================
