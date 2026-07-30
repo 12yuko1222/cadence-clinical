@@ -34,6 +34,18 @@ def test_data_lifecycle_protocol_amendment_traceability() -> None:
 
     amendment_section = sections[1]
 
+    # Scope to the Protocol Amendment section only — stop at the next top-level
+    # H1 section (introduced by PR #812 which added the eSignature section).
+    # This prevents PRD IDs from subsequent sections bleeding into the validation.
+    next_section_markers = [
+        "\n# Data Lifecycle Specification:",
+        "\n---\n\n# Data Lifecycle Specification:",
+    ]
+    for marker in next_section_markers:
+        if marker in amendment_section:
+            amendment_section = amendment_section.split(marker)[0]
+            break
+
     # Use regex to find all PRD- style requirements
     prd_matches = re.findall(r"PRD-[A-Z0-9\-]+", amendment_section)
 

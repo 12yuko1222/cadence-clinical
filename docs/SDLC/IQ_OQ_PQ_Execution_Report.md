@@ -9,16 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1290
-- **Passed:** 1290 🟢
-- **Total Automated Test Cases Run:** 1293
-- **Passed:** 1293 🟢
-- **Total Automated Test Cases Run:** 1287
-- **Passed:** 1287 🟢
-- **Total Automated Test Cases Run:** 1285
-- **Passed:** 1285 🟢
-- **Total Automated Test Cases Run:** 1291
-- **Passed:** 1291 🟢
+- **Total Automated Test Cases Run:** 1284
+- **Passed:** 1284 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -303,19 +295,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_successful_assembly_and_synopsis` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unresolved_reference_invalid_attribute` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unresolved_reference_non_existent_id` | `tests.test_content_assembly` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_dual_custody_negative_duplicate_shares` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_dual_custody_negative_malformed_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_dual_custody_negative_mismatched_versions` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_dual_custody_negative_single_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_dual_custody_negative_tampered_share` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_dual_custody_positive` | `tests.test_cryptography` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_candidate_item_review_transitions` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_docx_ingestion_success` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_low_confidence_classification` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_malformed_or_unsupported_document` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pdf_ingestion_success` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_promotion_gates_and_draft_creation` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_unauthorized_upload` | `tests.test_crf_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_encryption_decryption_with_rotation` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_key_splitting` | `tests.test_cryptography` | PRD-MDR-005, Trace-2 | 🟢 PASSED | < 1s |
 | `test_cra_allocations_rbac_reassignment_workload` | `tests.test_ctms` | PRD-CTMS-003, Trace-6 | 🟢 PASSED | < 1s |
@@ -334,7 +313,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_monitoring_visit_workflow_rbac_denials` | `tests.test_ctms` | PRD-CTMS-002, Trace-6 | 🟢 PASSED | < 1s |
 | `test_recruitment_records_crud_and_audit` | `tests.test_ctms` | PRD-CTMS-004, Trace-6 | 🟢 PASSED | < 1s |
 | `test_site_milestones_crud_and_audit` | `tests.test_ctms` | PRD-CTMS-001, Trace-6 | 🟢 PASSED | < 1s |
-| `test_data_lifecycle_protocol_amendment_traceability` | `tests.test_data_lifecycle_protocol_amendment_traceability` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_ctms_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_econsent_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_database_manager_uninitialized_and_close` | `tests.test_database_managers` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -617,15 +595,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_signature_extraction_formats` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_signature_requirement_rules` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tampering_detection_and_lockout_propagation` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_idempotency` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_immutability_violation_inbound_email` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_invalid_signature_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_multi_attachment_ingestion` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_oversized_payload_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_replay_protection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_stale_timestamp_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_unresolvable_recipient_address` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_valid_inbound_email_ingestion` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_trigger_global_trial_lock` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_trial_lock_status_error` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_trial_lock_status_locked` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1101,9 +1070,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_pure_comparison_missing_on_either_side` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_pure_comparison_same_code_different_terms` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_reconciliation_persistence_and_audit` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_notifications_gxp_medical_monitor_alert` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_reconciliation_job_failure_path` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_trigger_and_poll_reconciliation_job_success` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_icsr_version_and_reason_for_change_rendering` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_invalid_namespace_fails` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_invalid_root_tag_fails` | `tests.test_safety_e2b` | *Regression/Helper* | 🟢 PASSED | < 1s |
