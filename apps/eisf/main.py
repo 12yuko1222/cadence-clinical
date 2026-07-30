@@ -770,6 +770,8 @@ REQUIRED_BINDER_SECTIONS = {
     "Investigator & Staff": [
         "Investigator CV",
         "Delegation of Authority Log",
+        "Financial Disclosure",
+        "Medical License",
     ],
     "Protocols & Amendments": [
         "Approved Protocol",

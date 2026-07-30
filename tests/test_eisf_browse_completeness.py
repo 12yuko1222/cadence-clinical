@@ -180,7 +180,7 @@ async def test_eisf_completeness_workflow() -> None:
         site_id="site-boston-01",
     )
 
-    # 1. Check completeness initially (should be incomplete, all 6 artifacts missing)
+    # 1. Check completeness initially (should be incomplete, all 8 artifacts missing)
     comp_resp = client.get(
         "/api/v1/eisf/completeness?study_id=study-100", headers=headers
     )
@@ -196,7 +196,7 @@ async def test_eisf_completeness_workflow() -> None:
     assert "Protocols & Amendments" in sections
     assert "Regulatory Approvals" in sections
 
-    assert len(sections["Investigator & Staff"]["missing"]) == 2
+    assert len(sections["Investigator & Staff"]["missing"]) == 4
     assert len(sections["Investigator & Staff"]["present"]) == 0
 
     # 2. Ingest "Investigator CV"
@@ -219,11 +219,15 @@ async def test_eisf_completeness_workflow() -> None:
     sections = {s["section_name"]: s for s in data["sections"]}
     assert "Investigator CV" in sections["Investigator & Staff"]["present"]
     assert "Delegation of Authority Log" in sections["Investigator & Staff"]["missing"]
+    assert "Financial Disclosure" in sections["Investigator & Staff"]["missing"]
+    assert "Medical License" in sections["Investigator & Staff"]["missing"]
     assert data["is_complete"] is False
 
     # 3. Ingest all remaining required artifacts (case-insensitively)
     remaining_payloads = [
         ("Investigator & Staff", "Delegation of Authority Log", "doa.pdf"),
+        ("Investigator & Staff", "Financial Disclosure", "financial.pdf"),
+        ("Investigator & Staff", "Medical License", "license.pdf"),
         ("Protocols & Amendments", "Approved Protocol", "protocol.pdf"),
         ("Protocols & Amendments", "Protocol Sign-off", "signoff.pdf"),
         ("Regulatory Approvals", "IRB Approval", "irb.pdf"),

@@ -46,6 +46,18 @@ FORWARD_MAPPING: Dict[Tuple[str, str], Tuple[int, str, str, str]] = {
         "Delegation of Authority Log",
         "05.02.04",  # Standard DIA Reference Model Code for DOA log
     ),
+    ("investigator & staff", "financial disclosure"): (
+        5,
+        "05.02",
+        "Financial Disclosure",
+        "05.02.02",
+    ),
+    ("investigator & staff", "medical license"): (
+        5,
+        "05.02",
+        "Medical License",
+        "05.02.98",
+    ),
     ("protocols & amendments", "approved protocol"): (
         1,
         "01.01",
@@ -83,6 +95,14 @@ REVERSE_MAPPING: Dict[Tuple[int, str, str, str], Tuple[str, str]] = {
     (5, "05.02", "delegation of authority log", "05.02.04"): (
         "Investigator & Staff",
         "Delegation of Authority Log",
+    ),
+    (5, "05.02", "financial disclosure", "05.02.02"): (
+        "Investigator & Staff",
+        "Financial Disclosure",
+    ),
+    (5, "05.02", "medical license", "05.02.98"): (
+        "Investigator & Staff",
+        "Medical License",
     ),
     (1, "01.01", "clinical trial protocol", "01.01.01"): (
         "Protocols & Amendments",
