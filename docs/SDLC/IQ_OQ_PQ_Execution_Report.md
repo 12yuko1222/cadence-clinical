@@ -15,6 +15,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1463 🟢
 - **Total Automated Test Cases Run:** 1454
 - **Passed:** 1454 🟢
+- **Total Automated Test Cases Run:** 1439
+- **Passed:** 1439 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1223,7 +1225,17 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_pure_comparison_differing_fields` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_pure_comparison_missing_on_either_side` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_pure_comparison_same_code_different_terms` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_pure_function_generate_stable_event_key` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_pure_function_normalize_edc_ae_to_sae` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_pure_function_normalize_external_icsr_to_saes` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_reconciliation_jobs_read_endpoints_and_gating` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
 | `test_reconciliation_persistence_and_audit` | `tests.test_sae_reconciliation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_reconciliation_runs_read_endpoints` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_reconciliation_version_index_increment` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_safety_mutations_negative_signatures` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_safety_reads_negative_signatures` | `tests.test_sae_reconciliation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_alert_dispatch_failure_exception` | `tests.test_sae_reconciliation_jobs` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_alert_dispatch_failure_non_2xx` | `tests.test_sae_reconciliation_jobs` | Trace-14 | 🟢 PASSED | < 1s |
 | `test_notifications_gxp_medical_monitor_alert` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_reconciliation_job_failure_path` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_trigger_and_poll_reconciliation_job_success` | `tests.test_sae_reconciliation_jobs` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1625,29 +1637,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_public_entry_point_whodrug` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_strict_referential_validation_triggers` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_whodrug_parser_init_validation` | `tests.test_whodrug_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_cdisc_xml_structure_validation` | `tests.validation.environment_integrity_tests` | PRD-MDR-001 | 🟢 PASSED | < 1s |
-| `test_cryptographic_tamper_evident_safeguards` | `tests.validation.environment_integrity_tests` | PRD-SYS-003 | 🟢 PASSED | < 1s |
-| `test_environment_integrity` | `tests.validation.environment_integrity_tests` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_site_level_data_isolation` | `tests.validation.environment_integrity_tests` | PRD-SYS-004 | 🟢 PASSED | < 1s |
-| `test_gxp_compliance_drifts_identified` | `tests.validation.gxp_compliance_suite` | PRD-SYS-001 | 🟢 PASSED | < 1s |
-| `test_blinding_constraints_on_ui_data_rendering` | `tests.validation.prd_compliance_traceability_tests` | PRD-MDR-006 | 🟢 PASSED | < 1s |
-| `test_ecrf_version_control_history` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-005 | 🟢 PASSED | < 1s |
-| `test_edc_archival_integration` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-010 | 🟢 PASSED | < 1s |
-| `test_edc_audit_trail_and_signatures` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-006 | 🟢 PASSED | < 1s |
-| `test_edc_concurrent_review_locks` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-009 | 🟢 PASSED | < 1s |
-| `test_edc_electronic_signatures` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-007 | 🟢 PASSED | < 1s |
-| `test_edc_reconsent_and_versioning` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-008 | 🟢 PASSED | < 1s |
-| `test_fda_compliant_pdf_generation` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-007 | 🟢 PASSED | < 1s |
-| `test_field_level_ingestion_validations` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-002 | 🟢 PASSED | < 1s |
-| `test_ie_criteria_logical_mapping_to_ecrf` | `tests.validation.prd_compliance_traceability_tests` | PRD-MDR-007 | 🟢 PASSED | < 1s |
-| `test_query_lifecycle_states` | `tests.validation.prd_compliance_traceability_tests` | PRD-QRY-001 | 🟢 PASSED | < 1s |
-| `test_spreadsheet_ingestion_sheet_structure` | `tests.validation.prd_compliance_traceability_tests` | PRD-EDC-001 | 🟢 PASSED | < 1s |
-| `test_submission_archival_integration` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-006 | 🟢 PASSED | < 1s |
-| `test_submission_audit_trail` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-004 | 🟢 PASSED | < 1s |
-| `test_submission_e_signatures` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-003 | 🟢 PASSED | < 1s |
-| `test_submission_locks` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-005 | 🟢 PASSED | < 1s |
-| `test_submission_version_control` | `tests.validation.prd_compliance_traceability_tests` | PRD-SUB-002 | 🟢 PASSED | < 1s |
-| `test_system_generated_validation_queries` | `tests.validation.prd_compliance_traceability_tests` | PRD-QRY-002 | 🟢 PASSED | < 1s |
 
 ## 4. Performance Qualification (PQ) & Scenario Validation
 

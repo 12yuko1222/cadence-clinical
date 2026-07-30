@@ -388,3 +388,153 @@ async def test_notifications_gxp_medical_monitor_alert():
             )
     finally:
         await notifications_db_manager.close()
+
+
+# ==========================================
+# 5. Alert Dispatch Failure Tests (Fail-Open)
+# ==========================================
+
+
+class MockAsyncClientForAlertFailure:
+    def __init__(self, simulate_exception=False):
+        self.simulate_exception = simulate_exception
+
+    async def get(self, url: str, headers=None, params=None, timeout=10.0):
+        if "sdtm/AE" in url:
+            mock_json = {
+                "clinicalData": {
+                    "studyOID": "STUDY-FAIL-ALERT",
+                    "metaDataVersionOID": "MDV.001",
+                    "itemGroupData": {
+                        "IG.AE": {
+                            "records": 1,
+                            "name": "AE",
+                            "label": "Adverse Events",
+                            "items": [
+                                {"name": "STUDYID", "type": "string"},
+                                {"name": "USUBJID", "type": "string"},
+                                {"name": "AETERM", "type": "string"},
+                                {"name": "AESTDTC", "type": "string"},
+                                {"name": "AESEV", "type": "string"},
+                                {"name": "AESER", "type": "string"},
+                            ],
+                            "itemData": [
+                                ["STUDY-FAIL-ALERT", "SUBJ-DOUBLE", "SEVERE HEADACHE", "2026-07-25", "SEVERE", "Y"]
+                            ],
+                        }
+                    },
+                }
+            }
+            return httpx.Response(status_code=200, json=mock_json)
+
+        if "meddra/code" in url:
+            return httpx.Response(status_code=200, json={"status": "AUTO-CODED", "matches": []})
+
+        if "cases-mock" in url:
+            mock_cases = [
+                {
+                    "header": {
+                        "sender_organization": "SPONSOR_A",
+                        "receiver_organization": "FDA",
+                        "transmission_date": "2026-07-25T15:00:00Z",
+                        "message_id": "MSG-001",
+                    },
+                    "report_identifiers": {"worldwide_unique_case_id": "WW-CASE-001"},
+                    "patient": {"patient_id": "SUBJ-DOUBLE", "sex": "F"},
+                    "reactions": [
+                        {
+                            "reaction_term": "SEVERE HEADACHE",
+                            "start_date": "2026-07-25",
+                            "seriousness_hospitalization": "Y",
+                            "meddra_coding": {
+                                "llt_code": "88888888",
+                                "llt_name": "Severe Headache",
+                                "pt_code": "88888888",
+                                "pt_name": "Headache",
+                                "hlt_code": "88888888",
+                                "hlt_name": "Headaches NEC",
+                                "hlgt_code": "88888888",
+                                "hlgt_name": "Headache and facial pain",
+                                "soc_code": "88888888",
+                                "soc_name": "Nervous system disorders",
+                                "primary_soc_flag": "Y",
+                                "score": 1.0,
+                            },
+                        }
+                    ],
+                }
+            ]
+            return httpx.Response(status_code=200, json=mock_cases)
+
+        return httpx.Response(status_code=404)
+
+    async def post(self, url: str, json=None, headers=None, timeout=10.0):
+        if "api/v1/notifications" in url:
+            if self.simulate_exception:
+                raise httpx.ConnectError("Simulated transport exception")
+            return httpx.Response(status_code=500, text="Internal Server Error in Notifications")
+        return httpx.Response(status_code=404)
+
+
+@pytest.mark.asyncio
+async def test_alert_dispatch_failure_non_2xx():
+    # @req:Trace-14
+    mock_client = MockAsyncClientForAlertFailure(simulate_exception=False)
+    app.state.test_httpx_client = mock_client
+
+    client = TestClient(app)
+    headers = get_signed_headers(
+        roles="safety_reviewer",
+        change_reason="Trigger job with non-2xx alert failure",
+    )
+
+    payload = {"study_id": "STUDY-FAIL-ALERT"}
+
+    response = client.post(
+        "/api/v1/safety/reconciliation/jobs", json=payload, headers=headers
+    )
+    assert response.status_code == 202
+    job_id = response.json()["id"]
+
+    poll_res = client.get(f"/api/v1/safety/reconciliation/jobs/{job_id}", headers=headers)
+    assert poll_res.status_code == 200
+    assert poll_res.json()["status"] == "COMPLETED"
+
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(SafetyAuditLog).where(SafetyAuditLog.action == "RECONCILIATION_ALERT_FAILED")
+        res = await session.execute(stmt)
+        logs = res.scalars().all()
+        assert len(logs) == 1
+        assert "alert dispatch failed with status 500" in logs[0].details.lower()
+
+
+@pytest.mark.asyncio
+async def test_alert_dispatch_failure_exception():
+    # @req:Trace-14
+    mock_client = MockAsyncClientForAlertFailure(simulate_exception=True)
+    app.state.test_httpx_client = mock_client
+
+    client = TestClient(app)
+    headers = get_signed_headers(
+        roles="safety_reviewer",
+        change_reason="Trigger job with transport exception alert failure",
+    )
+
+    payload = {"study_id": "STUDY-FAIL-ALERT"}
+
+    response = client.post(
+        "/api/v1/safety/reconciliation/jobs", json=payload, headers=headers
+    )
+    assert response.status_code == 202
+    job_id = response.json()["id"]
+
+    poll_res = client.get(f"/api/v1/safety/reconciliation/jobs/{job_id}", headers=headers)
+    assert poll_res.status_code == 200
+    assert poll_res.json()["status"] == "COMPLETED"
+
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(SafetyAuditLog).where(SafetyAuditLog.action == "RECONCILIATION_ALERT_FAILED")
+        res = await session.execute(stmt)
+        logs = res.scalars().all()
+        assert len(logs) == 1
+        assert "alert dispatch exception" in logs[0].details.lower()
