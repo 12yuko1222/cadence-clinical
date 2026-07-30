@@ -5862,7 +5862,11 @@ async def export_sdtm_domain(
 
             # Apply deterministic de-identification transform
             salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
-            from apps.execution.biostat.deid import deidentify_export_data, scrub_error_message
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
             export_data = deidentify_export_data(export_data, salt)
 
             dataset_json = serialize_to_dataset_json(
@@ -5882,6 +5886,7 @@ async def export_sdtm_domain(
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
@@ -5893,10 +5898,12 @@ async def export_sdtm_domain(
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {scrubbed_msg}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
@@ -6173,7 +6180,11 @@ async def export_adam_dataset(
 
             # Apply deterministic de-identification transform
             salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
-            from apps.execution.biostat.deid import deidentify_export_data, scrub_error_message
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
             deidentified_records = deidentify_export_data(records, salt)
 
             dataset_json = serialize_to_dataset_json(
@@ -6193,6 +6204,7 @@ async def export_adam_dataset(
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
@@ -6204,10 +6216,12 @@ async def export_adam_dataset(
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {scrubbed_msg}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
@@ -6264,7 +6278,11 @@ async def export_biostat_bundle(
 
             # Apply deterministic de-identification transform
             salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
-            from apps.execution.biostat.deid import deidentify_export_data, scrub_error_message
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
             bundle_data = deidentify_export_data(bundle_data, salt)
 
             dataset_json = serialize_to_dataset_json(
@@ -6284,6 +6302,7 @@ async def export_biostat_bundle(
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
@@ -6295,10 +6314,12 @@ async def export_biostat_bundle(
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {scrubbed_msg}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
             from apps.execution.biostat.deid import scrub_error_message
+
             scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,

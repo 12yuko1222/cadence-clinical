@@ -3,11 +3,10 @@ De-identification module for SDTM/ADaM export pipelines.
 Provides deterministic pseudonymization, stable per-subject date-shifting, and age capping.
 """
 
-import hashlib
-import hmac
 import re
 from datetime import timedelta
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Dict, List, Union
+
 from dateutil import parser as date_parser
 
 from packages.deid.transforms import pseudonymize_value, shift_date_string
@@ -63,7 +62,7 @@ def shift_partial_date(date_str: str, shift_days: int) -> str:
     if len(parts) >= 1 and parts[0].isdigit() and len(parts[0]) == 4:
         year_str = parts[0]
         month_str = "06"  # Default mid-year for partial/missing month
-        day_str = "15"    # Default mid-month for partial/missing day
+        day_str = "15"  # Default mid-month for partial/missing day
 
         if len(parts) >= 3 and parts[2].isdigit():
             month_str = parts[2]
@@ -110,7 +109,11 @@ def deidentify_record(row: Dict[str, Any], salt: str) -> Dict[str, Any]:
     # Capture the original USUBJID before modifying/pseudonymizing it!
     original_usubjid = r.get("USUBJID")
     offset = 0
-    if original_usubjid and isinstance(original_usubjid, str) and original_usubjid.strip():
+    if (
+        original_usubjid
+        and isinstance(original_usubjid, str)
+        and original_usubjid.strip()
+    ):
         h = pseudonymize_value(original_usubjid, salt)
         # Map to range [-365, 365] inclusive (731 possible days)
         offset = (int(h, 16) % 731) - 365
@@ -131,7 +134,11 @@ def deidentify_record(row: Dict[str, Any], salt: str) -> Dict[str, Any]:
         elif field_name in ADAM_DATE_FIELDS:
             val = r[field_name]
             # SAS dates are floats/ints. Skip booleans.
-            if val is not None and isinstance(val, (int, float)) and not isinstance(val, bool):
+            if (
+                val is not None
+                and isinstance(val, (int, float))
+                and not isinstance(val, bool)
+            ):
                 r[field_name] = val + offset
 
     # 4. Cap AGE field

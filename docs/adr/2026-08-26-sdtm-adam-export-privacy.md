@@ -58,11 +58,11 @@ Furthermore, we must establish clear authorization boundaries, deterministic pse
 
 ---
 
-## 5. Reconciliation of Prior Conventions
-This ADR explicitly **reconciles and supersedes** prior inconsistent de-identification conventions:
-- The Interoperability Blueprint §4.6 ±30-day random narrative delta is superseded for structured clinical exports by this deterministic, stable per-subject `[-365, 365]` days date shift.
-- The default flat 365-day shift used in document redaction does not apply to structured SDTM/ADaM exports, which must enforce this per-subject deterministic model.
-
-## 6. Consequences & Trade-offs
+## 5. Consequences & Trade-offs
+* **Reconciliation of Prior Conventions:** This ADR explicitly reconciles and supersedes prior inconsistent de-identification conventions. The Interoperability Blueprint §4.6 ±30-day random narrative delta is superseded for structured clinical exports by this deterministic, stable per-subject `[-365, 365]` days date shift. Additionally, the default flat 365-day shift used in document redaction does not apply to structured SDTM/ADaM exports, which must enforce this per-subject deterministic model.
 * **Positive Impact:** Full CDISC Dataset-JSON schema and cross-domain referential consistency checks are preserved intact. No raw identifiers or raw dates are ever leaked.
 * **Mitigation Strategy:** The export salt must never be logged, persisted, or exposed in error logs, and must be sourced solely from secure runtime environments.
+
+## 6. Implementation & Verification
+* **Implementation:** The transform is implemented under `apps/execution/biostat/deid.py` and is automatically called immediately before Dataset-JSON serialization at the convergence point in `apps/execution/main.py`.
+* **Verification:** The de-identification pipeline and privacy guarantees are validated with a comprehensive test suite in `tests/test_biostat_deidentification.py` asserting pseudonymization determinism, unchanged source records, identical transform of the same identifier across domains, interval preservation, and correct role-based access restrictions.

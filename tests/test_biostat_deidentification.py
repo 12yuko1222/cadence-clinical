@@ -3,28 +3,40 @@ Comprehensive test suite verifying privacy guarantees, determinism, and authoriz
 for SDTM/ADaM structured clinical exports de-identification and pseudonymization.
 """
 
-import os
-import time
 import hashlib
 import hmac
 import json
+import os
+import time
+
+import httpx
 import pytest
 import pytest_asyncio
-import httpx
 from sqlalchemy import select
 
-from apps.execution.biostat.deid import deidentify_export_data, shift_partial_date, scrub_error_message
+from apps.execution.biostat.deid import (
+    deidentify_export_data,
+    scrub_error_message,
+    shift_partial_date,
+)
 from apps.execution.biostat.serializer import serialize_to_dataset_json
 from apps.execution.biostat.validator import validate_dataset_json
 from apps.execution.database.core import db_manager
-from apps.execution.database.models import Base, BiostatExport, ClinicalObservation, ClinicalSubject
+from apps.execution.database.models import (
+    Base,
+    BiostatExport,
+    ClinicalObservation,
+    ClinicalSubject,
+)
 from apps.execution.demographics import encrypt_demographics
 from apps.execution.main import app
 
 GATEWAY_SECRET = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345")
 
 
-def get_auth_headers(user_id="test_dm", roles="Data Manager", change_reason="system_operation"):
+def get_auth_headers(
+    user_id="test_dm", roles="Data Manager", change_reason="system_operation"
+):
     """Helper to generate gateway-compliant signed headers."""
     timestamp = str(time.time())
     payload = {
@@ -64,12 +76,14 @@ async def populate_subject_data():
     """Populates valid and invalid subjects with observations for exports."""
     async with db_manager.get_session_maker()() as session:
         # Subject 1 (Valid)
-        demo_enc = encrypt_demographics({
-            "birthdate": "1980-10-10",
-            "gender": "female",
-            "race": "white",
-            "arm": "Active Arm",
-        })
+        demo_enc = encrypt_demographics(
+            {
+                "birthdate": "1980-10-10",
+                "gender": "female",
+                "race": "white",
+                "arm": "Active Arm",
+            }
+        )
         subj = ClinicalSubject(
             subject_id="SUBJ-A",
             study_id="STUDY-001",
@@ -80,6 +94,7 @@ async def populate_subject_data():
 
         # Exposure Start
         from datetime import datetime
+
         ex = ClinicalObservation(
             subject_id="SUBJ-A",
             study_id="STUDY-001",
@@ -150,11 +165,13 @@ async def populate_subject_data():
             subject_id="SUBJ-BAD",
             study_id="  ",  # Blank triggers validation error
             site_id="SITE-X",
-            encrypted_demographics=encrypt_demographics({
-                "birthdate": "1990-01-01",
-                "gender": "male",
-                "race": "asian",
-            }),
+            encrypted_demographics=encrypt_demographics(
+                {
+                    "birthdate": "1990-01-01",
+                    "gender": "male",
+                    "race": "asian",
+                }
+            ),
         )
         session.add(subj_invalid)
 
@@ -185,6 +202,7 @@ def test_pseudonymization_determinism_and_hex_format():
 
     # Determinism check
     from packages.deid.transforms import pseudonymize_value
+
     p1 = pseudonymize_value(id_1, salt)
     p2 = pseudonymize_value(id_2, salt)
 
@@ -197,7 +215,12 @@ def test_source_records_are_not_mutated():
     """Verify that transformation is strictly non-mutating on source inputs."""
     salt = "secret-test-salt"
     source_records = [
-        {"STUDYID": "S001", "USUBJID": "SUBJ-X", "SITEID": "SITE-A", "RFSTDTC": "2026-08-15"}
+        {
+            "STUDYID": "S001",
+            "USUBJID": "SUBJ-X",
+            "SITEID": "SITE-A",
+            "RFSTDTC": "2026-08-15",
+        }
     ]
     source_copy = json.loads(json.dumps(source_records))
 
@@ -218,8 +241,16 @@ def test_identical_pseudonymization_across_datasets_and_supp():
     records = {
         "DM": [{"STUDYID": "S001", "USUBJID": subject_id, "SUBJID": subject_id}],
         "AE": [{"STUDYID": "S001", "USUBJID": subject_id, "AESTDTC": "2026-08-15"}],
-        "SUPPAE": [{"STUDYID": "S001", "USUBJID": subject_id, "RDOMAIN": "AE", "IDVAR": "AESEQ", "IDVARVAL": "1"}],
-        "ADSL": [{"STUDYID": "S001", "USUBJID": subject_id, "ARM": "Active"}]
+        "SUPPAE": [
+            {
+                "STUDYID": "S001",
+                "USUBJID": subject_id,
+                "RDOMAIN": "AE",
+                "IDVAR": "AESEQ",
+                "IDVARVAL": "1",
+            }
+        ],
+        "ADSL": [{"STUDYID": "S001", "USUBJID": subject_id, "ARM": "Active"}],
     }
 
     transformed = deidentify_export_data(records, salt)
@@ -249,6 +280,7 @@ def test_date_shift_stable_and_interval_preserving():
     # Interval preservation check (2026-08-25 - 2026-08-15 = 10 days)
     # The gap between shifted dates must remain exactly 10 days
     from dateutil import parser as date_parser
+
     dt_start_1 = date_parser.parse(deid1["AESTDTC"])
     dt_end_1 = date_parser.parse(deid1["AEENDTC"])
     assert (dt_end_1 - dt_start_1).days == 10
@@ -286,7 +318,7 @@ def test_age_capping_thresholds():
         {"USUBJID": "S1", "AGE": 95},
         {"USUBJID": "S2", "AGE": "92"},
         {"USUBJID": "S3", "AGE": 89},
-        {"USUBJID": "S4", "AGE": 45}
+        {"USUBJID": "S4", "AGE": 45},
     ]
 
     transformed = deidentify_export_data(records, salt)
@@ -322,7 +354,7 @@ def test_dataset_json_validation_passes_after_transform():
                 "SUBJID": "SUBJ-001",
                 "SEX": "F",
                 "RACE": "WHITE",
-                "ARM": "Active"
+                "ARM": "Active",
             }
         ],
         "AE": [
@@ -332,7 +364,7 @@ def test_dataset_json_validation_passes_after_transform():
                 "USUBJID": "SUBJ-001",
                 "AESEQ": 1,
                 "AETERM": "Adverse Event",
-                "AESER": "N"
+                "AESER": "N",
             }
         ],
         "SUPPAE": [
@@ -344,9 +376,9 @@ def test_dataset_json_validation_passes_after_transform():
                 "IDVARVAL": "1",
                 "QNAM": "SUPP1",
                 "QLABEL": "Supp Label",
-                "QVAL": "Value"
+                "QVAL": "Value",
             }
-        ]
+        ],
     }
 
     # Apply deid
@@ -365,36 +397,55 @@ def test_dataset_json_validation_passes_after_transform():
 
 
 @pytest.mark.asyncio
-async def test_authorization_disallowed_role_receives_403(populate_subject_data) -> None:
+async def test_authorization_disallowed_role_receives_403(
+    populate_subject_data,
+) -> None:
     """Verify that disallowed roles (e.g., Investigator/Auditor) receive HTTP 403 on exports."""
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         # Investigator role is not authorized for exports
         headers = get_auth_headers(roles="Site Investigator")
-        res = await client.get("/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001", headers=headers)
+        res = await client.get(
+            "/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001", headers=headers
+        )
         assert res.status_code == 403
 
         # Auditor role is not authorized for exports
         headers_auditor = get_auth_headers(roles="Auditor")
-        res_auditor = await client.get("/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001", headers=headers_auditor)
+        res_auditor = await client.get(
+            "/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001",
+            headers=headers_auditor,
+        )
         assert res_auditor.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_authorization_allowed_role_succeeds(populate_subject_data) -> None:
     """Verify that authorized roles (e.g., Data Manager / statistician) receive HTTP 200 on exports."""
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         headers = get_auth_headers(roles="Data Manager")
-        res = await client.get("/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001", headers=headers)
+        res = await client.get(
+            "/api/v1/execution/biostat/sdtm/DM?study_id=STUDY-001", headers=headers
+        )
         assert res.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_error_redaction_and_scrubbing_on_failed_export(populate_subject_data) -> None:
+async def test_error_redaction_and_scrubbing_on_failed_export(
+    populate_subject_data,
+) -> None:
     """Verify that raw subject identifiers and field values are scrubbed and redacted from saved export errors."""
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
         headers = get_auth_headers(roles="Data Manager")
         # Trigger validation failure by passing blank study_id (resolved from SUBJ-BAD in database)
-        res = await client.get("/api/v1/execution/biostat/sdtm/DM?study_id=  ", headers=headers)
+        res = await client.get(
+            "/api/v1/execution/biostat/sdtm/DM?study_id=  ", headers=headers
+        )
         assert res.status_code == 422
 
         # Verify the exception detail response does not leak raw subject identifier "SUBJ-BAD"
