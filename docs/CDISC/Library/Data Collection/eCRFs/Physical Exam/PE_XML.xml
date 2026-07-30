@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Physical Examination" FileType="Snapshot" CreationDateTime="2021-02-11T08:24:31-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Physical Examination">
+		<GlobalVariables>
+			<StudyName>Physical Examination CRF</StudyName>
+			<StudyDescription>Physical Examination CRF</StudyDescription>
+			<ProtocolName>Physical Examination CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Physical Examination CRF" Name="Physical Examination" Description="Physical Examination">
+			<FormDef OID="PE" Name="Form PE - Physical Exam Recommended" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">PE-Recommended</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_31" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_31" Name="PE - Recommended" Repeating="No" Domain="PE">
+				<Description>
+					<TranslatedText xml:lang="en">PE - Physical Examination</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.PEPERF" Mandatory="Yes" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.PEDAT" Mandatory="No" OrderNumber="2"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.PEPERF" Name="PEPERF" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">PEPERF</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the physical examination performed?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Physical Exam Performed"/>
+				<Alias Context="completionInstructions" Name="If physical examination was performed as planned then select Yes, otherwise, select No."/>
+				<Alias Context="implementationNotes" Name="This general prompt question is used as a data management tool to verify that missing results are confirmed missing. Used to ask if the physical exam was performed at the overall subject level at the specified time point. If this field is used then the result should only be mapped to PESTAT if the overall examination, at the subject level, was not performed. If the overall examination was performed, then the value of PESTAT would be null for each examined body systems and &quot;NOT DONE&quot; for any body systems not examined (see PERES)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to derive a value into the SDTMIG variable PESTAT. If PEPERF=&quot;N&quot; the value of PESTAT=&quot;NOT DONE&quot;. If PEPERF=&quot;Y&quot;, then the actual physical exam results would be reported by body system (see PERES). PECAT, PESCAT, PETEST and PETESTCD must reflect what tests were not done. If used for an entire CRF or other set of multiple tests with PECAT and PESCAT, PETESTCD=PEALL."/>
+				<Alias Name="PROCCUR" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PEDAT" Name="PEDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">PEDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the date of the physical examination?</TranslatedText>
+					<TranslatedText xml:lang="en">Exam Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Exam Date"/>
+				<Alias Context="completionInstructions" Name="Record complete date of examination using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The date of examination may be determined from the date of the visit (VISDAT) and if so, a separate assessment date field is not required."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable PEDTC in ISO 8601 format."/>
+				<Alias Name="PRSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>
