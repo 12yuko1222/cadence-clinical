@@ -11,6 +11,8 @@ Based on the executed automated verification suite, the platform meets all prede
 ### Validation Result Summary
 - **Total Automated Test Cases Run:** 1290
 - **Passed:** 1290 🟢
+- **Total Automated Test Cases Run:** 1293
+- **Passed:** 1293 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -601,6 +603,15 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_signature_extraction_formats` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_signature_requirement_rules` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tampering_detection_and_lockout_propagation` | `tests.test_etmf_compliance` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_idempotency` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_immutability_violation_inbound_email` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_invalid_signature_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_multi_attachment_ingestion` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_oversized_payload_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_replay_protection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_stale_timestamp_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_unresolvable_recipient_address` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_valid_inbound_email_ingestion` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_trigger_global_trial_lock` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_trial_lock_status_error` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_verify_trial_lock_status_locked` | `tests.test_etmf_lock_integration` | *Regression/Helper* | 🟢 PASSED | < 1s |

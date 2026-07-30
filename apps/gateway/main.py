@@ -782,6 +782,42 @@ async def proxy_requests(request: Request, path: str) -> Response:
     if path == "health" or path == "":
         return {"status": "ok", "service": "gateway"}
 
+    if path == "api/v1/etmf/inbound-email":
+        target_url = f"{SERVICES['etmf']}/{path}"
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        try:
+            body: bytes = await request.body()
+            if http_client is None:
+                return JSONResponse(
+                    status_code=500,
+                    content={"detail": "Gateway HTTP client not initialized"},
+                )
+
+            req = http_client.build_request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+                params=request.query_params,
+            )
+            response = await http_client.send(req)
+
+            resp_headers = dict(response.headers)
+            resp_headers.pop("transfer-encoding", None)
+            resp_headers.pop("content-encoding", None)
+            resp_headers.pop("content-length", None)
+
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=resp_headers,
+            )
+        except httpx.RequestError as e:
+            return JSONResponse(
+                status_code=502, content={"detail": f"Bad Gateway: {str(e)}"}
+            )
+
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return JSONResponse(
