@@ -14,8 +14,9 @@ from apps.eisf.models import Base, ISFAuditLog, ISFDocument
 from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import (
+    SITE_SCOPED_ROLES,
     Principal,
-    get_normalized_roles,
+    can_access_site,
     get_principal,
     has_permission,
     require_permission,
@@ -240,20 +241,6 @@ app = FastAPI(
 app.add_middleware(GatewayAuthMiddleware)
 
 
-@app.middleware("http")
-async def extract_site_claim_middleware(request: Request, call_next):
-    """
-    HTTP middleware to extract site ID claim from headers and set it to request.state.site_id.
-    """
-    site_id = (
-        request.headers.get("X-Site-Id")
-        or request.headers.get("x-site-id")
-        or request.headers.get("X-User-Site")
-    )
-    request.state.site_id = site_id
-    return await call_next(request)
-
-
 get_db_session = DatabaseSessionDependency(db_manager)
 
 
@@ -281,76 +268,52 @@ async def write_audit_log(
     await session.flush()
 
 
-async def enforce_site_isolation(
-    request: Request,
+async def enforce_document_site_visibility(
+    principal: Principal,
     resource_site_id: str,
     session: AsyncSession,
 ) -> None:
     """
-    Enforces PRD-SYS-004 site isolation constraints centrally.
-    Reads authenticated site claim from request.state.site_id.
-    If a site user attempts to access a resource belonging to another site,
-    rejects with 403 Forbidden and records a SECURITY_ALERT audit event.
+    Enforces site isolation constraints using Principal and can_access_site.
+    If denied, records a SECURITY_ALERT audit event and raises 403.
     """
-    roles = get_normalized_roles(request)
+    if not can_access_site(principal, resource_site_id):
+        actor_id = principal.user_id or "system"
+        actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+        caller_scope = ",".join(principal.assigned_sites) if principal.assigned_sites else "global"
 
-    # Site users are principal investigators, site investigators, CRCs, coordinators, etc.
-    is_site_user = any(
-        role
-        in {
-            "site investigator",
-            "investigator",
-            "site-investigator",
-            "site_investigator",
-            "investigator_user",
-            "crc",
-            "coordinator",
-        }
-        for role in roles
-    )
-
-    # Ensure request.state has site_id set
-    if not hasattr(request.state, "site_id") or request.state.site_id is None:
-        request.state.site_id = (
-            request.headers.get("X-Site-Id")
-            or request.headers.get("x-site-id")
-            or request.headers.get("X-User-Site")
+        details = (
+            f"SECURITY ALERT: Access Violation. User '{actor_id}' with roles '{actor_roles}' (scope: '{caller_scope}') "
+            f"attempted to access/mutate resource at site '{resource_site_id}' but is not permitted."
         )
+        reason_for_change = "Security Violation: Cross-site access denied"
 
-    user_site_id = getattr(request.state, "site_id", None)
+        alert = ISFAuditLog(
+            actor_id=actor_id,
+            actor_role=actor_roles,
+            action="SECURITY_ALERT",
+            details=details,
+            reason_for_change=reason_for_change,
+        )
+        session.add(alert)
+        await session.flush()
 
-    if is_site_user:
-        if not user_site_id or user_site_id != resource_site_id:
-            # Cross-site access attempt detected! Reject with 403 and log a SECURITY_ALERT audit event
-            actor_id = getattr(request.state, "user_id", "system")
-            actor_roles = ",".join(roles) if isinstance(roles, list) else str(roles)
-            client_ip = request.headers.get(
-                "x-forwarded-for",
-                request.client.host if request.client else "127.0.0.1",
-            )
-            if "," in client_ip:
-                client_ip = client_ip.split(",")[0].strip()
-
-            details = (
-                f"SECURITY ALERT: Access Violation. Site user '{actor_id}' from IP '{client_ip}' "
-                f"attempted to access/mutate resource at site '{resource_site_id}' but belongs to site '{user_site_id}'."
-            )
-            reason_for_change = "Security Violation: Cross-site access denied"
-
-            alert = ISFAuditLog(
+        # Write to a separate committed session to ensure the alert survives the HTTP route rollback
+        async with db_manager.get_session_maker()() as audit_session:
+            audit_alert = ISFAuditLog(
                 actor_id=actor_id,
                 actor_role=actor_roles,
                 action="SECURITY_ALERT",
                 details=details,
                 reason_for_change=reason_for_change,
             )
-            session.add(alert)
-            await session.commit()
+            audit_session.add(audit_alert)
+            await audit_session.commit()
 
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden: Access is restricted to your assigned site.",
-            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Access is restricted to your assigned site.",
+        )
 
 
 @app.get("/health")
@@ -374,50 +337,40 @@ async def list_documents(
         None, description="Filter by binder section / classification"
     ),
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
     """
-    List site-scoped, binder-classified documents. Constrains by the authenticated site claim.
+    List site-scoped, binder-classified documents. Constrains by the authenticated Principal scope.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    # Check if the principal is site-scoped
+    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(principal.assigned_sites)
 
-    is_site_user = any(
-        role
-        in {
-            "site investigator",
-            "investigator",
-            "site-investigator",
-            "site_investigator",
-            "investigator_user",
-            "crc",
-            "coordinator",
-        }
-        for role in roles
-    )
-    user_site_id = getattr(request.state, "site_id", None)
-
-    if is_site_user:
-        if site_id and site_id != user_site_id:
-            await enforce_site_isolation(request, site_id, session)
-        site_id_filter = user_site_id
-    else:
-        if user_site_id:
-            if site_id and site_id != user_site_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Forbidden: Access is restricted to your assigned site.",
-                )
-            site_id_filter = user_site_id
+    if is_site_scoped:
+        if principal.assigned_sites:
+            if site_id:
+                if site_id in principal.assigned_sites:
+                    site_id_filter = site_id
+                else:
+                    site_id_filter = principal.assigned_sites
+            else:
+                site_id_filter = principal.assigned_sites
         else:
-            site_id_filter = site_id
+            site_id_filter = []
+    else:
+        site_id_filter = site_id
 
-    if not site_id_filter:
+    if site_id_filter is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="site_id is required and must be provided either in the query or via authenticated claim.",
         )
 
-    stmt = select(ISFDocument).where(ISFDocument.site_id == site_id_filter)
+    stmt = select(ISFDocument)
+    if isinstance(site_id_filter, list):
+        stmt = stmt.where(ISFDocument.site_id.in_(site_id_filter))
+    else:
+        stmt = stmt.where(ISFDocument.site_id == site_id_filter)
+
     if study_id:
         stmt = stmt.where(ISFDocument.study_id == study_id)
     if binder_section:
@@ -428,11 +381,14 @@ async def list_documents(
     result = await session.execute(stmt)
     docs = result.scalars().all()
 
+    actor_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+
     # Log view action to audit trail
     await write_audit_log(
         session=session,
-        actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_id=actor_id,
+        actor_role=actor_roles,
         action="LIST",
         document_id=None,
         details=f"Listed documents (study_id={study_id}, site_id={site_id_filter}).",
@@ -454,11 +410,11 @@ async def create_document(
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
 ):
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    user_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     # Enforce site isolation
-    await enforce_site_isolation(request, payload.site_id, session)
+    await enforce_document_site_visibility(principal, payload.site_id, session)
 
     # Enforce manage_expiration permission if any expiration metadata is provided
     if (
@@ -532,7 +488,7 @@ async def create_document(
     await write_audit_log(
         session=session,
         actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_role=actor_roles,
         action="CREATE_DOCUMENT",
         document_id=doc.id,
         details=f"Created document '{payload.filename}' for study '{payload.study_id}' and site '{payload.site_id}' (Version {new_version_index}).",
@@ -559,11 +515,11 @@ async def ingest_document(
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
 ):
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    user_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     # Enforce site isolation
-    await enforce_site_isolation(request, payload.site_id, session)
+    await enforce_document_site_visibility(principal, payload.site_id, session)
 
     # Enforce manage_expiration permission if any expiration metadata is provided
     if (
@@ -657,7 +613,7 @@ async def ingest_document(
     await write_audit_log(
         session=session,
         actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_role=actor_roles,
         action="INGEST",
         document_id=doc.id,
         details=f"Ingested document '{payload.filename}' for study '{payload.study_id}' and site '{payload.site_id}' (Version {new_version_index}).",
@@ -672,13 +628,11 @@ async def get_document(
     request: Request,
     document_id: str,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
     """
     View metadata for a specific eISF document. Constrains by the authenticated site claim.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
-
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
     doc = result.scalars().first()
@@ -690,19 +644,16 @@ async def get_document(
         )
 
     # Enforce site isolation
-    await enforce_site_isolation(request, doc.site_id, session)
-    user_site_id = getattr(request.state, "site_id", None)
-    if user_site_id and doc.site_id != user_site_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden: Access is restricted to your assigned site.",
-        )
+    await enforce_document_site_visibility(principal, doc.site_id, session)
+
+    actor_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     # Log view to audit trail
     await write_audit_log(
         session=session,
-        actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_id=actor_id,
+        actor_role=actor_roles,
         action="VIEW",
         document_id=doc.id,
         details=f"Viewed document '{doc.filename}' (ID: {doc.id}).",
@@ -717,13 +668,11 @@ async def download_document(
     request: Request,
     document_id: str,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
     """
     Download/stream file content for a specific eISF document. Constrains by the authenticated site claim.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
-
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
     doc = result.scalars().first()
@@ -735,19 +684,16 @@ async def download_document(
         )
 
     # Enforce site isolation
-    await enforce_site_isolation(request, doc.site_id, session)
-    user_site_id = getattr(request.state, "site_id", None)
-    if user_site_id and doc.site_id != user_site_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden: Access is restricted to your assigned site.",
-        )
+    await enforce_document_site_visibility(principal, doc.site_id, session)
+
+    actor_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     # Log download to audit trail
     await write_audit_log(
         session=session,
-        actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_id=actor_id,
+        actor_role=actor_roles,
         action="DOWNLOAD",
         document_id=doc.id,
         details=f"Downloaded document '{doc.filename}' (ID: {doc.id}).",
@@ -770,8 +716,8 @@ async def update_document(
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
 ):
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    user_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
@@ -784,8 +730,8 @@ async def update_document(
         )
 
     # Enforce site isolation
-    await enforce_site_isolation(request, doc.site_id, session)
-    await enforce_site_isolation(request, payload.site_id, session)
+    await enforce_document_site_visibility(principal, doc.site_id, session)
+    await enforce_document_site_visibility(principal, payload.site_id, session)
 
     # Enforce manage_expiration permission if any expiration metadata is set or changed
     is_expiration_metadata_changing = (
@@ -825,7 +771,7 @@ async def update_document(
     await write_audit_log(
         session=session,
         actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_role=actor_roles,
         action="UPDATE_DOCUMENT",
         document_id=doc.id,
         details=f"Updated document '{doc.filename}' (ID: {doc.id}) to version {doc.version_index}.",
@@ -846,9 +792,10 @@ async def delete_document(
     ),
     _not_auditor=Depends(require_permission("eisf_document:delete")),
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    user_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     stmt = select(ISFDocument).where(ISFDocument.id == document_id)
     result = await session.execute(stmt)
@@ -861,13 +808,13 @@ async def delete_document(
         )
 
     # Enforce site isolation
-    await enforce_site_isolation(request, doc.site_id, session)
+    await enforce_document_site_visibility(principal, doc.site_id, session)
 
     # Log deletion to audit trail
     await write_audit_log(
         session=session,
         actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_role=actor_roles,
         action="DELETE_DOCUMENT",
         document_id=doc.id,
         details=f"Deleted document '{doc.filename}' (ID: {doc.id}).",
@@ -903,56 +850,42 @@ async def get_binder_completeness(
     study_id: str = Query(..., description="The clinical study ID"),
     site_id: Optional[str] = Query(None, description="The site ID"),
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
     """
     Check completeness of the electronic Investigator Site File (eISF) binder.
     Compares filed artifacts for the study and site against a required artifact list by section.
     Enforces site isolation strictly.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
+    is_site_scoped = any(r in SITE_SCOPED_ROLES for r in principal.roles) or bool(principal.assigned_sites)
 
-    is_site_user = any(
-        role
-        in {
-            "site investigator",
-            "investigator",
-            "site-investigator",
-            "site_investigator",
-            "investigator_user",
-            "crc",
-            "coordinator",
-        }
-        for role in roles
-    )
-    user_site_id = getattr(request.state, "site_id", None)
-
-    if is_site_user:
-        if site_id and site_id != user_site_id:
-            await enforce_site_isolation(request, site_id, session)
-        site_id_filter = user_site_id
-    else:
-        if user_site_id:
-            if site_id and site_id != user_site_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Forbidden: Access is restricted to your assigned site.",
-                )
-            site_id_filter = user_site_id
+    if is_site_scoped:
+        if principal.assigned_sites:
+            if site_id:
+                if site_id in principal.assigned_sites:
+                    site_id_filter = site_id
+                else:
+                    site_id_filter = principal.assigned_sites
+            else:
+                site_id_filter = principal.assigned_sites
         else:
-            site_id_filter = site_id
+            site_id_filter = []
+    else:
+        site_id_filter = site_id
 
-    if not site_id_filter:
+    if site_id_filter is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="site_id is required and must be provided either in the query or via authenticated claim.",
         )
 
     # Query all filed documents for the site and study
-    stmt = select(ISFDocument).where(
-        ISFDocument.study_id == study_id,
-        ISFDocument.site_id == site_id_filter,
-    )
+    stmt = select(ISFDocument).where(ISFDocument.study_id == study_id)
+    if isinstance(site_id_filter, list):
+        stmt = stmt.where(ISFDocument.site_id.in_(site_id_filter))
+    else:
+        stmt = stmt.where(ISFDocument.site_id == site_id_filter)
+
     res = await session.execute(stmt)
     docs = res.scalars().all()
 
@@ -982,18 +915,26 @@ async def get_binder_completeness(
         )
 
     # Log completeness checking action to audit trail
+    actor_id = principal.user_id or "system"
+    actor_roles = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
+
     await write_audit_log(
         session=session,
-        actor_id=user_id,
-        actor_role=",".join(roles) if isinstance(roles, list) else str(roles),
+        actor_id=actor_id,
+        actor_role=actor_roles,
         action="COMPLETENESS",
         document_id=None,
         details=f"Checked completeness for study '{study_id}', site '{site_id_filter}'. Complete: {global_is_complete}.",
         reason_for_change="Standard completeness verification",
     )
 
+    response_site_id = (
+        site_id if (site_id and (not principal.assigned_sites or site_id in principal.assigned_sites))
+        else (principal.assigned_sites[0] if principal.assigned_sites else "unknown")
+    )
+
     return BinderCompletenessResponse(
-        site_id=site_id_filter,
+        site_id=response_site_id,
         is_complete=global_is_complete,
         sections=sections_status,
     )
@@ -1095,13 +1036,13 @@ async def sync_documents(
     payload: EISFSyncRequest,
     _not_auditor=Depends(require_permission("eisf_document:sync")),
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ):
     import logging
 
     logging.getLogger("eisf_sync")
-    user_id = getattr(request.state, "user_id", "system")
-    roles = get_normalized_roles(request)
-    role_str = ",".join(roles) if isinstance(roles, list) else str(roles)
+    user_id = principal.user_id or "system"
+    role_str = ",".join(principal.raw_roles) if principal.raw_roles else (",".join(principal.roles) if principal.roles else "anonymous")
 
     processed_count = 0
     created_count = 0
@@ -1112,7 +1053,7 @@ async def sync_documents(
 
     for item in payload.submissions:
         # Enforce site isolation for each item
-        await enforce_site_isolation(request, item.site_id, session)
+        await enforce_document_site_visibility(principal, item.site_id, session)
 
         processed_count += 1
 

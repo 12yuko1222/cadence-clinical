@@ -114,6 +114,9 @@ ROLE_ALIASES = {
     "investigator_user": ROLE_INVESTIGATOR,
     "crc": ROLE_CRC,
     "clinical research coordinator": ROLE_CRC,
+    "study coordinator": ROLE_CRC,
+    "study_coordinator": ROLE_CRC,
+    "study-coordinator": ROLE_CRC,
     "coordinator": ROLE_CRC,
     "cra": ROLE_CRA_CANONICAL,
     "clinical research associate": ROLE_CRA_CANONICAL,
@@ -690,14 +693,13 @@ def can_access_site(principal: Principal, site_id: str) -> bool:
     Returns:
         True if the principal may access the site; False otherwise.
     """
+    user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+
     # Fail-closed handling for missing/empty site_id on legacy/study-level rows
     if site_id is None or str(site_id).strip() == "":
-        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
         if user_site_roles or principal.assigned_sites:
             return False
         return True
-
-    user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
 
     if user_site_roles:
         return site_id in principal.assigned_sites
@@ -713,6 +715,11 @@ def can_access_study(principal: Principal, study_id: str) -> bool:
     Checks if the principal has access to a specific study.
     Study-scoped users are restricted to their assigned_studies.
     """
+    if study_id is None or str(study_id).strip() == "":
+        if "external_monitor" in principal.roles or principal.assigned_studies:
+            return False
+        return True
+
     if "external_monitor" in principal.roles:
         return study_id in principal.assigned_studies
     if principal.assigned_studies:
