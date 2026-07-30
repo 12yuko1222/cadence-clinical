@@ -281,3 +281,58 @@ def compute_block_hash(previous_hash: str, merkle_root: str) -> str:
     """
     block_input = (previous_hash + merkle_root).encode("utf-8")
     return hashlib.sha256(block_input).hexdigest()
+
+
+class InboundEmailReplayCache:
+    def __init__(self) -> None:
+        self.used_keys: dict[str, float] = {}
+
+    def is_replayed(self, key: str, ttl: float = 300) -> bool:
+        import time
+        now = time.time()
+        # Prune expired keys
+        self.used_keys = {k: exp for k, exp in self.used_keys.items() if exp > now}
+        if key in self.used_keys:
+            return True
+        self.used_keys[key] = now + ttl
+        return False
+
+
+inbound_email_replay_cache = InboundEmailReplayCache()
+
+
+def verify_inbound_email_signature(
+    timestamp: str,
+    token: str,
+    signature: str,
+    message_id: Optional[str] = None,
+) -> bool:
+    """Verifies that the inbound email HMAC signature is correct, fresh, and not replayed."""
+    import os
+    import time
+    secret = os.getenv("INBOUND_EMAIL_HMAC_SECRET", "dev-default-secret-inbound-email-hmac")
+
+    # 1. Timestamp Freshness Check (300-second drift window)
+    try:
+        ts = float(timestamp)
+        if abs(time.time() - ts) > 300:
+            return False
+    except (ValueError, TypeError):
+        return False
+
+    # 2. Replay Protection
+    replay_key = token or message_id
+    if not replay_key:
+        return False
+
+    if inbound_email_replay_cache.is_replayed(replay_key):
+        return False
+
+    # 3. Signature Verification
+    expected_sig = hmac.new(
+        secret.encode("utf-8") if isinstance(secret, str) else secret,
+        f"{timestamp}{token}".encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected_sig, signature)

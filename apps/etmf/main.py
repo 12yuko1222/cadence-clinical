@@ -1,8 +1,16 @@
+import email.utils
 import os
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+)
 from fastapi.responses import Response
 from protocol_version_ref import ProtocolVersionRef
 from pydantic import BaseModel, Field
@@ -17,7 +25,7 @@ from tmf_reference_model import (
 
 from apps.etmf.database import db_manager
 from apps.etmf.export import generate_binder_zip
-from apps.etmf.ingestion import ingest_document_service
+from apps.etmf.ingestion_service import ingest_tmf_document
 from apps.etmf.lifecycle import validate_and_transition_document_status
 from apps.etmf.models import (
     Base,
@@ -626,7 +634,7 @@ async def ingest_document(
     reason_for_change = reason_for_change.strip()
 
     try:
-        doc = await ingest_document_service(
+        doc = await ingest_tmf_document(
             session=session,
             study_id=payload.study_id,
             site_id=payload.site_id,
@@ -634,8 +642,8 @@ async def ingest_document(
             filename=payload.filename,
             content=payload.content,
             mime_type=payload.mime_type,
-            user_id=user_id,
-            user_roles=user_roles,
+            created_by=user_id,
+            created_role=user_roles,
             assigned_sites=principal.assigned_sites,
             zone=payload.zone,
             section=payload.section,
@@ -2560,6 +2568,212 @@ async def get_document_transition_history(
         )
         for t in transitions
     ]
+
+
+def parse_recipient_address(recipient: str) -> tuple[str, Optional[str]]:
+    """
+    Parses recipient field and extracts study_id and optional binder-hint.
+    Convention: study-<STUDY_ID>[+<binder-hint>]@<domain>
+    """
+    _, address = email.utils.parseaddr(recipient)
+    if not address or "@" not in address:
+        raise ValueError("Invalid recipient address format")
+    local_part = address.split("@")[0]
+    if not local_part.startswith("study-"):
+        raise ValueError("Recipient address local part must start with 'study-'")
+
+    parts = local_part[len("study-"):].split("+", 1)
+    study_id = parts[0].strip()
+    if not study_id:
+        raise ValueError("Study ID cannot be empty or whitespace")
+
+    binder_hint = parts[1].strip() if len(parts) > 1 else None
+    if binder_hint == "":
+        binder_hint = None
+    return study_id, binder_hint
+
+
+def resolve_binder_hint(binder_hint: Optional[str]) -> tuple[int, str, str, str]:
+    """
+    Resolves the optional binder hint to canonical zone/section/artifact_code/artifact_type.
+    If no hint is provided, defaults to 'Site Communication Log' ('05.04.01').
+    """
+    if not binder_hint:
+        return 5, "04", "05.04.01", "Site Communication Log"
+
+    version = get_active_catalog().version
+    cleaned_hint = binder_hint.strip()
+    is_code = cleaned_hint.replace(".", "").isdigit()
+
+    if cleaned_hint.lower() in ("conduct", "initiation", "closeout", "milestone"):
+        cleaned_hint = "Site Communication Log"
+
+    try:
+        if is_code:
+            res = resolve_artifact(version, code=cleaned_hint)
+        else:
+            if cleaned_hint.upper() == "FORM_1572" or cleaned_hint.lower() == "form 1572":
+                cleaned_hint = "FDA Form 1572"
+            elif cleaned_hint.upper() == "FINANCIAL_DISCLOSURE" or cleaned_hint.lower() == "financial disclosure":
+                cleaned_hint = "Financial Disclosure"
+            elif cleaned_hint.upper() == "PROTOCOL_SIGNOFF" or cleaned_hint.lower() == "protocol signoff":
+                cleaned_hint = "Protocol Sign-off"
+            res = resolve_artifact(version, name=cleaned_hint)
+    except Exception as e:
+        raise ValueError(f"Unresolvable binder hint: {str(e)}")
+
+    return (
+        res["zone"].code,
+        res["section"].code,
+        res["artifact"].code,
+        res["artifact"].name,
+    )
+
+
+@app.post("/api/v1/etmf/inbound-email", status_code=201)
+async def inbound_email_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> Dict[str, Any]:
+    """
+    Inbound-email webhook that validates provider requests, resolves a target study/binder location,
+    and routes message content and attachments into the shared eTMF ingestion service.
+    """
+    content_length_str = request.headers.get("content-length")
+    max_size = int(os.getenv("INBOUND_EMAIL_MAX_SIZE_BYTES", str(10 * 1024 * 1024)))
+    if content_length_str:
+        try:
+            content_length = int(content_length_str)
+            if content_length > max_size:
+                raise HTTPException(status_code=413, detail="Payload too large")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length")
+
+    try:
+        form_data = await request.form()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid form data")
+
+    sender = form_data.get("sender")
+    recipient = form_data.get("recipient")
+    subject = form_data.get("subject")
+    body_plain = form_data.get("body-plain") or form_data.get("body_plain") or ""
+    timestamp = form_data.get("timestamp")
+    token = form_data.get("token")
+    signature = form_data.get("signature")
+    message_id = (
+        form_data.get("Message-Id")
+        or form_data.get("message-id")
+        or form_data.get("Message-ID")
+    )
+
+    sender = str(sender) if sender is not None else ""
+    recipient = str(recipient) if recipient is not None else ""
+    subject = str(subject) if subject is not None else ""
+    body_plain = str(body_plain)
+    timestamp = str(timestamp) if timestamp is not None else ""
+    token = str(token) if token is not None else ""
+    signature = str(signature) if signature is not None else ""
+    message_id = str(message_id) if message_id is not None else ""
+
+    from packages.security.signing import verify_inbound_email_signature
+    if not verify_inbound_email_signature(timestamp, token, signature, message_id):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        study_id, binder_hint = parse_recipient_address(recipient)
+        zone, section, artifact_code, artifact_type = resolve_binder_hint(binder_hint)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid routing metadata")
+
+    if message_id:
+        stmt = select(TMFDocument).where(
+            TMFDocument.metadata_json["message_id"].as_string() == message_id
+        )
+        res = await session.execute(stmt)
+        if res.scalars().first():
+            return {"status": "accepted"}
+
+    try:
+        attachments = []
+        for key, value in form_data.multi_items():
+            if hasattr(value, "filename") and value.filename:
+                attachments.append(value)
+
+        body_filename = f"email_body_{message_id or int(time.time())}.txt"
+
+        metadata_json = {
+            "message_id": message_id,
+            "sender": sender,
+            "recipient": recipient,
+            "subject": subject,
+            "ingested_via": "inbound-email",
+        }
+
+        audit_details = (
+            f"Inbound email webhook ingestion. Sender: {sender}, Subject: '{subject}', "
+            f"Message-Id: {message_id}."
+        )
+
+        async with session.begin_nested():
+            await ingest_tmf_document(
+                session=session,
+                study_id=study_id,
+                artifact_type=artifact_type,
+                filename=body_filename,
+                content=body_plain or f"Subject: {subject}\nFrom: {sender}\n(Empty Body)",
+                mime_type="text/plain",
+                created_by="system",
+                created_role="system",
+                zone=zone,
+                section=section,
+                artifact_code=artifact_code,
+                metadata_json=metadata_json,
+                audit_action="EMAIL_INGEST",
+                audit_details=audit_details,
+                reason_for_change="inbound_email_webhook",
+            )
+
+            for idx, att in enumerate(attachments):
+                att_bytes = await att.read()
+                if len(att_bytes) > max_size:
+                    raise HTTPException(status_code=413, detail="Attachment too large")
+
+                att_content = att_bytes.decode("utf-8", errors="ignore")
+                att_filename = att.filename or f"attachment_{idx}"
+                att_metadata = dict(metadata_json)
+                att_metadata["attachment_index"] = idx
+                att_metadata["original_filename"] = att_filename
+
+                await ingest_tmf_document(
+                    session=session,
+                    study_id=study_id,
+                    artifact_type=artifact_type,
+                    filename=att_filename,
+                    content=att_content,
+                    mime_type=att.content_type or "application/octet-stream",
+                    created_by="system",
+                    created_role="system",
+                    zone=zone,
+                    section=section,
+                    artifact_code=artifact_code,
+                    metadata_json=att_metadata,
+                    audit_action="EMAIL_INGEST",
+                    audit_details=f"Ingested attachment '{att_filename}' from email Message-Id {message_id}.",
+                    reason_for_change="inbound_email_webhook",
+                )
+
+        await session.commit()
+        return {"status": "accepted"}
+
+    except Exception as e:
+        if isinstance(e, PermissionError):
+            if "IMMUTABILITY_VIOLATION" in str(e):
+                raise HTTPException(status_code=403, detail="IMMUTABILITY_VIOLATION: Document is already signed and cannot be modified")
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Internal processing failure")
 
 
 @app.get("/api/v1/etmf/studies/{study_id}/binder")
