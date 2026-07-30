@@ -110,6 +110,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
+        # New permissions
+        "protocol_version": {"sign", "transition_approved"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
@@ -137,6 +141,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
             "transition_rejected",
             "transition_draft",
             "transition_signed",
+            "manage_expiration",
         },
         "etmf_edl": {"read", "create"},
         "etmf_audit_logs": {"read"},
@@ -150,6 +155,9 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "study_design": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
+        "protocol_version": {"sign", "transition_approved"},
+        "regulatory_form": {"read"},
+        "training_log": {"read"},
     },
     ROLE_REVIEWER: {
         "study_design": {"read"},
@@ -162,6 +170,9 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "query_lifecycle": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "export_masked": {"create", "read", "update"},
+        "protocol_version": {"transition_approved"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
@@ -188,6 +199,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
             "transition_rejected",
             "transition_draft",
             "transition_signed",
+            "manage_expiration",
         },
         "etmf_edl": {"read", "create"},
         # Quality
@@ -204,12 +216,16 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
         "eisf_document": {"read"},
+        "regulatory_form": {"read"},
+        "training_log": {"read"},
     },
     ROLE_SPONSOR_STATISTICIAN: {
         "study_design": {"read"},
         "system_audit_logs": {"read"},
         "export_masked": {"create", "read", "update"},
         "eisf_document": {"read"},
+        "regulatory_form": {"read"},
+        "training_log": {"read"},
     },
     ROLE_INVESTIGATOR: {
         "study_design": {"read"},
@@ -221,6 +237,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         },  # 'Ans' (Answer query) maps to update/read
         "sdv": {"read"},
         "system_audit_logs": {"read"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"read"},
         "ctms_recruitment": {"read"},
@@ -245,6 +263,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         },  # 'C/R/U (Draft)' maps to create/read/update
         "query_lifecycle": {"read", "update"},  # 'Ans' maps to update/read
         "system_audit_logs": {"read"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"read"},
         "ctms_recruitment": {"read"},
@@ -267,6 +287,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "sdv": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_monitoring_visit": {"create", "update", "read"},
@@ -286,6 +308,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     "monitor": {
         "study_design": {"read"},
         "system_audit_logs": {"read"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_monitoring_visit": {"read", "sign_off"},
@@ -307,6 +331,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     },
     ROLE_AUDITOR_CANONICAL: {
         "system_audit_logs": {"read"},
+        "regulatory_form": {"read"},
+        "training_log": {"read"},
         # CTMS read-only
         "ctms_study": {"read"},
         "ctms_audit_logs": {"read"},
@@ -335,6 +361,8 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "etmf_edl": {"read"},
         "etmf_audit_logs": {"read"},
         "eisf_document": {"read"},
+        "regulatory_form": {"read"},
+        "training_log": {"read"},
     },
     "grants manager": {
         "ctms_study": {"create", "read"},
@@ -376,6 +404,9 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "query_lifecycle": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "export_masked": {"create", "read", "update"},
+        "protocol_version": {"sign", "transition_approved"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
@@ -403,6 +434,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
             "transition_rejected",
             "transition_draft",
             "transition_signed",
+            "manage_expiration",
         },
         "etmf_edl": {"read", "create"},
         # Quality
@@ -436,11 +468,21 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "ctms_financial_budget": {"create", "read"},
         "ctms_financial_milestone": {"create", "read", "trigger"},
         "ctms_financial_payable": {"read"},
-        "etmf_document": {"create", "read", "read_raw", "redact", "sign"},
+        "etmf_document": {
+            "create",
+            "read",
+            "read_raw",
+            "redact",
+            "sign",
+            "manage_expiration",
+        },
         "etmf_edl": {"read", "create"},
         "etmf_audit_logs": {"read"},
         "quality_event": {"create", "read", "update", "delete", "investigate"},
         "quality_audit_logs": {"read"},
+        "protocol_version": {"sign", "transition_approved"},
+        "regulatory_form": {"create", "read", "sign"},
+        "training_log": {"create", "read", "sign"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
     },

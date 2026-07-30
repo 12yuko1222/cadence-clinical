@@ -32,6 +32,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-19: Global Library Architecture, Lifecycle, and Multi-Tenant Isolation](2026-08-19-global-library-architecture-lifecycle-tenancy.md)
 
 ### 2. API Gateway, Security & Identity
+- [2026-07-30: Signatures and Workflow Automation Phase 1 and 2 Primitives](2026-07-30-signatures-and-workflow-automation-phase-1-and-2-primitives.md)
 
 - [2023-01-04: ADR 2023-01-04: Keycloak Identity Management](2023-01-04-keycloak-identity-management.md)
 - [2026-07-22: ADR 2026-07-22: Centralized API Gateway Authentication and Header Propagation](2026-07-22-gateway-authentication-propagation.md)
@@ -138,3 +139,6 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-11: VitePress Workspace Documentation Portal](2026-08-11-vitepress-workspace-documentation-portal.md)
 - [2026-08-16: Parallel Continuous Integration Workflows and Local Concurrent Verification](2026-08-16-parallel-ci-workflows-and-local-concurrent-execution.md)
 - [2026-08-20: Codebase Cleanup, Test Pipeline Fixes, and Documentation Preflight Standardization](2026-08-20-codebase-cleanup-and-test-pipeline-fixes.md)
+- [2026-08-22: Shared AES-GCM Offline At-Rest Encryption and Key Derivation Contract](2026-08-22-aes-gcm-offline-at-rest-encryption.md)
+- [2026-08-22: Shared Semantic Regulated-Action Contract for Step-Up Re-Authentication](2026-08-22-move-to-shared-semantic-regulated-action-contract.md)
+- [2026-08-19: Structured Expiration Metadata and Migration Runners for eTMF/eISF](2026-08-19-etmf-eisf-structured-expiration-metadata-and-migrations.md)
