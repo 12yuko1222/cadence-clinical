@@ -1267,7 +1267,9 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
     assert result.returncode == 0
 
 
-def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_eisf_gateway_site_isolation_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     # @req:Trace-16
     Contract test: Verify that valid gateway-signed identity/site scope headers
@@ -1288,9 +1290,11 @@ def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
+
         async def create_tables():
             async with eisf_db_manager.engine.begin() as conn:
                 await conn.run_sync(EisfBase.metadata.create_all)
+
         loop.run_until_complete(create_tables())
     except Exception:
         pass
@@ -1310,7 +1314,9 @@ def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch
                 "mime_type": "application/pdf",
                 "reason_for_change": "Admin setup",
             }
-            res_setup = eisf_client.post("/api/v1/eisf/documents", json=doc_payload, headers=setup_headers)
+            res_setup = eisf_client.post(
+                "/api/v1/eisf/documents", json=doc_payload, headers=setup_headers
+            )
             assert res_setup.status_code == 201
             doc_id = res_setup.json()["id"]
 
@@ -1318,21 +1324,28 @@ def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch
             pi_boston_headers = get_eisf_auth_headers(
                 user_id="pi-boston", roles="site investigator", site_id="site-boston-01"
             )
-            res_same = eisf_client.get(f"/api/v1/eisf/documents/{doc_id}", headers=pi_boston_headers)
+            res_same = eisf_client.get(
+                f"/api/v1/eisf/documents/{doc_id}", headers=pi_boston_headers
+            )
             assert res_same.status_code == 200
 
             # 2. Cross-site access (should return 403 and write SECURITY_ALERT log)
             pi_london_headers = get_eisf_auth_headers(
                 user_id="pi-london", roles="site investigator", site_id="site-london-02"
             )
-            res_cross = eisf_client.get(f"/api/v1/eisf/documents/{doc_id}", headers=pi_london_headers)
+            res_cross = eisf_client.get(
+                f"/api/v1/eisf/documents/{doc_id}", headers=pi_london_headers
+            )
             assert res_cross.status_code == 403
 
             # Verify SECURITY_ALERT log entry
             async def check_alerts():
                 from sqlalchemy import select
+
                 async with eisf_db_manager.get_session_maker()() as session:
-                    stmt = select(ISFAuditLog).where(ISFAuditLog.action == "SECURITY_ALERT")
+                    stmt = select(ISFAuditLog).where(
+                        ISFAuditLog.action == "SECURITY_ALERT"
+                    )
                     res = await session.execute(stmt)
                     alerts = res.scalars().all()
                     return len(alerts)
@@ -1341,10 +1354,12 @@ def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch
             assert num_alerts > 0
 
     finally:
+
         async def drop_tables():
             async with eisf_db_manager.engine.begin() as conn:
                 await conn.run_sync(EisfBase.metadata.drop_all)
             await eisf_db_manager.close()
+
         try:
             loop.run_until_complete(drop_tables())
         except Exception:
@@ -1352,7 +1367,9 @@ def test_eisf_gateway_site_isolation_propagation(monkeypatch: pytest.MonkeyPatch
         loop.close()
 
 
-def test_gateway_proxy_eisf_headers_propagation(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_gateway_proxy_eisf_headers_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     # @req:Trace-16
     Verify that when proxying to eISF, the gateway successfully extracts site_id from JWT
@@ -1360,9 +1377,13 @@ def test_gateway_proxy_eisf_headers_propagation(monkeypatch: pytest.MonkeyPatch)
     """
     monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
     token = jwt.encode(
-        {"sub": "pi-boston", "roles": ["site investigator"], "site_id": "site-boston-01"},
+        {
+            "sub": "pi-boston",
+            "roles": ["site investigator"],
+            "site_id": "site-boston-01",
+        },
         "test_secret",
-        algorithm="HS256"
+        algorithm="HS256",
     )
 
     mock_send = AsyncMock()

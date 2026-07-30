@@ -70,4 +70,4 @@ This decision implements requirements under **Trace-16**.
   - `packages/security` (shared gateway signing)
 - **Verification Plan:**
   - Unit and contract verification executed under `tests/test_eisf_sync.py` and `tests/test_eisf_api.py`.
-  - Integration path, header propagation, and site claim extraction verified under `tests/test_gateway.py::test_eisf_gateway_site_isolation_propagation` and `test_gateway_proxy_eisf_headers_propagation`.
+  - Integration path, header propagation, and site claim extraction verified under `tests/test_gateway.py` (specifically `test_eisf_gateway_site_isolation_propagation` and `test_gateway_proxy_eisf_headers_propagation`).
