@@ -289,6 +289,7 @@ class InboundEmailReplayCache:
 
     def is_replayed(self, key: str, ttl: float = 300) -> bool:
         import time
+
         now = time.time()
         # Prune expired keys
         self.used_keys = {k: exp for k, exp in self.used_keys.items() if exp > now}
@@ -310,7 +311,10 @@ def verify_inbound_email_signature(
     """Verifies that the inbound email HMAC signature is correct, fresh, and not replayed."""
     import os
     import time
-    secret = os.getenv("INBOUND_EMAIL_HMAC_SECRET", "dev-default-secret-inbound-email-hmac")
+
+    secret = os.getenv(
+        "INBOUND_EMAIL_HMAC_SECRET", "dev-default-secret-inbound-email-hmac"
+    )
 
     # 1. Timestamp Freshness Check (300-second drift window)
     try:
@@ -332,7 +336,7 @@ def verify_inbound_email_signature(
     expected_sig = hmac.new(
         secret.encode("utf-8") if isinstance(secret, str) else secret,
         f"{timestamp}{token}".encode("utf-8"),
-        hashlib.sha256
+        hashlib.sha256,
     ).hexdigest()
 
     return hmac.compare_digest(expected_sig, signature)

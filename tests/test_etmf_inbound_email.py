@@ -28,15 +28,17 @@ async def setup_db():
 def mock_env_secret(monkeypatch):
     """Monkeypatch INBOUND_EMAIL_HMAC_SECRET for testing."""
     monkeypatch.setenv("INBOUND_EMAIL_HMAC_SECRET", "test-secret-key-12345")
-    monkeypatch.setenv("INBOUND_EMAIL_MAX_SIZE_BYTES", "50000")  # 50KB size limit for testing
+    monkeypatch.setenv(
+        "INBOUND_EMAIL_MAX_SIZE_BYTES", "50000"
+    )  # 50KB size limit for testing
 
 
-def compute_signature(timestamp: str, token: str, secret: str = "test-secret-key-12345") -> str:
+def compute_signature(
+    timestamp: str, token: str, secret: str = "test-secret-key-12345"
+) -> str:
     """Helper to compute valid HMAC-SHA256 signature for testing."""
     return hmac.new(
-        secret.encode("utf-8"),
-        f"{timestamp}{token}".encode("utf-8"),
-        hashlib.sha256
+        secret.encode("utf-8"), f"{timestamp}{token}".encode("utf-8"), hashlib.sha256
     ).hexdigest()
 
 
@@ -58,7 +60,7 @@ def test_valid_inbound_email_ingestion():
             "token": token,
             "signature": signature,
             "Message-Id": "<valid-msg-1@example.com>",
-        }
+        },
     )
 
     assert response.status_code == 201
@@ -83,7 +85,7 @@ def test_invalid_signature_rejection():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-2@example.com>",
-        }
+        },
     )
 
     assert response.status_code == 401
@@ -108,7 +110,7 @@ def test_stale_timestamp_rejection():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-3@example.com>",
-        }
+        },
     )
 
     assert response.status_code == 401
@@ -133,7 +135,7 @@ def test_replay_protection():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-replay@example.com>",
-        }
+        },
     )
     assert response1.status_code == 201
 
@@ -149,7 +151,7 @@ def test_replay_protection():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-replay2@example.com>",
-        }
+        },
     )
     assert response2.status_code == 401
 
@@ -175,7 +177,7 @@ def test_oversized_payload_rejection():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-large@example.com>",
-        }
+        },
     )
 
     assert response.status_code == 413
@@ -200,7 +202,7 @@ def test_unresolvable_recipient_address():
             "token": token,
             "signature": signature,
             "Message-Id": "<msg-unres1@example.com>",
-        }
+        },
     )
     assert response1.status_code == 422
     assert "Invalid routing metadata" in response1.text
@@ -219,7 +221,7 @@ def test_unresolvable_recipient_address():
             "token": token2,
             "signature": signature2,
             "Message-Id": "<msg-unres2@example.com>",
-        }
+        },
     )
     assert response2.status_code == 422
     assert "Invalid routing metadata" in response2.text
@@ -247,7 +249,7 @@ def test_multi_attachment_ingestion():
         files=[
             ("attachment1", ("plan1.txt", b"Content of plan 1", "text/plain")),
             ("attachment2", ("plan2.txt", b"Content of plan 2", "text/plain")),
-        ]
+        ],
     )
 
     assert response.status_code == 201
@@ -276,7 +278,7 @@ async def test_idempotency():
             "token": token1,
             "signature": signature1,
             "Message-Id": message_id,
-        }
+        },
     )
     assert response1.status_code == 201
 
@@ -304,7 +306,7 @@ async def test_idempotency():
             "token": token2,
             "signature": signature2,
             "Message-Id": message_id,
-        }
+        },
     )
     assert response2.status_code == 201
     assert response2.json() == {"status": "accepted"}
@@ -337,7 +339,7 @@ async def test_immutability_violation_inbound_email():
             "token": token1,
             "signature": signature1,
             "Message-Id": "<msg-immut-1@example.com>",
-        }
+        },
     )
     assert response1.status_code == 201
 
@@ -368,7 +370,7 @@ async def test_immutability_violation_inbound_email():
             "token": token2,
             "signature": signature2,
             "Message-Id": "<msg-immut-2@example.com>",
-        }
+        },
     )
     assert response2.status_code == 403
     assert "IMMUTABILITY_VIOLATION" in response2.text

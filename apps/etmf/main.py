@@ -2582,7 +2582,7 @@ def parse_recipient_address(recipient: str) -> tuple[str, Optional[str]]:
     if not local_part.startswith("study-"):
         raise ValueError("Recipient address local part must start with 'study-'")
 
-    parts = local_part[len("study-"):].split("+", 1)
+    parts = local_part[len("study-") :].split("+", 1)
     study_id = parts[0].strip()
     if not study_id:
         raise ValueError("Study ID cannot be empty or whitespace")
@@ -2612,11 +2612,20 @@ def resolve_binder_hint(binder_hint: Optional[str]) -> tuple[int, str, str, str]
         if is_code:
             res = resolve_artifact(version, code=cleaned_hint)
         else:
-            if cleaned_hint.upper() == "FORM_1572" or cleaned_hint.lower() == "form 1572":
+            if (
+                cleaned_hint.upper() == "FORM_1572"
+                or cleaned_hint.lower() == "form 1572"
+            ):
                 cleaned_hint = "FDA Form 1572"
-            elif cleaned_hint.upper() == "FINANCIAL_DISCLOSURE" or cleaned_hint.lower() == "financial disclosure":
+            elif (
+                cleaned_hint.upper() == "FINANCIAL_DISCLOSURE"
+                or cleaned_hint.lower() == "financial disclosure"
+            ):
                 cleaned_hint = "Financial Disclosure"
-            elif cleaned_hint.upper() == "PROTOCOL_SIGNOFF" or cleaned_hint.lower() == "protocol signoff":
+            elif (
+                cleaned_hint.upper() == "PROTOCOL_SIGNOFF"
+                or cleaned_hint.lower() == "protocol signoff"
+            ):
                 cleaned_hint = "Protocol Sign-off"
             res = resolve_artifact(version, name=cleaned_hint)
     except Exception as e:
@@ -2677,6 +2686,7 @@ async def inbound_email_webhook(
     message_id = str(message_id) if message_id is not None else ""
 
     from packages.security.signing import verify_inbound_email_signature
+
     if not verify_inbound_email_signature(timestamp, token, signature, message_id):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -2721,7 +2731,8 @@ async def inbound_email_webhook(
                 study_id=study_id,
                 artifact_type=artifact_type,
                 filename=body_filename,
-                content=body_plain or f"Subject: {subject}\nFrom: {sender}\n(Empty Body)",
+                content=body_plain
+                or f"Subject: {subject}\nFrom: {sender}\n(Empty Body)",
                 mime_type="text/plain",
                 created_by="system",
                 created_role="system",
@@ -2769,7 +2780,10 @@ async def inbound_email_webhook(
     except Exception as e:
         if isinstance(e, PermissionError):
             if "IMMUTABILITY_VIOLATION" in str(e):
-                raise HTTPException(status_code=403, detail="IMMUTABILITY_VIOLATION: Document is already signed and cannot be modified")
+                raise HTTPException(
+                    status_code=403,
+                    detail="IMMUTABILITY_VIOLATION: Document is already signed and cannot be modified",
+                )
             raise HTTPException(status_code=403, detail="Forbidden")
         if isinstance(e, HTTPException):
             raise e
