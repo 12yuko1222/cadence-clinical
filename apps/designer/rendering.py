@@ -62,7 +62,10 @@ def build_docx_template() -> str:
     docxtpl placeholders, always overwriting the target file at
     TEMPLATES_DIR/protocol_template.docx.
     """
+    import uuid
+
     template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
+    temp_path = template_path + f".tmp.{uuid.uuid4().hex}"
     doc = Document()
 
     # Title Page
@@ -143,7 +146,15 @@ def build_docx_template() -> str:
     doc.add_paragraph("{{ soa_subdoc }}")
     doc.add_paragraph("{% endif %}")
 
-    doc.save(template_path)
+    doc.save(temp_path)
+    try:
+        os.replace(temp_path, template_path)
+    except Exception:
+        doc.save(template_path)
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
     return template_path
 
 

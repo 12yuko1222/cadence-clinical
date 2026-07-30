@@ -342,17 +342,36 @@ async def run_reconciliation(
 
     # 6. Persist results inside transaction
     async with session.begin_nested():
+        from sqlalchemy import func, select
+
+        # Query max run version index
+        stmt_run_max = select(func.max(SAEReconciliationRun.version_index)).where(
+            SAEReconciliationRun.study_id == study_id
+        )
+        res_run_max = await session.execute(stmt_run_max)
+        max_run_idx = res_run_max.scalar() or 0
+        next_run_version = max_run_idx + 1
+
         run = SAEReconciliationRun(
             study_id=study_id,
             created_by=created_by,
             reason_for_change=reason_for_change,
-            version_index=1,
+            version_index=next_run_version,
         )
         session.add(run)
         await session.flush()
 
         persisted_discrepancies = []
         for d in raw_discrepancies:
+            # Query max discrepancy version index
+            stmt_disc_max = select(func.max(SAEDiscrepancy.version_index)).where(
+                SAEDiscrepancy.case_event_key == d["case_event_key"],
+                SAEDiscrepancy.field_name == d["field_name"],
+            )
+            res_disc_max = await session.execute(stmt_disc_max)
+            max_disc_idx = res_disc_max.scalar() or 0
+            next_disc_version = max_disc_idx + 1
+
             disc = SAEDiscrepancy(
                 run_id=run.id,
                 source=d["source"],
@@ -363,7 +382,7 @@ async def run_reconciliation(
                 meddra_version=d["meddra_version"],
                 created_by=created_by,
                 reason_for_change=reason_for_change,
-                version_index=1,
+                version_index=next_disc_version,
             )
             session.add(disc)
             persisted_discrepancies.append(disc)

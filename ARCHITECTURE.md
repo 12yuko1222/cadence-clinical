@@ -105,6 +105,18 @@ Traditional clinical trial builds require manual, error-prone translation of pro
   * Implements offline-first caching via service workers and queues signed submissions chronologically inside IndexedDB.
   * Provides a visual Sync Queue Panel allowing subjects to view transmission logs and online reconciliation decisions.
 
+### L. eISF Module (`apps/eisf`)
+* **Role:** Electronic Investigator Site File (eISF) Repository.
+* **Datastore:** SQLite / PostgreSQL Relational Database.
+* **Core Responsibilities:**
+  * Ingests, taxonomy-classifies, and versions clinical trial site documents mapped to binder structures.
+  * Enforces rigid site-scoped role authorization and site-isolation boundaries via `enforce_site_isolation` centrally.
+  * Computes site-level completeness checks matching present versus required classifications inside standard binder sections.
+  * Restricts write mutations to CRC/Investigator roles, and blocks read-only Auditor/Inspector roles from modifying files.
+  * Maintains a 21 CFR Part 11 compliant audit trail (`ISFAuditLog`) capturing user contexts, timestamps, and justifications for all site operations.
+  * Supports bidirectional offline sync with automated conflict reconciliation strategies and deduplication mechanisms.
+  * Integrated on host port `8010` and aggregated into the gateway's unified OpenAPI specification.
+
 ---
 
 ## 3. Data Transformation Flow

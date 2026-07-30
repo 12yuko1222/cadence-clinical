@@ -104,6 +104,22 @@ services:
     environment:
       - ORG_DATABASE_URL=postgresql+asyncpg://cadence:cadence_password@postgres:5432/cadence_edc
     ports:
+      - "8012:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  eisf:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-eisf
+    command: ["sh", "-c", "python -m apps.eisf.database.migrate && uvicorn apps.eisf.main:app --host 0.0.0.0 --port 8010 --reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - EISF_DATABASE_URL=sqlite+aiosqlite:////app/eisf.db
+    ports:
       - "8010:8010"
     depends_on:
       postgres:
@@ -266,6 +282,7 @@ services:
       - NOTIFICATIONS_URL=http://notifications:8006
       - SAFETY_URL=http://safety:8008
       - ORG_URL=http://org:8010
+      - EISF_URL=http://eisf:8010
     ports:
       - "8000:8000"
     depends_on:
@@ -288,6 +305,8 @@ services:
       safety:
         condition: service_started
       org:
+        condition: service_started
+      eisf:
         condition: service_started
       keycloak:
         condition: service_healthy

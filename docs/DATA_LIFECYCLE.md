@@ -512,3 +512,63 @@ The Part 11 eSignature workflow is fully realized and integrated across the foll
 - **Metadata Designer Execution**:
   - `apps/designer/main.py` (Protocol approval endpoint: `POST /api/v1/studies/{study_id}/versions/{version_id}/approve`)
   - `apps/designer/delta.py` (Approve study delta and lock protocol graph nodes)
+
+---
+
+# Data Lifecycle Specification: SDTM/ADaM Export Privacy & De-identification
+
+## 1. Overview
+Structured biostatistical exports (CDISC SDTM and ADaM formats) must undergo an automated privacy and de-identification pass before external distribution or regulatory submission. This workflow ensures deterministic pseudonymization of subject identifiers, stable per-subject date-shifting, and age capping under the authoritative policy [ADR-108](./adr/2026-08-26-sdtm-adam-export-privacy.md).
+
+## 2. Privacy Transformation Mechanics
+The de-identification transform operates on assembled datasets immediately before serialization into CDISC Dataset-JSON format:
+1. **Deterministic Pseudonymization**: Subject identifiers (`USUBJID`, `SUBJID`) and site identifiers (`SITEID`) are hashed deterministically using HMAC-SHA256 and the secure `BIOSTAT_EXPORT_SALT` token. This guarantees referential integrity across separate datasets, domains, and exports.
+2. **Stable Per-Subject Date Shifting**: A stable numeric offset in the range `[-365, 365]` days is derived deterministically from the subject's original `USUBJID` before pseudonymization. All dates associated with that subject are shifted by this exact offset:
+   - **SDTM string dates** (e.g. `AESTDTC`, `RFSTDTC` etc.) are shifted preserving partial dates and null-flavor placeholders.
+   - **ADaM numeric dates** (e.g. `TRTSDT`, `ASTDT` etc.) are shifted by adding the offset directly to the SAS day integer value.
+3. **Age Generalization**: Any subject age value exceeding 89 is capped at `89`.
+
+---
+
+# Data Lifecycle Specification: eISF Document Lifecycle
+
+## 1. Overview
+The electronic Investigator Site File (eISF) Document Lifecycle is an automated and site-isolated workflow designed to manage investigator site files and binders securely, complying with FDA 21 CFR Part 11 and GCP guidelines.
+
+## 2. Document & Binder States
+Documents in the eISF progress through the following status values:
+- **PENDING**: The default state of newly uploaded or synchronized documents, awaiting confirmation or sync propagation.
+- **SYNCED**: Successfully matched and synchronized between eISF and eTMF.
+- **DELETED**: Documents are logically deleted by appending a deletion record, preserving history for Part 11 auditing.
+
+## 3. Role-Based Access Control (RBAC) Gates
+Operations on eISF documents are restricted based on OIDC roles and permissions:
+
+| Target Operations | Allowed Actor Roles | Required Permissions |
+| :--- | :--- | :--- |
+| **Create Document** | `site investigator`, `crc`, `admin` | `eisf_document:create` |
+| **View/Download** | `site investigator`, `crc`, `auditor`, `admin` | None (gated via read check) |
+| **Update Document** | `site investigator`, `crc`, `admin` | `eisf_document:update` |
+| **Delete Document** | `site investigator`, `crc`, `admin` | `eisf_document:delete` |
+| **Sync Documents** | `site investigator`, `crc`, `admin`, `system` | `eisf_document:sync` |
+
+## 4. Completeness Logic & EXPECTED Binder Sections
+The system tracks completeness of the electronic Investigator Site File (eISF) binder by comparing uploaded classifications against standard binder sections defined under `REQUIRED_BINDER_SECTIONS`:
+- **Investigator & Staff**: CV, Delegation of Authority Log, Financial Disclosure, Medical License.
+- **Protocols & Amendments**: Approved Protocol, Protocol Sign-off.
+- **Regulatory Approvals**: IRB Approval, FDA Form 1572.
+
+## 5. Audit Trail & 21 CFR Part 11 Compliance (`ISFAuditLog`)
+Every operation (views, downloads, edits, sync, deletions, and completeness checks) triggers an append-only entry in the database-backed `ISFAuditLog` ledger tracking:
+- Actor ID and Roles.
+- Action (e.g. `CREATE_DOCUMENT`, `VIEW`, `DOWNLOAD`, `UPDATE_DOCUMENT`, `DELETE_DOCUMENT`, `COMPLETENESS`, `SYNC`).
+- Part 11 change justification reason (mandatory, minimum 10 characters).
+- Timestamp and record references.
+Cross-site access attempts trigger high-priority `SECURITY_ALERT` events in the ledger.
+
+## 6. Synchronization Boundary & Dependencies
+The eISF service implements a robust bidirectional offline and service-to-service synchronization pipeline:
+- **eISF-local Sync**: Implements duplicate detection, conflict resolution policies (`CLIENT_WINS`, `SERVER_WINS`, `MERGE`), and echo-loop prevention. This is fully implemented and tested (under `tests/test_eisf_sync.py`).
+- **Open eTMF Contract (#343)**: The receiving-side synchronized document deduplication contract on the eTMF service remains an open, pending dependency.
+- **Redacted Derivative Constraint (#693)**: Sync propagation is strictly limited to redacted/de-identified derivatives to avoid leaking any PHI or sensitive client data across boundaries.
+

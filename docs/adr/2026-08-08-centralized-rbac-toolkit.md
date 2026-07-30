@@ -46,3 +46,12 @@ This decision implements requirements under Trace-2.
 ## 6. Implementation & Verification
 * **Affected Repositories / Services:** `packages/security/rbac.py`, `packages/security/__init__.py`.
 * **Verification Plan:** Verified locally via `pytest tests/test_rbac.py` with 20 newly introduced high-fidelity test cases, as well as full CI/CD run.
+
+---
+
+## 7. Extensions: eISF and eTMF Site-Scope Visibility Consolidation
+In August 2026, the `can_access_site` and `can_access_study` authorization helpers in `packages/security/rbac.py` were generalized and consolidated to be the single source of truth for site-scoping of site-scoped roles, including investigator/PI, CRC/study coordinator, and External Monitor.
+As part of this consolidation:
+* **"study coordinator"** was registered as a standard alias mapping to `ROLE_CRC`.
+* **`can_access_site`** was refactored to consume the single `SITE_SCOPED_ROLES` constant rather than duplicating inline roles. It behaves as a fail-closed check for empty or missing site IDs on site-scoped principals.
+* **eISF service endpoints (`list_documents`, `get_document`, `download_document`, `get_binder_completeness`, and `sync_documents`)** were migrated from bespoke claim-header filtering to the canonical `get_principal` / `Principal` model and a unified `enforce_document_site_visibility` helper, guaranteeing cross-service visibility compliance, producing robust 21 CFR Part 11 and GxP compliant `SECURITY_ALERT` ISFAuditLog rows on visibility violations.

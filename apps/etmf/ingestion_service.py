@@ -48,6 +48,9 @@ async def ingest_tmf_document(
     issue_date: Optional[date] = None,
     expiration_date: Optional[date] = None,
     document_owner_id: Optional[str] = None,
+    correlation_key: Optional[str] = None,
+    content_checksum: Optional[str] = None,
+    source_system: Optional[str] = None,
 ) -> TMFDocument:
     """Service layer workflow for eTMF document ingestion.
 
@@ -237,6 +240,11 @@ async def ingest_tmf_document(
         signer_val = signer_name
         signing_timestamp_val = now_utc
 
+    # Compute deterministic SHA-256 of raw content UTF-8 if not provided
+    resolved_checksum = content_checksum
+    if not resolved_checksum and content is not None:
+        resolved_checksum = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
     # 5b. Idempotency Key check
     if idempotency_key:
         stmt_idem = select(TMFDocument).where(
@@ -254,25 +262,90 @@ async def ingest_tmf_document(
                     f"Deduplicated ingestion request with idempotency_key '{idempotency_key}'. "
                     f"Returned existing document ID '{existing_idem.id}' (Version {existing_idem.version_index}) as a no-op."
                 ),
+                reason_for_change=reason_for_change,
             )
             session.add(log_entry)
             await session.flush()
+            existing_idem._ingest_result_status = "ignored"
             return existing_idem
 
-    # 6. Check if a document version already exists (for study_id + artifact_code + site_id)
-    stmt = (
-        select(TMFDocument)
-        .where(TMFDocument.study_id == study_id)
-        .where(TMFDocument.artifact_code == resolved_artifact_code)
-    )
-    if resolved_site_id:
-        stmt = stmt.where(TMFDocument.site_id == resolved_site_id)
+    # 6. Check if a document version already exists
+    if correlation_key:
+        # Scope lookup and latest version by stable correlation identity
+        stmt = select(TMFDocument).where(TMFDocument.correlation_key == correlation_key)
     else:
-        stmt = stmt.where(TMFDocument.site_id.is_(None))
+        # Fall back to study_id + artifact_code + site_id
+        stmt = (
+            select(TMFDocument)
+            .where(TMFDocument.study_id == study_id)
+            .where(TMFDocument.artifact_code == resolved_artifact_code)
+        )
+        if resolved_site_id:
+            stmt = stmt.where(TMFDocument.site_id == resolved_site_id)
+        else:
+            stmt = stmt.where(TMFDocument.site_id.is_(None))
 
     stmt = stmt.order_by(TMFDocument.version_index.desc())
     result = await session.execute(stmt)
     existing_doc = result.scalars().first()
+
+    # Redaction-derivative safety check:
+    # "in ingest_tmf_document, when the latest document in a correlation chain is a redacted derivative
+    # (is_redacted=True) or its raw original has a linked derivative via redaction_source_id,
+    # treat an incoming raw-content sync for that correlation key as a no-op/ignored result rather than appending a new raw version."
+    if correlation_key and existing_doc:
+        # Check if the latest is a redacted derivative or if there's any linked redacted derivative
+        # Let's search if any redacted document exists with redaction_source_id = existing_doc.id or if existing_doc is redacted
+        is_redacted_case = False
+        if existing_doc.is_redacted:
+            is_redacted_case = True
+        else:
+            # Check if there is any sibling document in this correlation chain or study that has redaction_source_id matching this or any prior version
+            # To be safe, we can query if any document has is_redacted=True and matches correlation_key
+            stmt_red = select(TMFDocument).where(
+                TMFDocument.correlation_key == correlation_key,
+                TMFDocument.is_redacted.is_(True),
+            )
+            res_red = await session.execute(stmt_red)
+            if res_red.scalars().first():
+                is_redacted_case = True
+
+        if is_redacted_case:
+            # Treat as a durable no-op, write INGEST_NOOP audit entry, return existing_doc as a no-op
+            log_entry = TMFAuditLog(
+                user_id=created_by,
+                user_role=created_role,
+                action="INGEST_NOOP",
+                document_id=existing_doc.id,
+                details=(
+                    f"Ignored incoming raw-content sync for correlation key '{correlation_key}' because "
+                    f"a redacted derivative exists."
+                ),
+                reason_for_change=reason_for_change,
+            )
+            session.add(log_entry)
+            await session.flush()
+            existing_doc._ingest_result_status = "ignored"
+            return existing_doc
+
+    # Check for checksum-based exact duplicate no-op (durable no-op)
+    if correlation_key and existing_doc:
+        if existing_doc.content_checksum == resolved_checksum:
+            log_entry = TMFAuditLog(
+                user_id=created_by,
+                user_role=created_role,
+                action="INGEST_NOOP",
+                document_id=existing_doc.id,
+                details=(
+                    f"Durable no-op: Replayed synchronized document with correlation_key '{correlation_key}' "
+                    f"and matching content checksum. Version {existing_doc.version_index} returned as a no-op."
+                ),
+                reason_for_change=reason_for_change,
+            )
+            session.add(log_entry)
+            await session.flush()
+            existing_doc._ingest_result_status = "ignored"
+            return existing_doc
 
     new_version_index = 1
     if existing_doc:
@@ -292,6 +365,7 @@ async def ingest_tmf_document(
                     f"Rejected attempt to ingest new version for signed document '{existing_doc.filename}' "
                     f"(ID: {existing_doc.id}). Error: IMMUTABILITY_VIOLATION."
                 ),
+                reason_for_change=reason_for_change,
             )
             session.add(reject_log)
             await session.commit()
@@ -300,9 +374,22 @@ async def ingest_tmf_document(
             )
         new_version_index = existing_doc.version_index + 1
 
+    # Determine sync_status for eISF-originated ingestion
+    resolved_sync_status = None
+    if source_system == "eISF":
+        resolved_sync_status = "SYNCED"
+
     # 7. Add document and log action within transactional boundaries
     try:
         async with session.begin_nested():
+            resolved_expiration_date = expiration_date
+            if resolved_expiration_date is not None and not isinstance(
+                resolved_expiration_date, datetime
+            ):
+                resolved_expiration_date = datetime.combine(
+                    resolved_expiration_date, datetime.min.time()
+                ).replace(tzinfo=timezone.utc)
+
             doc = TMFDocument(
                 study_id=study_id,
                 site_id=resolved_site_id,
@@ -334,8 +421,12 @@ async def ingest_tmf_document(
                 if protocol_version
                 else None,
                 issue_date=issue_date,
-                expiration_date=expiration_date,
+                expiration_date=resolved_expiration_date,
                 document_owner_id=document_owner_id,
+                correlation_key=correlation_key,
+                content_checksum=resolved_checksum,
+                source_system=source_system,
+                sync_status=resolved_sync_status,
             )
 
             session.add(doc)
@@ -357,10 +448,12 @@ async def ingest_tmf_document(
                 action=audit_action,
                 document_id=doc.id,
                 details=resolved_audit_details,
+                reason_for_change=reason_for_change,
             )
             session.add(log_entry)
             await session.flush()
 
+            doc._ingest_result_status = "created"
             return doc
     except Exception as e:
         # Savepoint automatically rolled back on exception block exit
