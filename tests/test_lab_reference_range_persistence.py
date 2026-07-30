@@ -261,6 +261,7 @@ async def test_clinical_observation_extended_fields():
 
 @pytest.mark.asyncio
 async def test_schema_evolution_migration_upgrade():
+    # @req:PRD-QRY-005
     # @req:PRD-LAB-001
     """
     Test pre-boot schema evolution by constructing a legacy SQLite schema
@@ -273,7 +274,7 @@ async def test_schema_evolution_migration_upgrade():
     db_url = "sqlite+aiosqlite:///:memory:"
     temp_engine = create_async_engine(db_url, echo=False)
 
-    # 1. Create clinical_observations table with only legacy columns
+    # 1. Create clinical_observations table with only legacy columns (omitting SDV columns)
     # We define a minimal model representing the legacy table schema.
     async with temp_engine.begin() as conn:
         # Create legacy table schema manually
@@ -295,20 +296,27 @@ async def test_schema_evolution_migration_upgrade():
                 unit VARCHAR(50),
                 normalized_value FLOAT,
                 normalized_unit VARCHAR(50),
-                is_outlier BOOLEAN,
-                is_sdv_verified BOOLEAN,
-                sdv_verified_by VARCHAR(255),
-                sdv_verified_at TIMESTAMP,
-                page_id VARCHAR(255)
+                is_outlier BOOLEAN
             );
         """)
+        )
+
+        # Seed at least one legacy row into this table so backfill behavior can be asserted
+        await conn.execute(
+            text("""
+            INSERT INTO clinical_observations (
+                id, version, is_deleted, subject_id, study_id, visit_id, domain, observation_date, test_code, test_name, value, unit
+            ) VALUES (
+                'legacy-obs-id-1', 1, 0, 'SUBJ-001', 'STUDY-123', 'VISIT-001', 'LB', '2026-08-14 12:00:00', 'ALT', 'Alanine Aminotransferase', 45.0, 'U/L'
+            );
+            """)
         )
 
     # 2. Run our upgrade_existing_tables function
     async with temp_engine.begin() as conn:
         await upgrade_existing_tables(conn)
 
-    # 3. Verify that the new snapshot/source columns were successfully added
+    # 3. Verify that the new snapshot/source and SDV columns were successfully added
     async with temp_engine.begin() as conn:
 
         def get_columns(sync_conn):
@@ -325,10 +333,58 @@ async def test_schema_evolution_migration_upgrade():
             "lab_indicator",
             "lab_out_of_range",
             "matched_normal_bounds",
+            "site_id",
+            "is_sdv_verified",
+            "sdv_verified_by",
+            "sdv_verified_at",
+            "page_id",
         ]
         for col in expected_added_cols:
             assert col in updated_cols, (
                 f"Column {col} should have been added by migration."
             )
+
+        # Assert backfilled default values on the seeded row
+        res = await conn.execute(
+            text("SELECT is_sdv_verified, sdv_verified_by, sdv_verified_at, page_id FROM clinical_observations WHERE id = 'legacy-obs-id-1';")
+        )
+        row = res.fetchone()
+        assert row is not None
+        assert row[0] is False or row[0] == 0
+        assert row[1] is None
+        assert row[2] is None
+        assert row[3] is None
+
+    # 4. Assert idempotency by running the upgrade a second time
+    async with temp_engine.begin() as conn:
+        await upgrade_existing_tables(conn)
+        updated_cols_2 = await conn.run_sync(get_columns)
+        for col in expected_added_cols:
+            assert col in updated_cols_2, (
+                f"Column {col} should remain intact after repeat migration."
+            )
+
+    # 5. Assert SDV write compatibility by performing an update on the upgraded table
+    async with temp_engine.begin() as conn:
+        await conn.execute(
+            text("""
+                UPDATE clinical_observations
+                SET is_sdv_verified = :is_verified, sdv_verified_by = :verified_by, sdv_verified_at = :verified_at
+                WHERE id = 'legacy-obs-id-1';
+            """),
+            {
+                "is_verified": True,
+                "verified_by": "CRA-001",
+                "verified_at": "2026-08-14 13:00:00"
+            }
+        )
+        res = await conn.execute(
+            text("SELECT is_sdv_verified, sdv_verified_by, sdv_verified_at FROM clinical_observations WHERE id = 'legacy-obs-id-1';")
+        )
+        row = res.fetchone()
+        assert row is not None
+        assert row[0] is True or row[0] == 1
+        assert row[1] == "CRA-001"
+        assert row[2] is not None
 
     await temp_engine.dispose()
