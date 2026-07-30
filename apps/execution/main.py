@@ -25,7 +25,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from protocol_version_ref import ProtocolVersionRef
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 
 from apps.execution.biostat import (
     DatasetJSONValidationError,
@@ -517,13 +517,23 @@ async def create_subject(
         )
 
     async with db_manager.get_session_maker()() as session:
-        subj = ClinicalSubject(
-            subject_id=payload.subject_id,
-            study_id=payload.study_id,
-            encrypted_demographics=encrypted_demo,
-        )
-        session.add(subj)
-        await session.commit()
+        async with session.begin():
+            # Query max enrollment_index for the study inside the active transaction
+            stmt_max = select(func.max(ClinicalSubject.enrollment_index)).where(
+                ClinicalSubject.study_id == payload.study_id
+            )
+            res_max = await session.execute(stmt_max)
+            max_idx = res_max.scalar()
+            new_idx = 0 if max_idx is None else max_idx + 1
+
+            subj = ClinicalSubject(
+                subject_id=payload.subject_id,
+                study_id=payload.study_id,
+                encrypted_demographics=encrypted_demo,
+                enrollment_index=new_idx,
+            )
+            session.add(subj)
+
         stmt = select(ClinicalSubject).where(ClinicalSubject.id == subj.id)
         res = await session.execute(stmt)
         subj_db = res.scalar_one()
@@ -1367,6 +1377,12 @@ def validate_lab_range_payload(data: dict) -> None:
         )
     data["source"] = source_upper
 
+    if source_upper == "CENTRAL" and "site_id" in data and data["site_id"] is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="CENTRAL reference ranges are global and must have site_id = None.",
+        )
+
     sex_upper = str(data["sex_applicability"]).strip().upper()
     if sex_upper not in ("M", "F", "ALL", "U"):
         raise HTTPException(
@@ -1661,46 +1677,25 @@ async def update_lab_range(
                     status_code=404, detail="LabReferenceRange not found"
                 )
 
+            update_dict = payload.model_dump(exclude_unset=True)
             merged_data = {
-                "study_id": payload.study_id
-                if payload.study_id is not None
-                else r.study_id,
-                "test_code": payload.test_code
-                if payload.test_code is not None
-                else r.test_code,
-                "test_name": payload.test_name
-                if payload.test_name is not None
-                else r.test_name,
-                "source": payload.source if payload.source is not None else r.source,
-                "site_id": payload.site_id
-                if payload.site_id is not None
-                else r.site_id,
-                "unit": payload.unit if payload.unit is not None else r.unit,
-                "normalized_unit": payload.normalized_unit
-                if payload.normalized_unit is not None
-                else r.normalized_unit,
-                "sex_applicability": payload.sex_applicability
-                if payload.sex_applicability is not None
-                else r.sex_applicability,
-                "age_low": payload.age_low
-                if payload.age_low is not None
-                else r.age_low,
-                "age_high": payload.age_high
-                if payload.age_high is not None
-                else r.age_high,
-                "low_bound": payload.low_bound
-                if payload.low_bound is not None
-                else r.low_bound,
-                "high_bound": payload.high_bound
-                if payload.high_bound is not None
-                else r.high_bound,
-                "critical_low": payload.critical_low
-                if payload.critical_low is not None
-                else r.critical_low,
-                "critical_high": payload.critical_high
-                if payload.critical_high is not None
-                else r.critical_high,
+                "study_id": r.study_id,
+                "test_code": r.test_code,
+                "test_name": r.test_name,
+                "source": r.source,
+                "site_id": r.site_id,
+                "unit": r.unit,
+                "normalized_unit": r.normalized_unit,
+                "sex_applicability": r.sex_applicability,
+                "age_low": r.age_low,
+                "age_high": r.age_high,
+                "low_bound": r.low_bound,
+                "high_bound": r.high_bound,
+                "critical_low": r.critical_low,
+                "critical_high": r.critical_high,
             }
+            for key, val in update_dict.items():
+                merged_data[key] = val
 
             validate_lab_range_payload(merged_data)
 
@@ -3083,15 +3078,15 @@ async def evaluate_tsdv_rule(
         res_subj = await session.execute(stmt_subj)
         subjects = list(res_subj.scalars().all())
 
-        # Sort alphabetically by subject_id
+        # Sort alphabetically as a deterministic fallback only
         subjects_sorted = sorted(subjects, key=lambda s: s.subject_id)
 
         target_sub = None
-        resolved_index = None
+        fallback_index = None
         for idx, sub in enumerate(subjects_sorted):
             if sub.subject_id == subject_id or sub.id == subject_id:
                 target_sub = sub
-                resolved_index = idx
+                fallback_index = idx
                 break
 
         if target_sub is None:
@@ -3100,7 +3095,20 @@ async def evaluate_tsdv_rule(
                 detail=f"Subject {subject_id} not found in study {study_id}",
             )
 
-        if enrollment_index is None:
+        # Resolve persisted enrollment_index, with alphabetical as fallback if not backfilled yet
+        resolved_index = (
+            target_sub.enrollment_index
+            if target_sub.enrollment_index is not None
+            else fallback_index
+        )
+
+        if enrollment_index is not None:
+            if enrollment_index != resolved_index:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Conflicting enrollment_index {enrollment_index} supplied. Persisted index is {resolved_index}.",
+                )
+        else:
             enrollment_index = resolved_index
 
         subject_uuid = target_sub.id
@@ -3559,6 +3567,50 @@ async def post_batch_sign_off(
     ),
 ) -> BatchSignOffResponse:
     """Perform a PI-only, atomic batch electronic-signature for form-, visit-, and subject-level sign-off."""
+    # Secondary safety validation of the signature token batch-binding
+    sig_token = request.headers.get("X-Sig-Token")
+    if not sig_token:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+
+    from jose import JWTError, jwt
+
+    secret = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345").encode()
+    try:
+        sig_payload = jwt.decode(sig_token, secret, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+
+    token_batch_id = sig_payload.get("batch_id")
+    if not token_batch_id:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+
+    # Compute expected batch_id
+    norm_study = str(payload.study_id).strip()
+    norm_type = str(payload.target_type).strip().upper()
+    sorted_ids = sorted([str(tid).strip() for tid in payload.target_ids])
+    norm_ids = ",".join(sorted_ids)
+    norm_reason = str(payload.signing_reason).strip()
+
+    binding_str = f"{norm_study}:{norm_type}:{norm_ids}:{norm_reason}"
+    import hashlib
+
+    computed_batch_id = hashlib.sha256(binding_str.encode("utf-8")).hexdigest()
+
+    if token_batch_id != computed_batch_id:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+
     target_type_upper = payload.target_type.upper()
 
     async with db_manager.get_session_maker()() as session:
@@ -3647,15 +3699,80 @@ async def post_batch_sign_off(
                         binding_payload, secret
                     )
 
+                    username = request.state.user_id or "unknown"
+                    full_name = (
+                        f"{username.replace('_', ' ').replace('.', ' ').title()}"
+                    )
+                    if "pi" in username.lower() or "investigator" in username.lower():
+                        full_name += ", MD"
+
+                    signing_timestamp_utc = datetime.utcnow().isoformat() + "Z"
+
+                    reason_mapping = {
+                        "I attest that this data is accurate and complete.": (
+                            "DATA_RECORDING",
+                            "I attest that this data is accurate and complete.",
+                        ),
+                        "PI approval and sign-off.": (
+                            "PI_APPROVAL",
+                            "I approve this clinical record and confirm medical responsibility.",
+                        ),
+                        "Review and confirmation.": (
+                            "REVIEW_CONFIRMATION",
+                            "Review and confirmation.",
+                        ),
+                        "DATA_RECORDING": ("DATA_RECORDING", "I author this data"),
+                        "DATA_ENTRY_COMPLETED": (
+                            "DATA_RECORDING",
+                            "I author this data",
+                        ),
+                        "PI_REVIEW": ("PI_APPROVAL", "I approve this clinical record"),
+                        "PI_SIGN_OFF": (
+                            "PI_APPROVAL",
+                            "I approve this clinical record and confirm medical responsibility.",
+                        ),
+                        "COMPLIANCE_ATTESTATION": (
+                            "COMPLIANCE_ATTESTATION",
+                            "I review and confirm this data",
+                        ),
+                    }
+
+                    reason_key = payload.signing_reason
+                    if reason_key in reason_mapping:
+                        signing_reason_code, signing_reason_text = reason_mapping[
+                            reason_key
+                        ]
+                    else:
+                        signing_reason_code = reason_key.replace(" ", "_").upper()
+                        signing_reason_text = reason_key
+
+                    network_ip_address = request.headers.get("x-forwarded-for") or (
+                        request.client.host if request.client else "127.0.0.1"
+                    )
+                    device_user_agent = request.headers.get("user-agent") or "Unknown"
+
                     manifest = {
-                        "signer_id": request.state.user_id,
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                        # Old keys for backward compatibility
+                        "signer_id": username,
+                        "timestamp": signing_timestamp_utc,
                         "signing_reason": payload.signing_reason,
-                        "ip_address": request.headers.get("x-forwarded-for")
-                        or (request.client.host if request.client else "127.0.0.1"),
-                        "user_agent": request.headers.get("user-agent") or "Unknown",
+                        "ip_address": network_ip_address,
+                        "user_agent": device_user_agent,
                         "signed_version": sub.version + 1,
                         "canonical_signature_hash": canonical_hash,
+                        # New detailed vocabulary matching 05_Security_Compliance_Audit_Spec.md §4.2
+                        "signature_manifestation": {
+                            "signer_username": username,
+                            "signer_full_name": full_name,
+                            "signing_timestamp_utc": signing_timestamp_utc,
+                            "signing_reason_code": signing_reason_code,
+                            "signing_reason_text": signing_reason_text,
+                            "network_ip_address": network_ip_address,
+                            "device_user_agent": device_user_agent,
+                            "record_id": sub.id,
+                            "record_version": sub.version + 1,
+                            "signature_hash_sha256": canonical_hash,
+                        },
                     }
 
                     sub.status = "APPROVED"
@@ -5056,7 +5173,9 @@ async def process_coding_action(
 # ==========================================
 
 
-async def run_sdtm_extraction(session, study_id: str, domain: str) -> List[dict]:
+async def run_sdtm_extraction(
+    session, study_id: str, domain: str
+) -> tuple[List[dict], List[Any]]:
     """Helper to retrieve and transform raw observations to SDTM records."""
     stmt_subj = select(ClinicalSubject).where(
         ClinicalSubject.study_id == study_id,
@@ -5074,16 +5193,17 @@ async def run_sdtm_extraction(session, study_id: str, domain: str) -> List[dict]
 
     dom_upper = domain.strip().upper()
     records = []
+    supp_records = []
     if dom_upper == "DM":
         records = extract_dm(subjects, observations)
     elif dom_upper == "AE":
-        records, _ = extract_ae(subjects, observations)
+        records, supp_records = extract_ae(subjects, observations)
     elif dom_upper == "VS":
-        records, _ = extract_vs(subjects, observations)
+        records, supp_records = extract_vs(subjects, observations)
     elif dom_upper == "LB":
-        records, _ = extract_lb(subjects, observations)
+        records, supp_records = extract_lb(subjects, observations)
     elif dom_upper == "MH":
-        records, _ = extract_mh(subjects, observations)
+        records, supp_records = extract_mh(subjects, observations)
     elif dom_upper == "CM":
         from apps.execution.database.models import ClinicalVisit
         from apps.execution.sdtm_mapper import map_cm
@@ -5105,7 +5225,7 @@ async def run_sdtm_extraction(session, study_id: str, domain: str) -> List[dict]
     for r in records:
         if "DOMAIN" not in r:
             r["DOMAIN"] = dom_upper
-    return records
+    return records, supp_records
 
 
 async def run_adam_derivation(session, study_id: str, dataset: str) -> List[dict]:
@@ -5159,6 +5279,7 @@ async def export_sdtm_domain(
     - **Authorized Roles**: CRA, Data Manager, Sponsor Statistician.
     - **Validations**: Automatically validates schema, keys, and values before returning payload.
     - **Media Type Contract**: `application/json` conforming to CDISC Dataset-JSON 1.0.0.
+    - **Supplemental Contract**: Includes matching SUPP<domain> dataset alongside the parent dataset when supplemental records exist.
     """
     dom_upper = domain.strip().upper()
     valid_domains = {"DM", "AE", "VS", "LB", "MH", "CM"}
@@ -5170,9 +5291,14 @@ async def export_sdtm_domain(
 
     async with db_manager.get_session_maker()() as session:
         try:
-            records = await run_sdtm_extraction(session, study_id, dom_upper)
+            records, supp_records = await run_sdtm_extraction(
+                session, study_id, dom_upper
+            )
+            export_data = {dom_upper: records}
+            if supp_records:
+                export_data[f"SUPP{dom_upper}"] = supp_records
             dataset_json = serialize_to_dataset_json(
-                data={dom_upper: records}, study_id=study_id
+                data=export_data, study_id=study_id
             )
             validate_dataset_json(dataset_json)
 
@@ -5212,6 +5338,50 @@ async def export_sdtm_domain(
             raise HTTPException(
                 status_code=500, detail=f"Export execution failed: {str(e)}"
             )
+
+
+@app.get("/api/v1/execution/audit/integrity")
+async def get_execution_audit_integrity(
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> dict:
+    """Verify the GxP clinical execution ledger integrity via block-sealing validation.
+
+    Ensures that chronological audit logs, block-level seals, and sequential chaining
+    remain structurally unbroken.
+    """
+    is_auditor = "auditor" in principal.roles or any(
+        r
+        in {
+            "auditor",
+            "inspector",
+            "regulatory_inspector",
+            "tmf_auditor",
+            "sponsor_admin",
+        }
+        for r in principal.raw_roles
+    )
+    if not is_auditor:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Access is restricted to authorized auditor/inspection roles.",
+        )
+
+    from apps.execution.database.sealer import validate_ledger_integrity
+
+    try:
+        async with db_manager.get_session_maker()() as session:
+            # validate_ledger_integrity returns True or raises ValueError on tamper
+            is_valid = await validate_ledger_integrity(session)
+            return {
+                "verified": is_valid,
+                "message": "GxP clinical execution ledger chain fully verified and structurally intact.",
+            }
+    except ValueError as e:
+        return {
+            "verified": False,
+            "message": f"GxP Core Data Integrity Breach Detected: {str(e)}",
+        }
 
 
 @app.get("/api/v1/execution/biostat/adam/{dataset}")
@@ -5300,14 +5470,19 @@ async def export_biostat_bundle(
     - **Authorized Roles**: CRA, Data Manager, Sponsor Statistician.
     - **Validations**: Validates complete structural, domain-level, and cross-dataset referential consistency.
     - **Media Type Contract**: `application/json` conforming to CDISC Dataset-JSON 1.0.0.
+    - **Supplemental Contract**: Includes all generated SUPP-- datasets alongside their parent datasets in the bundle.
     """
     async with db_manager.get_session_maker()() as session:
         try:
             bundle_data = {}
             for dom in ["DM", "AE", "VS", "LB", "MH", "CM"]:
-                records = await run_sdtm_extraction(session, study_id, dom)
+                records, supp_records = await run_sdtm_extraction(
+                    session, study_id, dom
+                )
                 if records:
                     bundle_data[dom] = records
+                if supp_records:
+                    bundle_data[f"SUPP{dom}"] = supp_records
             for ds in ["ADSL", "ADAE", "ADVS"]:
                 records = await run_adam_derivation(session, study_id, ds)
                 if records:

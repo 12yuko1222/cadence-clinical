@@ -12,11 +12,11 @@ from tmf_reference_model import (
     get_active_catalog,
     get_mandatory_artifacts,
     resolve_artifact,
-    validate_hierarchy,
 )
 
 from apps.etmf.database import db_manager
 from apps.etmf.export import generate_binder_zip
+from apps.etmf.ingestion import ingest_document_service
 from apps.etmf.lifecycle import validate_and_transition_document_status
 from apps.etmf.models import (
     Base,
@@ -177,6 +177,7 @@ class IngestionRequest(BaseModel):
     """
 
     study_id: str = Field(..., description="Unique identifier of the clinical study")
+    site_id: Optional[str] = Field(None, description="Optional site identifier")
     artifact_type: str = Field(
         ..., description="Type of artifact (e.g. Approved Protocol, Define-XML)"
     )
@@ -205,6 +206,7 @@ class DocumentResponse(BaseModel):
 
     id: str
     study_id: str
+    site_id: Optional[str] = None
     zone: int
     section: str
     artifact_type: str
@@ -338,6 +340,50 @@ class ManualRedactResponse(BaseModel):
     manifest: Dict[str, Any] = Field(
         ..., description="The signed manifest and provenance data"
     )
+
+
+class StudyArchiveRequest(BaseModel):
+    """
+    Payload to request bulk study-level document archival.
+    """
+
+    reason_for_change: str = Field(
+        ...,
+        min_length=10,
+        max_length=1000,
+        description="Part 11 change justification reason for bulk study archive",
+    )
+    all_or_nothing: bool = Field(
+        True,
+        description="If True, rolling back the entire operation if any eligible document fails to transition.",
+    )
+
+
+class StudyArchiveItemResult(BaseModel):
+    """
+    Detailed result for an individual document's archival attempt.
+    """
+
+    document_id: str
+    filename: str
+    from_status: str
+    to_status: str
+    status: str  # "success", "skipped", "failed"
+    error_message: Optional[str] = None
+
+
+class StudyArchiveResponse(BaseModel):
+    """
+    Response model for bulk study archive operation.
+    """
+
+    status: str  # "success", "partial_success", "failed"
+    study_id: str
+    total_processed: int
+    successful_count: int
+    failed_count: int
+    skipped_count: int
+    results: List[StudyArchiveItemResult]
 
 
 class TransitionRequest(BaseModel):
@@ -508,6 +554,22 @@ async def write_audit_log(
     await session.flush()
 
 
+def enforce_document_site_visibility(doc: TMFDocument, principal: Principal) -> None:
+    """
+    Enforces document-level site-scope visibility rules.
+    Site-scoped users are restricted to documents at their assigned sites and cannot see study-level documents (null site_id).
+    Sponsor/DM/Sysadmin users with global access can see all documents.
+    """
+    is_site_scoped = len(principal.assigned_sites) > 0
+
+    if is_site_scoped:
+        if not doc.site_id or doc.site_id not in principal.assigned_sites:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Access is restricted to documents at your assigned site(s).",
+            )
+
+
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """
@@ -547,267 +609,42 @@ async def ingest_document(
             detail="Forbidden: Trial is currently locked in a read-only state due to a security violation.",
         )
 
-    # Determine TMF taxonomy version
-    taxonomy_version = payload.taxonomy_version or get_active_catalog().version
-
-    code_input = payload.artifact_code
-    name_input = payload.artifact_type
-
-    # Map/Normalize the document classification for FORM_1572, FINANCIAL_DISCLOSURE, and PROTOCOL_SIGNOFF
-    doc_type = None
-    if (
-        name_input == "FORM_1572"
-        or code_input == "05.02.01"
-        or name_input == "FDA Form 1572"
-    ):
-        doc_type = "FORM_1572"
-        name_input = "FDA Form 1572"
-        code_input = "05.02.01"
-    elif (
-        name_input == "FINANCIAL_DISCLOSURE"
-        or code_input == "05.02.02"
-        or name_input == "Financial Disclosure"
-    ):
-        doc_type = "FINANCIAL_DISCLOSURE"
-        name_input = "Financial Disclosure"
-        code_input = "05.02.02"
-    elif (
-        name_input == "PROTOCOL_SIGNOFF"
-        or code_input == "01.01.03"
-        or name_input == "Protocol Sign-off"
-    ):
-        doc_type = "PROTOCOL_SIGNOFF"
-        name_input = "Protocol Sign-off"
-        code_input = "01.01.03"
-
-    # Resolve artifact, section, and zone via the shared catalog API
     try:
-        # If artifact_code is not explicitly supplied, check if artifact_type is a code
-        if (
-            not code_input
-            and name_input
-            and name_input.strip().replace(".", "").isdigit()
-        ):
-            code_input = name_input.strip()
-            name_input = None
-
-        resolved = resolve_artifact(
-            version=taxonomy_version, code=code_input, name=name_input
+        doc = await ingest_document_service(
+            session=session,
+            study_id=payload.study_id,
+            site_id=payload.site_id,
+            artifact_type=payload.artifact_type,
+            filename=payload.filename,
+            content=payload.content,
+            mime_type=payload.mime_type,
+            user_id=user_id,
+            user_roles=user_roles,
+            assigned_sites=principal.assigned_sites,
+            zone=payload.zone,
+            section=payload.section,
+            artifact_code=payload.artifact_code,
+            taxonomy_version=payload.taxonomy_version,
+            metadata_json=payload.metadata_json,
         )
     except ValueError as e:
         raise HTTPException(
             status_code=422,
-            detail=f"Validation Error: {str(e)}",
+            detail=str(e),
         )
-
-    zone = resolved["zone"].code
-    section = resolved["section"].code
-    artifact_obj = resolved["artifact"]
-    artifact_code = artifact_obj.code
-    canonical_artifact_type = artifact_obj.name
-
-    # Validate hierarchy if user supplied specific zone/section hierarchy
-    supplied_zone = payload.zone
-    supplied_section = payload.section
-    if payload.metadata_json:
-        if supplied_zone is None:
-            supplied_zone = payload.metadata_json.get("zone")
-        if supplied_section is None:
-            supplied_section = payload.metadata_json.get("section")
-
-    if supplied_zone is not None or supplied_section is not None:
-        try:
-            validate_hierarchy(
-                version=taxonomy_version,
-                zone_code=supplied_zone if supplied_zone is not None else zone,
-                section_code=(
-                    supplied_section if supplied_section is not None else section
-                ),
-                artifact_code=artifact_code,
-            )
-        except ValueError as e:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Validation Error: {str(e)}",
-            )
-
-    # Validate embedded X.509 signature
-    from apps.etmf.cryptography import (
-        extract_signature_from_content,
-        validate_document_signature,
-    )
-
-    is_valid, status_msg = validate_document_signature(
-        artifact_type=canonical_artifact_type,
-        content=payload.content,
-        metadata_json=payload.metadata_json,
-    )
-    if not is_valid:
+    except PermissionError as e:
         raise HTTPException(
-            status_code=422,
-            detail=f"Validation Error: {status_msg}",
+            status_code=403,
+            detail=str(e),
         )
-
-    # Extract signature to set signature verification status in metadata
-    cert_pem, sig_bytes, _ = extract_signature_from_content(payload.content)
-    if not cert_pem and payload.metadata_json:
-        for key in ["signature", "digital_signature", "x509_signature"]:
-            sig_obj = payload.metadata_json.get(key)
-            if isinstance(sig_obj, dict):
-                cert_pem = (
-                    sig_obj.get("certificate")
-                    or sig_obj.get("x509_certificate")
-                    or sig_obj.get("cert")
-                )
-                break
-
-    # Record verification status in metadata_json
-    metadata_json = dict(payload.metadata_json) if payload.metadata_json else {}
-    metadata_json["signature_verification_status"] = (
-        "VERIFIED" if cert_pem else "NOT_REQUIRED"
-    )
-
-    # Reconstruct signature manifestation if validated and present
-    import base64
-    import hashlib
-    from datetime import datetime, timezone
-
-    from cryptography import x509
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.x509.oid import NameOID
-    from signature import SignatureManifestation, SigningReason
-
-    sig_b64 = None
-    if cert_pem and sig_bytes:
-        sig_b64 = base64.b64encode(sig_bytes).decode("utf-8")
-    elif payload.metadata_json:
-        for key in ["signature", "digital_signature", "x509_signature"]:
-            sig_obj = payload.metadata_json.get(key)
-            if isinstance(sig_obj, dict):
-                sig_val = sig_obj.get("signature_value") or sig_obj.get("signature")
-                if sig_val:
-                    sig_b64 = sig_val.strip()
-                    break
-
-    approval_status_val = "PENDING"
-    signature_manifestation_data = None
-    signer_val = None
-    signing_timestamp_val = None
-
-    if cert_pem and sig_b64:
-        # We have a valid validated signature!
-        # Compute hash of the payload content
-        content_hash = hashlib.sha256(payload.content.encode("utf-8")).hexdigest()
-
-        # Extract signer identity (CN) from cert_pem
-        signer_name = None
-        key_id = None
-        if "MOCK_SIGNATURE" in cert_pem:
-            signer_name = "Mock Signer"
-            key_id = "MOCK_KEY"
-        else:
-            try:
-                cert_obj = x509.load_pem_x509_certificate(cert_pem.encode("utf-8"))
-                cn_attr = cert_obj.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-                if cn_attr:
-                    signer_name = cn_attr[0].value
-                key_id = cert_obj.fingerprint(hashes.SHA256()).hex()
-            except Exception:
-                pass
-
-        if not signer_name:
-            signer_name = user_id or "system"
-
-        now_utc = datetime.now(timezone.utc)
-        sig_man = SignatureManifestation(
-            signer_id=signer_name,
-            timestamp=now_utc,
-            signing_reason=SigningReason.APPROVAL,
-            ip_address="127.0.0.1",
-            user_agent="eTMF Ingest Service",
-            sha256_hash=content_hash,
-            signature=sig_b64,
-            certificate_pem=cert_pem,
-            key_identifier=key_id,
-        )
-        signature_manifestation_data = sig_man.model_dump(mode="json")
-        approval_status_val = "APPROVED"
-        signer_val = signer_name
-        signing_timestamp_val = now_utc
-
-    # Check if a document version already exists (for study_id + artifact_code)
-    stmt = (
-        select(TMFDocument)
-        .where(TMFDocument.study_id == payload.study_id)
-        .where(TMFDocument.artifact_code == artifact_code)
-        .order_by(TMFDocument.version_index.desc())
-    )
-    result = await session.execute(stmt)
-    existing_doc = result.scalars().first()
-
-    new_version_index = 1
-    if existing_doc:
-        if (
-            existing_doc.status == "SIGNED"
-            or existing_doc.approval_status == "APPROVED"
-            or existing_doc.signature_manifestation is not None
-        ):
-            await write_audit_log(
-                session=session,
-                user_id=user_id,
-                user_role=user_roles,
-                action="MUTATION_REJECTED",
-                document_id=existing_doc.id,
-                details=f"Rejected attempt to ingest new version for signed document '{existing_doc.filename}' (ID: {existing_doc.id}). Error: IMMUTABILITY_VIOLATION.",
-            )
-            await session.commit()
-            raise HTTPException(
-                status_code=403,
-                detail="IMMUTABILITY_VIOLATION: Document is already signed and cannot be modified",
-            )
-        new_version_index = existing_doc.version_index + 1
-
-    doc = TMFDocument(
-        study_id=payload.study_id,
-        zone=zone,
-        section=section,
-        artifact_type=canonical_artifact_type,
-        filename=payload.filename,
-        content=payload.content,
-        mime_type=payload.mime_type,
-        created_by=user_id,
-        version_index=new_version_index,
-        taxonomy_version=taxonomy_version,
-        artifact_code=artifact_code,
-        metadata_json=metadata_json,
-        document_type=doc_type,
-        approval_status=approval_status_val,
-        signature_manifestation=signature_manifestation_data,
-        signer=signer_val,
-        signing_timestamp=signing_timestamp_val,
-    )
-
-    session.add(doc)
-    await session.flush()
-
-    # Log action to immutable audit trail
-    await write_audit_log(
-        session=session,
-        user_id=user_id,
-        user_role=user_roles,
-        action="INGEST",
-        document_id=doc.id,
-        details=f"Ingested artifact type '{canonical_artifact_type}' for study '{payload.study_id}' as Version {new_version_index} (TMF Zone {zone}, Section {section}).",
-    )
-
     return {
         "status": "success",
         "document_id": doc.id,
-        "zone": zone,
-        "section": section,
-        "version_index": new_version_index,
-        "taxonomy_version": taxonomy_version,
-        "artifact_code": artifact_code,
+        "zone": doc.zone,
+        "section": doc.section,
+        "version_index": doc.version_index,
+        "taxonomy_version": doc.taxonomy_version,
+        "artifact_code": doc.artifact_code,
         "document_status": doc.status,
     }
 
@@ -837,6 +674,15 @@ async def list_documents(
         # Simple SQLite/Postgres text search indexing
         stmt = stmt.where(TMFDocument.content.contains(search))
 
+    # Enforce site visibility and study-level semantics
+    is_site_scoped = len(principal.assigned_sites) > 0
+
+    if is_site_scoped:
+        if principal.assigned_sites:
+            stmt = stmt.where(TMFDocument.site_id.in_(principal.assigned_sites))
+        else:
+            stmt = stmt.where(TMFDocument.site_id == "NONE_ASSIGNED")
+
     result = await session.execute(stmt)
     docs = result.scalars().all()
 
@@ -855,6 +701,7 @@ async def list_documents(
         DocumentResponse(
             id=doc.id,
             study_id=doc.study_id,
+            site_id=doc.site_id,
             zone=doc.zone,
             section=doc.section,
             artifact_type=doc.artifact_type,
@@ -903,6 +750,9 @@ async def view_document(
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc, principal)
+
     # Enforce raw-original authorization controls
     if not doc.is_redacted:
         stmt_redacted = select(TMFDocument).where(
@@ -929,6 +779,7 @@ async def view_document(
     return DocumentResponse(
         id=doc.id,
         study_id=doc.study_id,
+        site_id=doc.site_id,
         zone=doc.zone,
         section=doc.section,
         artifact_type=doc.artifact_type,
@@ -988,6 +839,9 @@ async def download_document(
 
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc, principal)
 
     # Enforce raw-original authorization controls
     if not doc.is_redacted:
@@ -1063,6 +917,9 @@ async def download_watermarked_document(
 
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc, principal)
 
     # Enforce raw-original authorization controls
     if not doc.is_redacted:
@@ -1440,6 +1297,16 @@ async def check_completeness(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Enforce site isolation on completeness checking for site-scoped users
+    is_site_scoped = len(principal.assigned_sites) > 0
+
+    if is_site_scoped:
+        if not site_id or site_id not in principal.assigned_sites:
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: You can only check completeness for your assigned site(s).",
+            )
+
     milestone_normalized = normalize_milestone(milestone)
 
     # Validate milestone with catalog first. If unknown, raise 400 immediately.
@@ -1617,6 +1484,9 @@ async def redact_document_endpoint(
     if not source_doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(source_doc, principal)
+
     # Check if already signed
     if (
         source_doc.status == "SIGNED"
@@ -1666,6 +1536,7 @@ async def redact_document_endpoint(
     # Build redacted document version
     redacted_doc = TMFDocument(
         study_id=source_doc.study_id,
+        site_id=source_doc.site_id,
         zone=source_doc.zone,
         section=source_doc.section,
         artifact_type=source_doc.artifact_type,
@@ -1712,6 +1583,7 @@ async def redact_document_endpoint(
     return DocumentResponse(
         id=redacted_doc.id,
         study_id=redacted_doc.study_id,
+        site_id=redacted_doc.site_id,
         zone=redacted_doc.zone,
         section=redacted_doc.section,
         artifact_type=redacted_doc.artifact_type,
@@ -1781,6 +1653,9 @@ async def auto_redact_document_endpoint(
     source_doc = result.scalars().first()
     if not source_doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(source_doc, principal)
 
     # Check if already signed
     if (
@@ -1879,6 +1754,7 @@ async def auto_redact_document_endpoint(
 
     redacted_doc = TMFDocument(
         study_id=source_doc.study_id,
+        site_id=source_doc.site_id,
         zone=source_doc.zone,
         section=source_doc.section,
         artifact_type=source_doc.artifact_type,
@@ -1972,6 +1848,9 @@ async def manual_redact_document_endpoint(
     source_doc = result.scalars().first()
     if not source_doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(source_doc, principal)
 
     # Check if already signed
     if (
@@ -2115,6 +1994,7 @@ async def manual_redact_document_endpoint(
 
     redacted_doc = TMFDocument(
         study_id=source_doc.study_id,
+        site_id=source_doc.site_id,
         zone=source_doc.zone,
         section=source_doc.section,
         artifact_type=source_doc.artifact_type,
@@ -2196,6 +2076,9 @@ async def transition_document_status_endpoint(
     doc = result.scalars().first()
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc, principal)
 
     # Keep signing semantics out of manual QC transition input
     valid_qc_statuses = {
@@ -2310,6 +2193,9 @@ async def sign_document_endpoint(
     doc = result.scalars().first()
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc, principal)
 
     # 2. Check if already signed/approved
     if (
@@ -2449,6 +2335,7 @@ async def sign_document_endpoint(
     return DocumentResponse(
         id=doc.id,
         study_id=doc.study_id,
+        site_id=doc.site_id,
         zone=doc.zone,
         section=doc.section,
         artifact_type=doc.artifact_type,
@@ -2491,8 +2378,12 @@ async def get_document_transition_history(
     # Verify document exists
     stmt_exist = select(TMFDocument).where(TMFDocument.id == document_id)
     res_exist = await session.execute(stmt_exist)
-    if not res_exist.scalars().first():
+    doc_obj = res_exist.scalars().first()
+    if not doc_obj:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc_obj, principal)
 
     stmt = (
         select(DocumentQCTransition)
@@ -2573,6 +2464,7 @@ async def export_regulatory_binder(
         include_history=include_history,
         requester_id=user_id,
         requester_role=user_roles,
+        principal=principal,
     )
 
     filename = f"study_{study_id}_binder.zip"
@@ -2580,6 +2472,151 @@ async def export_regulatory_binder(
         content=zip_bytes,
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.post(
+    "/api/v1/etmf/studies/{study_id}/archive",
+    response_model=StudyArchiveResponse,
+    status_code=200,
+)
+async def bulk_archive_study_documents(
+    request: Request,
+    study_id: str,
+    payload: StudyArchiveRequest,
+    session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> StudyArchiveResponse:
+    """
+    Perform authorized bulk study-level document archival transitioning eligible eTMF documents to
+    the terminal ARCHIVED status under 21 CFR Part 11 requirements.
+    """
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+
+    # Require transition_archived permission
+    if not has_permission(principal, "etmf_document:transition_archived"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Caller lacks the required etmf_document:transition_archived permission.",
+        )
+
+    # Fetch all documents under the specified study
+    stmt = select(TMFDocument).where(TMFDocument.study_id == study_id)
+    result = await session.execute(stmt)
+    documents = result.scalars().all()
+
+    if not documents:
+        # Repeating an already-completed archive request (or an empty study) is safe and observable
+        return StudyArchiveResponse(
+            status="success",
+            study_id=study_id,
+            total_processed=0,
+            successful_count=0,
+            failed_count=0,
+            skipped_count=0,
+            results=[],
+        )
+
+    results: List[StudyArchiveItemResult] = []
+    successful_count = 0
+    failed_count = 0
+    skipped_count = 0
+
+    # Execute inside a nested transaction (savepoint) to allow rollback on failure
+    async with session.begin_nested() as nested_tx:
+        failed = False
+        first_error = None
+        for doc in documents:
+            from_status = doc.status or "DRAFT"
+
+            # Skip if already ARCHIVED
+            if from_status == "ARCHIVED":
+                skipped_count += 1
+                results.append(
+                    StudyArchiveItemResult(
+                        document_id=doc.id,
+                        filename=doc.filename,
+                        from_status=from_status,
+                        to_status="ARCHIVED",
+                        status="skipped",
+                    )
+                )
+                continue
+
+            try:
+                # Transition using the state machine which saves a DocumentQCTransition
+                await validate_and_transition_document_status(
+                    session=session,
+                    document=doc,
+                    to_status="ARCHIVED",
+                    actor_id=user_id,
+                    actor_role=user_roles,
+                    reason_for_change=payload.reason_for_change,
+                )
+                successful_count += 1
+                results.append(
+                    StudyArchiveItemResult(
+                        document_id=doc.id,
+                        filename=doc.filename,
+                        from_status=from_status,
+                        to_status="ARCHIVED",
+                        status="success",
+                    )
+                )
+            except Exception as e:
+                failed_count += 1
+                results.append(
+                    StudyArchiveItemResult(
+                        document_id=doc.id,
+                        filename=doc.filename,
+                        from_status=from_status,
+                        to_status="ARCHIVED",
+                        status="failed",
+                        error_message=str(e),
+                    )
+                )
+                if payload.all_or_nothing:
+                    failed = True
+                    first_error = str(e)
+                    break
+
+        if failed and payload.all_or_nothing:
+            await nested_tx.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"All-or-nothing validation failure: Archival aborted because document transition failed. Error: {first_error}",
+            )
+
+    # Log overall study-level archival results to audit trail
+    overall_status = "success"
+    if failed_count > 0:
+        if successful_count > 0:
+            overall_status = "partial_success"
+        else:
+            overall_status = "failed"
+
+    details_msg = (
+        f"Bulk study archive completed for study '{study_id}'. "
+        f"Status: {overall_status}. Successful: {successful_count}, Failed: {failed_count}, Skipped: {skipped_count}."
+    )
+    await write_audit_log(
+        session=session,
+        user_id=user_id,
+        user_role=user_roles,
+        action="STUDY_ARCHIVE",
+        document_id=None,
+        details=details_msg,
+    )
+
+    return StudyArchiveResponse(
+        status=overall_status,
+        study_id=study_id,
+        total_processed=len(documents),
+        successful_count=successful_count,
+        failed_count=failed_count,
+        skipped_count=skipped_count,
+        results=results,
     )
 
 
@@ -2602,8 +2639,12 @@ async def get_document_qc_history(
     # Verify document exists
     stmt_exist = select(TMFDocument).where(TMFDocument.id == document_id)
     res_exist = await session.execute(stmt_exist)
-    if not res_exist.scalars().first():
+    doc_obj = res_exist.scalars().first()
+    if not doc_obj:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Enforce site visibility and study-level semantics
+    enforce_document_site_visibility(doc_obj, principal)
 
     stmt = (
         select(DocumentQCTransition)

@@ -89,10 +89,10 @@ describe("Vue SPA Smoke Tests", () => {
       },
     });
 
-    expect(wrapper.html()).toContain("Cryptographic Audit Log Inspector");
     expect(wrapper.html()).toContain(
-      "21 CFR Part 11 Cryptographic Audit Ledger"
+      "Regulatory Auditor &amp; Inspection Portal"
     );
+    expect(wrapper.html()).toContain("GxP Execution Ledger Chain Verification");
   });
 
   it("mounts RulesView and renders Interactive Rules Designer", () => {

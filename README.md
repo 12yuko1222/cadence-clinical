@@ -195,8 +195,13 @@ pnpm -r lint
 pnpm -r format
 pnpm -r test
 
-# Unified workspace checking command
-pnpm check
+### Useful Developer Commands
+```bash
+# Export OpenAPI schemas for contract validation
+uv run python scripts/validate_schemas.py --export-dir docs/openapi
+
+# Regenerate and stage GxP RTM compliance docs
+uv run python scripts/sync_gxp.py
 ```
 
 ---
@@ -234,7 +239,7 @@ We track our live feature backlog and feature requests via the live [GitHub Issu
 Strategic backlog priorities and technical debt resolutions currently planned (TBD) include:
 - [ ] Route the Organization Directory (`apps/org`), eConsent (`apps/econsent`), and eISF (`apps/eisf`) microservices through the API Gateway `SERVICES` mapping.
 - [ ] Implement full operational CRUD routes for Site personnel and Delegations of Authority within `apps/org`.
-- [ ] Complete the migration of legacy vanilla-JS layout scripts (`apps/web/index.js`) into native Vue 3 components (`src/views/`).
+- [ ] Complete the migration of legacy vanilla-JS layout scripts (`apps/web/src/lib/legacy_helpers.js`) into native Vue 3 components (`src/views/`).
 - [ ] Establish automated E2B(R3) validator checks for suspect drug ingredient alignments using WHODrug hierarchies.
 - [ ] Integrate automatic document QC status transitions within the eTMF indexing module.
 

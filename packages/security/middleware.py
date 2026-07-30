@@ -138,6 +138,13 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         if unblinded_header.lower() in ("true", "1", "yes"):
             unblinded_access = True
 
+        # Extract tenant identity and apply least-privilege migration policy (default to tenant_default)
+        tenant_id = request.headers.get("X-Tenant-Id")
+        if tenant_id is None or not str(tenant_id).strip():
+            tenant_id = "tenant_default"
+        else:
+            tenant_id = str(tenant_id).strip()
+
         if version in ("2", "v2"):
             from packages.security.signing import verify_gateway_signature
 
@@ -151,6 +158,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                 site_id=site_id,
                 sponsor_id=sponsor_id,
                 unblinded_access=unblinded_access,
+                tenant_id=tenant_id,
             )
         else:
             # Version 1/v1 (legacy colon concatenated format) - doesn't support scope
@@ -236,6 +244,82 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                         },
                     )
 
+                # Check batch binding if path is batch-sign-off or if token contains batch_id
+                token_batch_id = sig_payload.get("batch_id")
+                if "batch-sign-off" in path_lower:
+                    if not token_batch_id:
+                        return JSONResponse(
+                            status_code=401,
+                            content={
+                                "detail": "REAUTHENTICATION_REQUIRED",
+                                "error": "REAUTHENTICATION_REQUIRED",
+                                "message": "Signature token is not bound to a batch.",
+                            },
+                        )
+
+                    # Read request body safely
+                    body_bytes = await request.body()
+                    try:
+                        import json
+
+                        body_json = json.loads(body_bytes)
+                    except Exception:
+                        body_json = {}
+
+                    # Restore body receive for Starlette downstream
+                    async def receive():
+                        return {
+                            "type": "http.request",
+                            "body": body_bytes,
+                            "more_body": False,
+                        }
+
+                    request._receive = receive
+
+                    req_study_id = body_json.get("study_id")
+                    req_target_type = body_json.get("target_type")
+                    req_target_ids = body_json.get("target_ids")
+                    req_signing_reason = body_json.get("signing_reason")
+
+                    if not all(
+                        [
+                            req_study_id,
+                            req_target_type,
+                            req_target_ids is not None,
+                            req_signing_reason,
+                        ]
+                    ):
+                        return JSONResponse(
+                            status_code=400,
+                            content={
+                                "detail": "REAUTHENTICATION_REQUIRED",
+                                "error": "REAUTHENTICATION_REQUIRED",
+                                "message": "Missing batch sign-off fields for validation.",
+                            },
+                        )
+
+                    # Compute canonical batch binding
+                    norm_study = str(req_study_id).strip()
+                    norm_type = str(req_target_type).strip().upper()
+                    sorted_ids = sorted([str(tid).strip() for tid in req_target_ids])
+                    norm_ids = ",".join(sorted_ids)
+                    norm_reason = str(req_signing_reason).strip()
+
+                    binding_str = f"{norm_study}:{norm_type}:{norm_ids}:{norm_reason}"
+                    computed_batch_id = hashlib.sha256(
+                        binding_str.encode("utf-8")
+                    ).hexdigest()
+
+                    if token_batch_id != computed_batch_id:
+                        return JSONResponse(
+                            status_code=401,
+                            content={
+                                "detail": "REAUTHENTICATION_REQUIRED",
+                                "error": "REAUTHENTICATION_REQUIRED",
+                                "message": "Signature token batch binding mismatch.",
+                            },
+                        )
+
                 # Check replay attack
                 jti = sig_payload.get("jti")
                 if downstream_replay_cache.is_replayed(
@@ -265,6 +349,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         request.state.site_id = site_id
         request.state.sponsor_id = sponsor_id
         request.state.unblinded_access = unblinded_access
+        request.state.tenant_id = tenant_id
 
         # Extract IP address for context injection
         ip_address = request.headers.get(
@@ -276,6 +361,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         from packages.security.context import (
             current_site_id,
             current_sponsor_id,
+            current_tenant_id,
             current_unblinded_access,
         )
 
@@ -289,6 +375,7 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
         site_token = current_site_id.set(site_id)
         sponsor_token = current_sponsor_id.set(sponsor_id)
         unblinded_token = current_unblinded_access.set(unblinded_access)
+        tenant_token = current_tenant_id.set(tenant_id)
 
         try:
             return await call_next(request)
@@ -301,3 +388,4 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             current_site_id.reset(site_token)
             current_sponsor_id.reset(sponsor_token)
             current_unblinded_access.reset(unblinded_token)
+            current_tenant_id.reset(tenant_token)

@@ -133,7 +133,7 @@ import {
   evaluateAST,
   compilerCache,
   getCompiledExpression,
-} from "./src/evaluator.js";
+} from "../evaluator.js";
 
 export { evaluateAST, compilerCache, getCompiledExpression };
 export { sharedDebounce as debounce };

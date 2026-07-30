@@ -238,6 +238,7 @@ WHITELISTED_ROUTES = {
     ("get", "/api/v1/dictionaries/whodrug/code"),
     ("get", "/api/v1/execution/biostat/adam/{dataset}"),
     ("get", "/api/v1/execution/biostat/bundle"),
+    ("get", "/api/v1/execution/audit/integrity"),
     ("get", "/api/v1/execution/biostat/sdtm/{domain}"),
     ("get", "/api/v1/execution/coding/assignments"),
     ("get", "/api/v1/execution/coding/assignments/{assignment_id}"),
@@ -382,6 +383,27 @@ WHITELISTED_ROUTES = {
         "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     ),
     ("put", "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
+    ),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
+    ),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
+    ),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/links/timing"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
+    ),
 }
 
 
