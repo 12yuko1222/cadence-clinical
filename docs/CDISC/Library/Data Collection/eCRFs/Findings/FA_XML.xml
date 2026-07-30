@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Findings About" FileType="Snapshot" CreationDateTime="2021-05-18T15:42:36-06:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Findings About aCRF">
+		<GlobalVariables>
+			<StudyName>Findings About</StudyName>
+			<StudyDescription>Findings About</StudyDescription>
+			<ProtocolName>Findings About</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Findings About" Name="Findings About">
+			<FormDef OID="FA" Name="Form FA - Findings About Events or Interventions" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">FA - Findings About Events or Interventions</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_38" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_38" Name="FA - Findings About Events or Interventions" Repeating="No" Domain="FA">
+				<Description>
+					<TranslatedText xml:lang="en">FA - Findings About Events or Interventions</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.CETERM" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.CESTDAT" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.CESTTIM" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.FACAT" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.SENSLGHT_FAORRES" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.SENSOUND_FAORRES" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.NAUSEA_FAORRES" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.AURA_FAORRES" Mandatory="No" OrderNumber="8"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.AURA_FAORRES" Name="AURA_FAORRES" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">FAORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Aura</TranslatedText>
+					<TranslatedText xml:lang="en">Aura</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="([Result/Amount] of) [value from FATEST]"/>
+				<Alias Context="completionInstructions" Name="Record the FATEST result."/>
+				<Alias Context="implementationNotes" Name="In most cases, the Question Text and Item Prompt for the FAORRES are specific to the FATEST. The value of FATEST is most useful as the PROMPT on the field in which the RESULT for that test is collected. If the form is laid out as a grid, then words such as &quot;Result&quot; can be included as the column header."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTM variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="OCCUR_AURA_FAORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SENSOUND_FAORRES" Name="SENSOUND_FAORRES" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">FAORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Sensitivity to Sound</TranslatedText>
+					<TranslatedText xml:lang="en">Sensitivity to Sound</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="([Result/Amount] of) [value from FATEST]"/>
+				<Alias Context="completionInstructions" Name="Record the FATEST result."/>
+				<Alias Context="implementationNotes" Name="In most cases, the Question Text and Item Prompt for the FAORRES are specific to the FATEST. The value of FATEST is most useful as the PROMPT on the field in which the RESULT for that test is collected. If the form is laid out as a grid, then words such as &quot;Result&quot; can be included as the column header."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTM variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="OCCUR_SENSOUND_FAORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.FACAT" Name="FACAT" DataType="text" Length="100">
+				<Description>
+					<TranslatedText xml:lang="en">FACAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the category of the [measurement/test/examination/specimen/sample]?</TranslatedText>
+					<TranslatedText xml:lang="en">Category</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Category/Category Value]; NULL"/>
+				<Alias Context="completionInstructions" Name="Record the FA category, if not preprinted on the CRF."/>
+				<Alias Context="implementationNotes" Name="Sponsor-defined controlled terminology. This would most commonly be either a heading, or a preprinted category value on the CRF and not a question to which the site would provide an answer. If a question is asked, the response would typically be a sponsor-defined codelist. If the form is laid out as a grid, then words such as &quot;Category&quot; can be included as the column header."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTM variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="FACAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CETERM" Name="CETERM" DataType="text" Length="25">
+				<Description>
+					<TranslatedText xml:lang="en">CETERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the clinical event term?</TranslatedText>
+					<TranslatedText xml:lang="en">Clinical Event</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Clinical Event]; Specify (Other/Details)"/>
+				<Alias Context="completionInstructions" Name="Record the clinical event or [insert text corresponding to the specific clinical event]."/>
+				<Alias Context="implementationNotes" Name="Can be represented either as an open-entry field to capture verbatim terms reported by subjects or could be preprinted in the situation where solicited CEs of interest are captured. May be used as Specify Other field to collect more details on a prespecified CEDECOD value, or when CEDECOD=Other. In most cases, the verbatim term (i.e., investigator-reported term) will be coded to a standard medical dictionary such as MedDRA or WHO ART, after the data have been collected on the CRF"/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="CETERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.NAUSEA_FAORRES" Name="NAUSEA_FAORRES" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">FAORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Nausea</TranslatedText>
+					<TranslatedText xml:lang="en">Nausea</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="([Result/Amount] of) [value from FATEST]"/>
+				<Alias Context="completionInstructions" Name="Record the FATEST result."/>
+				<Alias Context="implementationNotes" Name="In most cases, the Question Text and Item Prompt for the FAORRES are specific to the FATEST. The value of FATEST is most useful as the PROMPT on the field in which the RESULT for that test is collected. If the form is laid out as a grid, then words such as &quot;Result&quot; can be included as the column header."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTM variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="OCCUR_NAUSEA_FAORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CESTTIM" Name="CESTTIM" DataType="time">
+				<Question>
+					<TranslatedText>Start Time</TranslatedText>
+					<TranslatedText xml:lang="en">Start Time</TranslatedText>
+				</Question>
+				<Alias Name="CESTTIM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CESTDAT" Name="CESTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">CESTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Start Date</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the [clinical event ] using this format (DD-MON-YYYY)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable CESTDTC in ISO 8601 format."/>
+				<Alias Name="CESTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SENSLGHT_FAORRES" Name="SENSLGHT_FAORRES" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">FAORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Sensitivity to Light</TranslatedText>
+					<TranslatedText xml:lang="en">Sensitivity to Light</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="([Result/Amount] of) [value from FATEST]"/>
+				<Alias Context="completionInstructions" Name="Record the FATEST result."/>
+				<Alias Context="implementationNotes" Name="In most cases, the Question Text and Item Prompt for the FAORRES are specific to the FATEST. The value of FATEST is most useful as the PROMPT on the field in which the RESULT for that test is collected. If the form is laid out as a grid, then words such as &quot;Result&quot; can be included as the column header."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTM variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="OCCUR_SENSLGHT_FAORRES" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

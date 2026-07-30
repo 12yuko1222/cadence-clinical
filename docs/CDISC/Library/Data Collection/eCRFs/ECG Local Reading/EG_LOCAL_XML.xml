@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="EG Local Reading" FileType="Snapshot" CreationDateTime="2021-05-18T15:35:33-06:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="EG Local Reading aCRF">
+		<GlobalVariables>
+			<StudyName>EG Local Reading</StudyName>
+			<StudyDescription>EG Local Reading</StudyDescription>
+			<ProtocolName>EG Local Reading</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions>
+			<MeasurementUnit OID="mu.msec" Name="Millisecond">
+				<Symbol>
+					<TranslatedText xml:lang="en">msec</TranslatedText>
+				</Symbol>
+			</MeasurementUnit>
+			<MeasurementUnit OID="mu.beats/min" Name="Beats per Minute">
+				<Symbol>
+					<TranslatedText xml:lang="en">beats/min</TranslatedText>
+				</Symbol>
+			</MeasurementUnit>
+		</BasicDefinitions>
+		<MetaDataVersion OID="EG Local Reading aCRF" Name="EG Local Reading">
+			<FormDef OID="EG_LOCAL" Name="Form EG - Local Reading" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">EG - Local Reading</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_17" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_17" Name="EG - Local Reading" Repeating="No" Domain="EG">
+				<Description>
+					<TranslatedText xml:lang="en">EG - ECG</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.EGPERF" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.EGDAT" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.EGMETHOD" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.EGPOS" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.EGORRES" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.EGORRES_QRS DURATION" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.EGORRES_PR INTERVAL" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.EGORRES_QT INTERVAL" Mandatory="No" OrderNumber="8"/>
+				<ItemRef ItemOID="IT.EGORRES_QTc" Mandatory="No" OrderNumber="9"/>
+				<ItemRef ItemOID="IT.EGORRES_INTERPRETATION" Mandatory="No" OrderNumber="10"/>
+				<ItemRef ItemOID="IT.EGCLSIG" Mandatory="No" OrderNumber="11"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.EGPERF" Name="EGPERF" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">EGPERF</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was an ECG performed?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="ECG Performed"/>
+				<Alias Context="completionInstructions" Name="Indicate whether or not an ECG or specific ECG test was done."/>
+				<Alias Context="implementationNotes" Name="This may be implemented for an entire ECG, or a specific ECG test basis. General prompt question to be used as a data management tool to verify that missing results are confirmed missing."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to derive a value into the SDTMIG variable EGSTAT. If the CDASH field EGPERF= &quot;N&quot;, the value of EGSTAT will be &quot;NOT DONE&quot;. If EGPERF = &quot;Y&quot;, EGSTAT should be null. A combination of SDTMIG variables (e.g., EGCAT and EGSCAT, EGTPT) is used to indicate that multiple tests were not done. In this situation, the SDTMIG variable EGTESTCD would be populated as EGALL and an appropriate test name (EGTEST) provided. See SDTMIG v3.2 Section 4.1.5.1.2."/>
+				<Alias Name="EGPERF" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES_QT INTERVAL" Name="QTAG_EGORRES/U" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES/U</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>QT Interval, Aggregate Result</TranslatedText>
+					<TranslatedText xml:lang="en">QT Interval, Aggregate Result</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.msec"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="QTAG_EGORRES" Context="CDASH"/>
+				<Alias Name="QTAG_EGORRESU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES_PR INTERVAL" Name="PPAG_EGORRES/U" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES/U</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>PR Interval, Single Beat Result</TranslatedText>
+					<TranslatedText xml:lang="en">PR Interval, Single Beat Result</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.msec"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="PRSB_EGORRES" Context="CDASH"/>
+				<Alias Name="PRSB_EGORRESU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGDAT" Name="EGDAT" DataType="date">
+				<Description>
+					<TranslatedText>EGDAT</TranslatedText>
+					<TranslatedText xml:lang="en">ECG Date</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the date of the ECG?</TranslatedText>
+					<TranslatedText xml:lang="en">ECG Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="ECG Date"/>
+				<Alias Context="completionInstructions" Name="Record the date the ECG was done using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="A complete date is expected. The date of collection may be determined from the date of visit (VISDAT) and if so, a separate assessment date field is not required."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable EGDTC in ISO 8601 format."/>
+				<Alias Name="EGDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES_QTc" Name="QTCAAG_EGORRES/U" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES/U</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>QTca Interval, Aggregate Result</TranslatedText>
+					<TranslatedText xml:lang="en">QTca Interval, Aggregate Result</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.msec"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="QTCAAG_EGORRES" Context="CDASH"/>
+				<Alias Name="QTCAAG_EGORRESU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGPOS" Name="EGPOS" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">EGPOS</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the position of the subject during the ECG
+    measurement?</TranslatedText>
+					<TranslatedText xml:lang="en">Position</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71148.POSITION.CENTRAL"/>
+				<Alias Context="prompt" Name="Position"/>
+				<Alias Context="completionInstructions" Name="Record the position of the subject during the ECG."/>
+				<Alias Context="implementationNotes" Name="Results may be affected by whether conditions for ECG as specified in the protocol were properly met. One common condition is the subject&apos;s position. If the protocol requires this type of information, then this question may be included to confirm that the subject&apos;s position matches the protocol. The following are examples of when it is not necessary to collect these data on the CRF:   * Position of the Subject is provided as part of the electronic data.   * Position of the Subject is not pertinent to the protocol.   * The protocol specifies only one possible position and the sponsor does not feel there is significant risk of the sites performing the ECG with the subject in the wrong position."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="EGPOS" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGCLSIG" Name="EGCLSIG" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">EGCLSIG</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the ECG clinically significant?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Clinically Significant"/>
+				<Alias Context="completionInstructions" Name="Record whether ECG results were clinically significant."/>
+				<Alias Context="implementationNotes" Name="Could apply to specific measurements or to overall interpretation."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. This information could be submitted in a SUPPEG dataset as the value of SUPPEG.QVAL where SUPPEG.QNAM =&quot;EGCLSIG&quot; and SUPPEG.QLABEL=&quot;Clinically Significant&quot;. Refer to the current SDTM and SDTMIG for instructions on placement of non-standard variables in SDTM domains."/>
+				<Alias Name="EGCLSIG" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES_QRS DURATION" Name="QRSAG_EGORRES/U" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES/U</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>QRS Duration, Aggregate Result</TranslatedText>
+					<TranslatedText xml:lang="en">QRS Duration, Aggregate Result</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.msec"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="QRSAG_EGORRES" Context="CDASH"/>
+				<Alias Name="QRSAG_EGORRESU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES_INTERPRETATION" Name="INTP_EGORRES" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Interpretation</TranslatedText>
+					<TranslatedText xml:lang="en">Interpretation</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C25401.NORMABNM.NA"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="INTP_EGORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGORRES" Name="EGHRMN_EGORRES/U" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">EGORRES/U</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>ECG Mean Heart Rate Result</TranslatedText>
+					<TranslatedText xml:lang="en">ECG Mean Heart Rate Result</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.beats/min"/>
+				<Alias Context="prompt" Name="(Result)"/>
+				<Alias Context="completionInstructions" Name="Record test results, interpretations or findings."/>
+				<Alias Context="implementationNotes" Name="Both quantitative results and interpretive findings or summaries may be recorded here."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="EGHRMN_EGORRES" Context="CDASH"/>
+				<Alias Name="EGHRMN_EGORRESU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.EGMETHOD" Name="EGMETHOD" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">EGMETHOD</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the method used for the ECG?</TranslatedText>
+					<TranslatedText xml:lang="en">Method</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71151.EGMETHOD.CENTRAL"/>
+				<Alias Context="prompt" Name="Method"/>
+				<Alias Context="completionInstructions" Name="Record the method used for the ECG."/>
+				<Alias Context="implementationNotes" Name="Results may be affected by whether conditions for ECG as specified in the protocol were properly met. One possible condition is the method used to collect or calculate the ECG data. If the protocol requires this type of information, then this question may be included to confirm that the method used matches the protocol. The following are examples of when it is not necessary to collect these data on the CRF:   * Method of ECG is provided as part of the electronic data.   * Method of ECG is not pertinent to the protocol.   * The protocol specifies only one possible method for collecting ECG measurements and the sponsor does not feel there is significant risk of the sites performing the ECG using the incorrect method."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="EGMETHOD" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C71148.POSITION.CENTRAL" Name="Position - Central Reading" DataType="text">
+				<Description>
+					<TranslatedText>Terminology codelist used with Body Position within CDISC.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="SITTING" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Sitting</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="STANDING" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Standing</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SUPINE" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Supine</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SEMI-RECUMBENT" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Semi-Recumbent</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SEMI-FOWLERS" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Semi-Fowler&apos;s</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C71151.EGMETHOD.CENTRAL" Name="ECG Test Method - Central Reading" DataType="text">
+				<CodeListItem CodedValue="12 LEAD STANDARD" OrderNumber="1">
+					<Decode>
+						<TranslatedText>12 LEAD STANDARD</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="HOLTER CONTINUOUS ECG RECORDING" OrderNumber="2">
+					<Decode>
+						<TranslatedText>HOLTER CONTINUOUS ECG RECORDING</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C25401.NORMABNM.NA" Name="Normal Abnormal" DataType="text">
+				<CodeListItem CodedValue="NORMAL" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Normal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ABNORMAL" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Abnormal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

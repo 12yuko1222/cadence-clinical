@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Concomitant Medications" FileType="Snapshot" CreationDateTime="2021-02-11T08:25:21-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Concomitant Medications">
+		<GlobalVariables>
+			<StudyName>Concomitant Medications CRF</StudyName>
+			<StudyDescription>Concomitant Medications CRF</StudyDescription>
+			<ProtocolName>Concomitant Medications CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Concomitant Medications CRF" Name="Concomitant Medications" Description="Concomitant Medications">
+			<FormDef OID="CM" Name="Form CM - Concomitant Medications" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">CM - Concomitant Medications</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_3h" Mandatory="Yes" OrderNumber="1"/>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_3" Mandatory="Yes" OrderNumber="2"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_3" Name="CM - Concomitant Medications" Repeating="Yes" Domain="CM">
+				<Description>
+					<TranslatedText xml:lang="en">CM - Concomitant Medications</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.CMTRT" Mandatory="Yes" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.CMINDC" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.CMDSTXT" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.CMDOSU" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.DOSUO" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.CMDOSFRM" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.DOSFRMO" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.CMDOSFRQ" Mandatory="No" OrderNumber="8"/>
+				<ItemRef ItemOID="IT.DOSFRQO" Mandatory="No" OrderNumber="9"/>
+				<ItemRef ItemOID="IT.CMROUTE" Mandatory="No" OrderNumber="10"/>
+				<ItemRef ItemOID="IT.ROUTEO" Mandatory="No" OrderNumber="11"/>
+				<ItemRef ItemOID="IT.CMSTDAT" Mandatory="No" OrderNumber="12"/>
+				<ItemRef ItemOID="IT.CMONGO" Mandatory="No" OrderNumber="13"/>
+				<ItemRef ItemOID="IT.CMENDAT" Mandatory="No" OrderNumber="14"/>
+			</ItemGroupDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_3h" Name="CM - Concomitant Medications Header" Repeating="No" Domain="CM">
+				<Description>
+					<TranslatedText xml:lang="en">CM - Concomitant Medications</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.CMYN" Mandatory="No" OrderNumber="1"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.CMYN" Name="CMYN" DataType="text" Length="1">
+				<Description>
+					<TranslatedText xml:lang="en">CMYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any medications/therapies taken?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any (Concomitant) [Medication(s)/Treatment(s)/Therapy(ies)]"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject took any (concomitant) [medications/treatments]. If Yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM Annotated CRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="CMYN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMDOSU" Name="CMDOSU" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">CMDOSU</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the unit (for the dose of concomitant     [medication/treatment/therapy])?</TranslatedText>
+					<TranslatedText xml:lang="en">Unit</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71620.UNIT.CMDOSU"/>
+				<Alias Context="prompt" Name="(Dose) Unit"/>
+				<Alias Context="completionInstructions" Name="Record the dose unit of the dose of concomitant [medication/treatment/therapy] taken (e.g., mg.)."/>
+				<Alias Context="implementationNotes" Name="When sponsors collect data for amount of dose taken (i.e., Dose, Total Daily Dose), Unit must be collected as well (if applicable)."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMDOSU" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMDOSFRM" Name="CMDOSFRM" DataType="text" Length="25">
+				<Description>
+					<TranslatedText xml:lang="en">CMDOSFRM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the dose form of the (concomitant)
+    [medication/treatment/therapy]?</TranslatedText>
+					<TranslatedText xml:lang="en">Dose Form</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66726.FRM.CMDOSFRM"/>
+				<Alias Context="prompt" Name="Dose Form"/>
+				<Alias Context="completionInstructions" Name="Record the pharmaceutical dosage form (e.g., TABLET CAPSULE, SYRUP) of delivery for the concomitant [medication/treatment/therapy] taken."/>
+				<Alias Context="implementationNotes" Name="Some drugs have multiple forms and this field may be needed to code the drug to an ATC level. However, in general, this level of detail should not be necessary except for medications/treatments of interest."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMDOSFRM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMINDC" Name="CMINDC" DataType="text" Length="100">
+				<Description>
+					<TranslatedText xml:lang="en">CMINDC</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>For what indication was the (concomitant)     [medication/treatment/therapy] taken?</TranslatedText>
+					<TranslatedText xml:lang="en">Indication</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Indication"/>
+				<Alias Context="completionInstructions" Name="Record the reason the medication was taken based on clinical investigator&apos;s evaluation. If taken to treat a condition, and a diagnosis was made, the indication should be the diagnosis. If taken to treat a condition, and no diagnosis was made, the indication should be the signs and symptoms. If taken as prophylaxis, report as &quot;Prophylaxis for &quot; and include a description of the condition(s)."/>
+				<Alias Context="implementationNotes" Name="This is not the pharmacological/therapeutic classification of an agent (e.g., antibiotic, analgesic), but the reason for its administration to the subject. This additional information is collected on the CRF when sponsors want to capture the reason(s) why a subject took a medication/treatment. This information could be used as deemed appropriate for coding, analysis (e.g., in the classification of medications), for reconciling the medications/treatments taken by a subject with provided medical history, and/or AEs/SAEs as part of the data clean-up and monitoring process."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMINDC" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMTRT" Name="CMTRT" DataType="text" Length="75">
+				<Description>
+					<TranslatedText xml:lang="en">CMTRT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the (concomitant) [medication/treatment/therapy] (name/term)?</TranslatedText>
+					<TranslatedText xml:lang="en">Medication/Therapy</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="(Concomitant) [Medication/Treatment/Therapy]"/>
+				<Alias Context="completionInstructions" Name="Record only 1 [medication/treatment/therapy] per line. Provide the full trade or proprietary name of the [medication/treatment/therapy]; otherwise the generic name may be recorded."/>
+				<Alias Context="implementationNotes" Name="In most cases, the verbatim drug names or treatment will be coded to a standard dictionary such as WHODrug after the data have been collected on the CRF. For the collection of verbatim drug name or treatments, the recommendation is to ask sites to provide the full trade or proprietary name since it is more exact than the generic. The full trade name provides the base generic and the appropriate salt for that particular drug. In addition, for coding purposes it helps with ATC selection. For example, Tylenol with codeine #1 has a different ATC code than Tylenol with codeine #3. This field can be used for either prior or concomitant medication/treatments."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMTRT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.ROUTEO" Name="ROUTEO" DataType="text" Length="50">
+				<Question>
+					<TranslatedText xml:lang="en">Other, Specify</TranslatedText>
+				</Question>
+				<Alias Name="ROUTEO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMROUTE" Name="CMROUTE" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">CMROUTE</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the route of administration of the (concomitant)
+    [medication/treatment/therapy]?</TranslatedText>
+					<TranslatedText xml:lang="en">Route</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66729.ROUTE.CMROUTE"/>
+				<Alias Context="prompt" Name="Route"/>
+				<Alias Context="completionInstructions" Name="Provide the route of administration for the (concomitant) [medication/treatment/therapy]."/>
+				<Alias Context="implementationNotes" Name="This additional information may be important to collect on the CRF when the sponsor would want to capture a medication&apos;s/treatment&apos;s route of administration for purposes such as coding and the medication/treatment may have more than one route. Some companies may use route in coding medications/treatments to be able to choose a precise preferred name and ATC code."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMROUTE" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DOSUO" Name="DOSUO" DataType="text" Length="50">
+				<Question>
+					<TranslatedText xml:lang="en">Other, Specify</TranslatedText>
+				</Question>
+				<Alias Name="DOSUO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMONGO" Name="CMONGO" DataType="text" Length="1">
+				<Description>
+					<TranslatedText xml:lang="en">CMONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was the (concomitant) [medication/treatment/therapy] ongoing (as of
+    [the study-specific time point or period])?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing (as of [the study-specific time point or period])"/>
+				<Alias Context="completionInstructions" Name="Record the concomitant [medication/treatment/therapy] as ongoing if the subject has not stopped taking the concomitant [medication/treatment/therapy] at [the timepoint defined by the study]. If the concomitant medication is ongoing, the end date should be left blank"/>
+				<Alias Context="implementationNotes" Name="This box should be checked to indicate that the concomitant medication/treatment has not stopped at the time of data collection. It is expected that every recorded medication/treatment should have either an End Date or be checked as Ongoing, but not both. However, in cases where ongoing concomitant medications/treatments are not permitted, it may not be necessary to include an Ongoing field in the CRF. See Section 3.7, Mapping Relative Times from Collection to Submission, for more information about collecting relative date/time; see SDTMIG v3.2 Section 4.1.4 for information about mapping relative times."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTM variable. May be used to populate a value into an SDTMIG relative timing variable such as CMENRF or CMENRTPT. When populating CMENRF, if the value of CMONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating CMENRTPT, if the value of CMONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When CMONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTM variable CMENRF should be populated. When CMONGO is used in conjunction with another time point, the SDTM variables CMENRTPT and CMENTPT should be used.   Note: CMENRTPT must refer to a time point anchor described in CMENTPT."/>
+				<Alias Name="CMONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMENDAT" Name="CMENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">CMENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the (concomitant) [medication/treatment/therapy/dose] end date?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="End Date"/>
+				<Alias Context="completionInstructions" Name="Record the date the concomitant [medication/treatment] was stopped using this format (DD-MON-YYYY). If the subject has not stopped taking the concomitant [medication/treatment] leave this field blank."/>
+				<Alias Context="implementationNotes" Name="The assumption is that sponsors should either have an End Date or will indicate that the medication or therapy was ongoing at the time of collection or at the end of the study. However, in cases where the End Date can be determined from dates collected elsewhere in the CRF it is not necessary to include an End Date in the CRF. For example, if all concomitant medications/treatments are administered only once during a trial, the End Date will be the same as the Start Date."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable CMENDTC in ISO 8601 format."/>
+				<Alias Name="CMENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMDOSFRQ" Name="CMDOSFRQ" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">CMDOSFRQ</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the frequency of the (concomitant)     [medication/treatment/therapy]?</TranslatedText>
+					<TranslatedText xml:lang="en">Frequency</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C71113.FREQ.CMDOSFRQ"/>
+				<Alias Context="prompt" Name="Frequency"/>
+				<Alias Context="completionInstructions" Name="Record how often the (concomitant) [medication/treatment/therapy] was taken (e.g., BID, PRN)."/>
+				<Alias Context="implementationNotes" Name="The frequency of the concomitant medication/treatment. When collected, the recommendation is to collect dosing information in separate fields (e.g., CMDOSE, CMDOSEU, CMDOSFRQ) for specific and consistent data collection and to enable programmatically utilizing these data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading &quot;SDTMIG Target&quot;."/>
+				<Alias Name="CMDOSFRQ" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DOSFRQO" Name="DOSFRQO" DataType="text" Length="50">
+				<Question>
+					<TranslatedText xml:lang="en">Dose Frequency Other, Specify</TranslatedText>
+				</Question>
+				<Alias Name="DOSFRQO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMSTDAT" Name="CMSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">CMSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the (concomitant) [medication/treatment/therapy/dose]
+    start date?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the date the concomitant [medication/treatment] was first taken using this format (DD-MON-YYYY). If the subject has been taking the concomitant [medication/treatment] for a considerable amount of time prior to the start of the study, it is acceptable to have an incomplete date. Concomitant [medication/treatment] taken during the study are expected to have a complete start date. Prior concomitant [medication/treatment] that are exclusionary should have both a start and end date."/>
+				<Alias Context="implementationNotes" Name="The assumption is that sponsors should either have a Start Date or will indicate that the medication or therapy was started before, during or after the study period. The preferred method is to collect a complete Start Date. Partial dates (e.g., providing year only) for medications/treatment started a considerable amount of time prior to the start of study are acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable CMSTDTC in ISO 8601 format."/>
+				<Alias Name="CMSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DOSFRMO" Name="DOSFRMO" DataType="text" Length="50">
+				<Question>
+					<TranslatedText xml:lang="en">Other, Specify</TranslatedText>
+				</Question>
+				<Alias Name="DOSFRMO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CMDSTXT" Name="CMDSTXT" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">CMDSTXT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the individual dose of the (concomitant)
+    [medication/treatment/therapy]?</TranslatedText>
+					<TranslatedText xml:lang="en">Dose</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Dose"/>
+				<Alias Context="completionInstructions" Name="Record the dose of (concomitant) [medication/treatment] taken per administration (e.g., 200)."/>
+				<Alias Context="implementationNotes" Name="Defining this data collection field as a dose text field allows for flexibility in capturing dose entries as numbers, text or ranges. The data collected in this dose text-format field should be separated or mapped to either SDTMIG CMDOSE if numeric or CMDOSTXT if text."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. Numeric values map to CMDOSE in SDTM. Non-numeric values (e.g., 200-400) map to CMDOSTXT in SDTM."/>
+				<Alias Name="CMDSTXT" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C71113.FREQ.CMDOSFRQ" Name="Frequency" DataType="text">
+				<Description>
+					<TranslatedText>The terminology that includes terms pertaining to frequency within CDISC.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="BID" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Twice Daily</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ONCE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Once</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PRN" OrderNumber="3">
+					<Decode>
+						<TranslatedText>As Needed</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="QD" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Daily</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="QOD" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Every Other Day</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TID" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Three Times Daily</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNKNOWN" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C71620.UNIT.CMDOSU" Name="Unit" DataType="text">
+				<Description>
+					<TranslatedText>Terminology codelist used for units within CDISC.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="%(v/v)" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Percent Volume per Volume</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CAPSULE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Capsule</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="g" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Gram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INHALATION" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Inhalation</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="IU" OrderNumber="5">
+					<Decode>
+						<TranslatedText>International Dosing Unit</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="L/h" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Liter per Hour</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="L/min" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Liter per Minute</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mg" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Milligram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mg/kg" OrderNumber="9">
+					<Decode>
+						<TranslatedText>Milligram per Kilogram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mL" OrderNumber="10">
+					<Decode>
+						<TranslatedText>Milliliter</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mL/h" OrderNumber="11">
+					<Decode>
+						<TranslatedText>Milliliter per Hour</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="mL/kg" OrderNumber="12">
+					<Decode>
+						<TranslatedText>Milliliter per Kilogram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PUFF" OrderNumber="13">
+					<Decode>
+						<TranslatedText>Puff</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SPRAY" OrderNumber="14">
+					<Decode>
+						<TranslatedText>Spray</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TABLET" OrderNumber="15">
+					<Decode>
+						<TranslatedText>Tablet</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ug" OrderNumber="16">
+					<Decode>
+						<TranslatedText>Microgram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ug/kg" OrderNumber="17">
+					<Decode>
+						<TranslatedText>Microgram per Kilogram</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="18">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66726.FRM.CMDOSFRM" Name="Pharmaceutical Dosage Form" DataType="text">
+				<Description>
+					<TranslatedText>The form of the completed pharmaceutical product, e.g. tablet, capsule, injection, elixir, suppository. Dosage form can have a significant effect on the onset, duration and intensity of the pharmacological action of a drug. A pharmaceutical dosage form controls the rate at which the drug is released into the biological fluids. This release rate affects its intrinsic absorption pattern and therefore, the bioavailability of the drug.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="AEROSOL" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Aerosol</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CAPSULE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Capsule</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="CREAM" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Cream</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="GAS" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Gas</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="GEL" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Gel</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INHALANT" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Inhalant</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INJECTION" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Injectable</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="LIQUID" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Liquid</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OINTMENT" OrderNumber="9">
+					<Decode>
+						<TranslatedText>Ointment</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PATCH" OrderNumber="10">
+					<Decode>
+						<TranslatedText>Patch</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="POWDER" OrderNumber="11">
+					<Decode>
+						<TranslatedText>Powder</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SPRAY" OrderNumber="12">
+					<Decode>
+						<TranslatedText>Spray</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SUPPOSITORY" OrderNumber="13">
+					<Decode>
+						<TranslatedText>Suppository</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SUSPENSION" OrderNumber="14">
+					<Decode>
+						<TranslatedText>Suspension</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TABLET" OrderNumber="15">
+					<Decode>
+						<TranslatedText>Tablet</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="16">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66729.ROUTE.CMROUTE" Name="Route of Administration Response" DataType="text">
+				<Description>
+					<TranslatedText>A terminology codelist relevant to the course by which a substance is administered in order to reach the site of action in the body.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="INTRALESIONAL" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Intralesional</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INTRAMUSCULAR" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Intramuscular</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INTRAOCULAR" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Intraocular</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INTRAPERITONEAL" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Intraperitoneal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NASAL" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Nasal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ORAL" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Oral</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="RECTAL" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Rectal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="RESPIRATORY (INHALATION)" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Inhalation</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SUBCUTANEOUS" OrderNumber="9">
+					<Decode>
+						<TranslatedText>Subcutaneous</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TOPICAL" OrderNumber="10">
+					<Decode>
+						<TranslatedText>Topical</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TRANSDERMAL" OrderNumber="11">
+					<Decode>
+						<TranslatedText>Transdermal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="VAGINAL" OrderNumber="12">
+					<Decode>
+						<TranslatedText>Vaginal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="13">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

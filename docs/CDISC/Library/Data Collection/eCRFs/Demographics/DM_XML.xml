@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Demographics" FileType="Snapshot" CreationDateTime="2021-02-11T08:23:36-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Demographics">
+		<GlobalVariables>
+			<StudyName>Demographics CRF</StudyName>
+			<StudyDescription>Demographics CRF</StudyDescription>
+			<ProtocolName>Demographics CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions>
+			<MeasurementUnit OID="mu.years" Name="YEARS">
+				<Symbol>
+					<TranslatedText>Years</TranslatedText>
+				</Symbol>
+			</MeasurementUnit>
+		</BasicDefinitions>
+		<MetaDataVersion OID="Demographics CRF" Name="Demographics">
+			<FormDef OID="DM" Name="Form DM - Demographics" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">DM - Demographics</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_2" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_2" Name="DM - Demographics" Repeating="No" Domain="DM">
+				<Description>
+					<TranslatedText xml:lang="en">DM - Demographics</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.BRTHDAT" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.AGE" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.AGEU" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.SEX" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.ETHNIC" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.RACE" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.RACEOTH" Mandatory="No" OrderNumber="7"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.BRTHDAT" Name="BRTHDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">BRTHDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the subject&apos;s date of birth?</TranslatedText>
+					<TranslatedText xml:lang="en">Birth Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Birth Date"/>
+				<Alias Context="completionInstructions" Name="Record the date of birth to the level of precision known (e.g., day/month/year, year, month/year, etc.) in this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="BRTHDAT is the collected field used for recording the full birth date. The sponsor may choose to database the date of birth as a single variable (BRTHDAT), or as separate variables for each component of the date/time (BRTHYY, BRTHMO, BRTHDD, BRTHTIM). The sponsor may choose a method based on database considerations, or for regulatory reasons. It is expected that what is collected for BRTHDAT (complete date or whichever components are collected) is reported in the SDTMIG variable BRTHDTC in the ISO 8601 format. If data are collected in a manner resulting in a reduced precision level, then the AGE (SDTM expected variable), if not collected on the CRF, should be derived using a documented algorithm that describes how the age was determined and/or imputed for those birth dates collected with reduced precision."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable BRTHDTC in ISO 8601 format."/>
+				<Alias Name="BRTHDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.SEX" Name="SEX" DataType="text" Length="15">
+				<Description>
+					<TranslatedText xml:lang="en">SEX</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the sex of the subject?</TranslatedText>
+					<TranslatedText xml:lang="en">Sex</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66731.SEX"/>
+				<Alias Context="prompt" Name="Sex"/>
+				<Alias Context="completionInstructions" Name="Record the appropriate sex (e.g., F (female), M (male)."/>
+				<Alias Context="implementationNotes" Name="Collect the subject&apos;s sex or gender, as reported by the investigator. This is a phenotypic assessment and not a genotypic assessment."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="SEX" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RACEOTH" Name="RACEOTH" DataType="text" Length="100">
+				<Description>
+					<TranslatedText xml:lang="en">RACEOTH</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the other race?</TranslatedText>
+					<TranslatedText xml:lang="en">Specify Other Race</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Specify Other Race"/>
+				<Alias Context="completionInstructions" Name="If none of the pre-printed values for RACE are applicable or if another, unprinted selection should be added to those pre-printed values, record the value in this free text field."/>
+				<Alias Context="implementationNotes" Name="When creating the DM form, it is suggested that the 5 standard race categories be included. Sponsors may choose to include another value of Specify, Other with a free-text field for extending the list of values. The RACEOTH variable contains the free text added by the site. The value(s) added in the optional variable might or might not &quot;collapse up&quot; into one of the 5 categories specified by the FDA Guidance. See SDTMIG v3.2, Section 5 -DM Domain for examples of reporting this implementation."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. This information could be submitted in a SUPPDM dataset as the value of SUPPDM.QVAL where SUPPDM.QNAM = &quot;RACEOTH&quot; and SUPP.QLABEL=&quot;RACE OTHER&quot;. See SDTMIG v3.2 Section 5, DM Domain. Refer to the current SDTM and SDTMIG for instructions on placement of non-standard variables in SDTM domains."/>
+				<Alias Name="RACEOTH" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.ETHNIC" Name="ETHNIC" DataType="text" Length="23">
+				<Description>
+					<TranslatedText xml:lang="en">ETHNIC</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Do you consider yourself Hispanic/Latino or not Hispanic/Latino?</TranslatedText>
+					<TranslatedText xml:lang="en">Ethnicity</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66790.ETHNIC"/>
+				<Alias Context="prompt" Name="Ethnicity"/>
+				<Alias Context="completionInstructions" Name="Study participants should self-report ethnicity, with ethnicity being asked about before race."/>
+				<Alias Context="implementationNotes" Name="For use when values are being collected using the exact non-extensible ETHNIC codelist (C66790) values. Sponsors should refer to the FDA&apos;s Collection of Race and Ethnicity Data in Clinical Trials guidance regarding the collection of ethnicity (http://www.fda.gov/)."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="ETHNIC" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.RACE" Name="RACE" DataType="text" Length="25" SDSVarName="RACE">
+				<Description>
+					<TranslatedText xml:lang="en">RACE</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Which of the following five racial designations best describes you?
+    (More than one choice is acceptable.)</TranslatedText>
+					<TranslatedText xml:lang="en">Race</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C74457.RACE"/>
+				<Alias Context="prompt" Name="Race"/>
+				<Alias Context="completionInstructions" Name="Study participants should self-report race, with race being asked about after ethnicity."/>
+				<Alias Context="implementationNotes" Name="Use RACE when the 5 designations for race used by the FDA are collected (American Indian or Alaska Native; Asian; Black or African American; Native Hawaiian or Other Pacific Islander ; White).* Sponsors should refer to the FDA Guidance. See SDTMIG v3.2 Section 5, DM Domain.   *For studies where data are collected outside the US, the recommended categories are the same except for Black instead of Black or African American. If multiple races are collected, an alternate sponsor-defined variable structure would be required. Sponsors may record multiple self-reported races for a subject by appending a suffix to denote multiple collected races (e.g. RACE1, RACE2) and populate RACE with the value MULTIPLE."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="RACE" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AGE" Name="AGE" DataType="integer" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AGE</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the subject&apos;s age?</TranslatedText>
+					<TranslatedText xml:lang="en">Age</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Age"/>
+				<Alias Context="completionInstructions" Name="Record age of the subject."/>
+				<Alias Context="implementationNotes" Name="If Age is collected, it should be collected as a number and, to be correctly interpreted, the age value should be associated to a variable for the Age Unit. It may be necessary to know when the age was collected as an age may need to be recalculated for analysis, such as deriving age at a reference start time (RFSTDTC for SDTM). BRTHDTC may not be available in all cases (due to subject privacy concerns).If AGE is collected, then it is recommended that the date of collection also be recorded, either separately or by association to the date of the visit."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AGE" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AGEU" Name="AGEU" DataType="float">
+				<Description>
+					<TranslatedText xml:lang="en">AGEU</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the age unit used?</TranslatedText>
+					<TranslatedText xml:lang="en">Age Unit</TranslatedText>
+				</Question>
+				<MeasurementUnitRef MeasurementUnitOID="mu.years"/>
+				<Alias Context="prompt" Name="Age Unit"/>
+				<Alias Context="completionInstructions" Name="Record the appropriate age unit (e.g., YEARS, MONTHS, WEEKS, etc.)."/>
+				<Alias Context="implementationNotes" Name="If Age is captured on the CRF, the age unit must be known to make the age value meaningful. The age unit might be collected on the CRF, in those cases where the protocol allows for any age group, or it may be preprinted on the CRF (typically with the unit of &quot;years&quot;)."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AGEU" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66790.ETHNIC" Name="Ethnic Group" DataType="text">
+				<Description>
+					<TranslatedText>A social group characterized by a distinctive social and cultural tradition maintained from generation to generation, a common history and origin and a sense of identification with the group; members of the group have distinctive features in their way of life, shared experiences and often a common genetic heritage; these features may be reflected in their experience of health and disease. (NCI)</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="HISPANIC OR LATINO" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Hispanic or Latino</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NOT HISPANIC OR LATINO" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Not Hispanic or Latino</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NOT REPORTED" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Not Reported</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNKNOWN" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66731.SEX" Name="Sex" DataType="text">
+				<Description>
+					<TranslatedText>The assemblage of physical properties or qualities by which male is distinguished from female; the physical difference between male and female; the distinguishing peculiarity of male or female. (NCI)</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="F" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Female</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="M" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Male</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="U" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNDIFFERENTIATED" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Undifferentiated</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C74457.RACE" Name="Race" DataType="text">
+				<Description>
+					<TranslatedText>Terminology codelist used to identify the race of an individual within the Clinical Data Interchange Standards Consortium Study Data Tabulation Model.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="AMERICAN INDIAN OR ALASKA NATIVE" OrderNumber="1">
+					<Decode>
+						<TranslatedText>American Indian or Alaska Native</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="ASIAN" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Asian</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="BLACK OR AFRICAN AMERICAN" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Black or African American</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Native Hawaiian or Other Pacific Islander</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="WHITE" OrderNumber="5">
+					<Decode>
+						<TranslatedText>White</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NOT REPORTED" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Not Reported</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNKNOWN" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Disposition" FileType="Snapshot" CreationDateTime="2021-02-11T08:25:52-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Disposition">
+		<GlobalVariables>
+			<StudyName>Disposition CRF</StudyName>
+			<StudyDescription>Disposition CRF</StudyDescription>
+			<ProtocolName>Disposition CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Disposition CRF" Name="Disposition CRF" Description="Disposition CRF">
+			<FormDef OID="DS_EOS" Name="Form DS - Disposition" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">DS - Disposition</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_10" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_10" Name="DS - Disposition" Repeating="No" Domain="DS">
+				<Description>
+					<TranslatedText xml:lang="en">DS - Disposition</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.DSDECOD" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.DSTERM" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.DSSTDAT" Mandatory="No" OrderNumber="3"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.DSSTDAT" Name="DSSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">DSSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">What was the study discontinuation or completion date?</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Protocol Milestone/Disposition Event/Other Event Name] Date"/>
+				<Alias Context="completionInstructions" Name="Record the date of [protocol milestone/disposition event] as defined in the protocol and/or CRF Completion Instructions using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="Define in the protocol and/or CRF completion instructions the criteria for completion of each protocol milestone or disposition event for which a disposition CRF will be provided. Only collect the date of each protocol milestone or disposition event once. For example, if the date of the last dose is defined to mark the end of the Treatment Phase epoch, and is collected on the Exposure form, then this field would not be collected on the Disposition CRF module. If not collected elsewhere, this field should be collected on the Disposition CRF module."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable DSSTDTC in ISO 8601 format."/>
+				<Alias Name="DSSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DSTERM" Name="DSTERM" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">DSTERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the subject&apos;s status?; If [DSDECOD],
+    specify</TranslatedText>
+					<TranslatedText xml:lang="en">Specify</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Status]; [Specify]"/>
+				<Alias Context="completionInstructions" Name="Document the subject&apos;s status at [insert text corresponding to the selected trial epoch]. If the subject discontinued prematurely, record the primary reason for discontinuation. (Or, if used with a DECOD list), if Other is selected from the Status list, provide the verbatim reason."/>
+				<Alias Context="implementationNotes" Name="If used with a DECOD list, free text description of the subject&apos;s &quot;Other&quot; status. DSTERM is the verbatim term for subject status when Other is selected from the DSDECOD code list. This field would only be used with the Prompt and Completion Instructions provided as an Specify, Other field in conjunction with DSDECOD. DSTERM may be used by itself when no code list is provided for DSDECOD on the CRF. Either DSTERM or DSDECOD must be on the CRF. DSTERM is required in the SDTM-based dataset."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. The SDTMIG variables DSDECOD and DSTERM must be populated in SDTM. If DSTERM was collected as an &quot;Other, Specify&quot; free text, populate the SDTMIG variable DSTERM with the free text and populate DSDECOD with the sponsor-defined standardized text. If DSDECOD was collected with no free text, populate DSTERM and DSDECOD in the SDTM-based dataset with the DSDECOD value that was collected."/>
+				<Alias Name="DSTERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DSDECOD" Name="DSDECOD" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">DSDECOD</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">What was the subject&apos;s status at the end of study?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66727.NCOMPLT"/>
+				<Alias Context="prompt" Name="Status (at the EPOCH/study specific time frame)"/>
+				<Alias Context="completionInstructions" Name="Document the subject&apos;s status at [insert text corresponding to the selected trial epoch/study specific time frame]. If the subject discontinued prematurely, record the primary reason for discontinuation."/>
+				<Alias Context="implementationNotes" Name="DSDECOD can be used as the standardized coded list with DSTERM used to capture any &quot;Specify, Other&quot; information, or DSDECOD can be used on its own. For Sponsor- and/or study-specific reasons for discontinuation, it is recommended that these reasons be preprinted on the CRF, as subcategories of the appropriate standardized DSDECOD item. However, it is recommended to limit the use of sponsor and study-specific reasons in order to promote consistent use of terminology and hence permit the combination of data across multiple sponsors. Either DSTERM or DSDECOD must be on the CRF. Both may be used if DSTERM is used as a &quot;Specify, Other&quot; field.  "/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. Both DSDECOD and DSTERM must be populated in the SDTM-based datasets. If DSTERM was collected as an &quot;Other, Specify&quot; free text, populate DSTERM with the free text and populate DSDECOD with the sponsor-defined standardized text. If DSDECOD was collected with no free text, populate DSTERM and DSDECOD in the SDTM-based dataset with the DSDECOD value that was collected."/>
+				<Alias Name="DSDECOD" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66727.NCOMPLT" Name="Completion/Reason for Non-Completion" DataType="text">
+				<Description>
+					<TranslatedText>The status of the subject&apos;s completion of the study or a segment of the study, or the reason the subject discontinued the study or segment of the study.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="ADVERSE EVENT" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Adverse Event</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="COMPLETED" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Completed</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DEATH" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Death</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="LOST TO FOLLOW-UP" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Lost To Follow-Up</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PREGNANCY" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Pregnancy</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PROGRESSIVE DISEASE" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Progressive Disease</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PROTOCOL DEVIATION" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Protocol Deviation</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SCREEN FAILURE" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Screen Failure</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SITE TERMINATED BY SPONSOR" OrderNumber="9">
+					<Decode>
+						<TranslatedText>Site Terminated by Sponsor</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="STUDY TERMINATED BY SPONSOR" OrderNumber="10">
+					<Decode>
+						<TranslatedText>Study Terminated By Sponsor</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="WITHDRAWAL BY SUBJECT" OrderNumber="11">
+					<Decode>
+						<TranslatedText>Withdrawal by Subject</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="12">
+					<Decode>
+						<TranslatedText>Other</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>
