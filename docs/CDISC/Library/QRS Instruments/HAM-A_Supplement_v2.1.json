@@ -1,0 +1,380 @@
+{
+    "Read Me": [
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "About the use of Code: Code (i.e., unique numeric code assigned by NCI EVS, in C<<number>> format) is used so that information presented is agnostic to different versions of CDISC Controlled Terminology publications, where Code is immutable in principal and other information such as Submission Value may vary. Users will have the flexibility to pair the Code information with any given publication of their choice.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Statement on copyright permission: A QRS Supplement to the SDTMIG may be for an instrument in the a public domain or for a copyrighted instrument for which the copyright holder has given CDISC permission to develop a supplement. All QRS Supplements to the SDTMIG are created in compliance with CDISC operating procedure COP-001. For copyrighted instruments, note the following:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Granting CDISC the right to create supplements to represent an instrument in CDISC QRS domains is not a license for CDISC standards users to use the instrument without complying with the copyright holders licensing requirements.\n\nNo part of a copyrighted instrument or accompanying guidelines may be reproduced, distributed, or transmitted in any form, or by any means, including photocopying, recording, or other electronic or mechanical methods without the permission of the copyright holder and payment of applicable fees.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Warranties, Limitations of Liability, Disclaimers, Copyright Status, and Relationship to the CDISC SDTMIG: Consult the specifics in each QRS Supplement publication, downloadable from the CDISC QRS standards page.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "For additional information, visit these on-line resources:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC QRS standards page",
+            "Unnamed: 1": "https://www.cdisc.org/foundational/qrs"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "\"All Published QRS Supplements\" section",
+            "Unnamed: 1": "https://www.cdisc.org/standards/foundational/qrs#QRS_Supplements"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library API documentation",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library/api-documentation"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library release notes",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/Release+Notes"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library knowledge base",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/How-to+articles"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Instrument",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Short Name (Column A)",
+            "Unnamed: 1": "Short Name (--CAT) in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Name (Column B)",
+            "Unnamed: 1": "QRS Name in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Version (Column C)",
+            "Unnamed: 1": "Version in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Release Date (Column D)",
+            "Unnamed: 1": "Release Date in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Description (Column E)",
+            "Unnamed: 1": "CDISC Definition for this QRS instrument from one of these CDISC Controlled Terminology codelists: CCCAT (C118971), FTCAT (C115304), or QSCAT (C100129).\n\nRefer to columns H and G for exact code and codelist and code."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Type (Column F)",
+            "Unnamed: 1": "Questionnaire, Functional Test, or Clinical Classification.\n\nDerived (i.e., spelled out) from the SDTM Domain information in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument.\n\nVisit the CDISC QRS standards page for up-to-date definitions for these values, as well as choosing an SDTM domain for each type."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Copyright Permission (Column G)",
+            "Unnamed: 1": "Copyright permission status for this QRS instrument.\n\nFor details, refer to the QRS SDTMIG and ADaMIG Supplements Addendum of CDISC COP-001."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--CAT' (Column H)",
+            "Unnamed: 1": "C100129 (QSCAT), C115304 (FTCAT), or C118971 (CCCAT), depending on whether the Type in column F is Questionnaire, Functional Test, or Clinical Classification, respectively. \n\nUse in conjunction with column I."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--CAT' (Column I)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this specific instrument in column B; this is a member of the codelist referenced in column H.\n\nUse the Submission Value of this Code from the codelist referenced in column G to populate --CAT in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Items",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Order (Column A)",
+            "Unnamed: 1": "Derived from the ordering of a term in a codelist, i.e., the position of the term (column G) in the CDISC Controlled Terminology codelist (column F)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Test Name (Column B)",
+            "Unnamed: 1": "CDISC Submission Value for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Text (Column C)",
+            "Unnamed: 1": "CDISC Definition for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TEST' (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column E."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TEST' (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this is member of the codelist referenced in column D.\n\nUse the Submission Value of this Code from the codelist referenced in column D to populate --TEST in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TESTCD' (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column G."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TESTCD' (Column G)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this term is member of the codelist referenced in column F.\n\nUse the Submission Value of this Code from the codelist referenced in column F to populate --TESTCD in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column H)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with QRS Responses tab, when it is populated for this QRS item. When it is not populated, Controlled Terminology is not available for this QRS item."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Responses\nNote: Populated when Controlled Terminology for responses is available",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column A)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with column I of QRS Items tab."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Order (Column B)",
+            "Unnamed: 1": "Derived from the ordering of a term in a QRS response codelist, i.e., the position of the term (columns D and F) in the CDISC Controlled Terminology codelist (columns C and E)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Codelist C-Code (Column C)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's original result.\n\nUse in conjunction with column D."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Term C-Code (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response; this is member of the codelist referenced in column C.\n\nUse the Submission Value of this Code from the codelist referenced in column C to populate --ORRES in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Codelist C-Code (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's standardized result.\n\nUse in conjunction with column F."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Term C-Code (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response's standardized result; this is member of the codelist referenced in column E.\n\nUse the Submission Value of this Code from the codelist referenced in column E to populate --STRESN in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Numeric Standardized Results? (Column G)",
+            "Unnamed: 1": "Boolean indicator for standardized result is numeric, and whether --STRESN is to be used."
+        }
+    ],
+    "QRS Instrument": [
+        {
+            "Short Name": "HAM-A",
+            "QRS Name": "Hamilton Anxiety Rating Scale Supplement v2.1",
+            "Supplement Version": 2.1,
+            "Supplement Release Date": "2020-05-19",
+            "Description": "The Hamilton Anxiety Rating Scale (HAM-A) (Hamilton M. The assessment of anxiety states by rating. Br J Med Psychol 1959; 32:50-55).",
+            "Type": "Clinical Classification",
+            "Copyright\nPermission": "Public Domain",
+            "Codelist Code for '--CAT'": "C118971",
+            "Code for\n'--CAT'": "C102118"
+        }
+    ],
+    "QRS Items": [
+        {
+            "Item\nOrder": 1,
+            "Item Test Name": "HAMA1-Anxious Mood",
+            "Item Text": "QRS Instrument Item HAMA1-Anxious Mood for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102073",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102073",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 2,
+            "Item Test Name": "HAMA1-Tension",
+            "Item Text": "QRS Instrument Item HAMA1-Tension for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102074",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102074",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 3,
+            "Item Test Name": "HAMA1-Fears",
+            "Item Text": "QRS Instrument Item HAMA1-Fears for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102075",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102075",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 4,
+            "Item Test Name": "HAMA1-Insomnia",
+            "Item Text": "QRS Instrument Item HAMA1-Insomnia for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102076",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102076",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 5,
+            "Item Test Name": "HAMA1-Intellectual",
+            "Item Text": "QRS Instrument Item HAMA1-Intellectual for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102077",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102077",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 6,
+            "Item Test Name": "HAMA1-Depressed Mood",
+            "Item Text": "QRS Instrument Item HAMA1-Depressed Mood for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102078",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102078",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 7,
+            "Item Test Name": "HAMA1-Somatic (Muscular)",
+            "Item Text": "QRS Instrument Item HAMA1-Somatic (Muscular) for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102079",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102079",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 8,
+            "Item Test Name": "HAMA1-Somatic (Sensory)",
+            "Item Text": "QRS Instrument Item HAMA1-Somatic (Sensory) for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102080",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102080",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 9,
+            "Item Test Name": "HAMA1-Cardiovascular Symptoms",
+            "Item Text": "QRS Instrument Item HAMA1-Cardiovascular Symptoms for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102081",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102081",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 10,
+            "Item Test Name": "HAMA1-Respiratory Symptoms",
+            "Item Text": "QRS Instrument Item HAMA1-Respiratory Symptoms for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102082",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102082",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 11,
+            "Item Test Name": "HAMA1-Gastrointestinal Symptoms",
+            "Item Text": "QRS Instrument Item HAMA1-Gastrointestinal Symptoms for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102083",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102083",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 12,
+            "Item Test Name": "HAMA1-Genitourinary Symptoms",
+            "Item Text": "QRS Instrument Item HAMA1-Genitourinary Symptoms for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102084",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102084",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 13,
+            "Item Test Name": "HAMA1-Autonomic Symptoms",
+            "Item Text": "QRS Instrument Item HAMA1-Autonomic Symptoms for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102085",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102085",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 14,
+            "Item Test Name": "HAMA1-Behavior at Interview",
+            "Item Text": "QRS Instrument Item HAMA1-Behavior at Interview for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C102086",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C102086",
+            "Response Group": "HAMA1:VD.HAMA1-All Questions"
+        },
+        {
+            "Item\nOrder": 15,
+            "Item Test Name": "HAMA1-Total Score",
+            "Item Text": "QRS Instrument Item HAMA1-Total Score for HAM-A Supplement v2.1",
+            "Codelist Code for '--TEST'": "C101820",
+            "Code\nfor '--TEST'": "C155646",
+            "Codelist Code\nfor '--TESTCD'": "C101819",
+            "Code\nfor '--TESTCD'": "C155646",
+            "Response Group": "HAMA1:VD.HAMA1-Numeric"
+        }
+    ],
+    "QRS Responses": [
+        {
+            "Response Group": "HAMA1:VD.HAMA1-All Questions",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182468",
+            "Response's Original Result Term C-Code": "C182706",
+            "Response's Standardized Result Codelist C-Code": "C182506",
+            "Response's Standardized Result Term C-Code": "C182711",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "HAMA1:VD.HAMA1-All Questions",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182468",
+            "Response's Original Result Term C-Code": "C182707",
+            "Response's Standardized Result Codelist C-Code": "C182506",
+            "Response's Standardized Result Term C-Code": "C182712",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "HAMA1:VD.HAMA1-All Questions",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182468",
+            "Response's Original Result Term C-Code": "C182708",
+            "Response's Standardized Result Codelist C-Code": "C182506",
+            "Response's Standardized Result Term C-Code": "C182713",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "HAMA1:VD.HAMA1-All Questions",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182468",
+            "Response's Original Result Term C-Code": "C182709",
+            "Response's Standardized Result Codelist C-Code": "C182506",
+            "Response's Standardized Result Term C-Code": "C182714",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "HAMA1:VD.HAMA1-All Questions",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182468",
+            "Response's Original Result Term C-Code": "C182710",
+            "Response's Standardized Result Codelist C-Code": "C182506",
+            "Response's Standardized Result Term C-Code": "C182715",
+            "Numeric Standardized Results?": "Yes"
+        }
+    ]
+}

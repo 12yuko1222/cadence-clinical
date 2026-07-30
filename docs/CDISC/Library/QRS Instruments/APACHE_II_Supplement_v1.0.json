@@ -1,0 +1,1193 @@
+{
+    "Read Me": [
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "About the use of Code: Code (i.e., unique numeric code assigned by NCI EVS, in C<<number>> format) is used so that information presented is agnostic to different versions of CDISC Controlled Terminology publications, where Code is immutable in principal and other information such as Submission Value may vary. Users will have the flexibility to pair the Code information with any given publication of their choice.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Statement on copyright permission: A QRS Supplement to the SDTMIG may be for an instrument in the a public domain or for a copyrighted instrument for which the copyright holder has given CDISC permission to develop a supplement. All QRS Supplements to the SDTMIG are created in compliance with CDISC operating procedure COP-001. For copyrighted instruments, note the following:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Granting CDISC the right to create supplements to represent an instrument in CDISC QRS domains is not a license for CDISC standards users to use the instrument without complying with the copyright holders licensing requirements.\n\nNo part of a copyrighted instrument or accompanying guidelines may be reproduced, distributed, or transmitted in any form, or by any means, including photocopying, recording, or other electronic or mechanical methods without the permission of the copyright holder and payment of applicable fees.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Warranties, Limitations of Liability, Disclaimers, Copyright Status, and Relationship to the CDISC SDTMIG: Consult the specifics in each QRS Supplement publication, downloadable from the CDISC QRS standards page.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "For additional information, visit these on-line resources:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC QRS standards page",
+            "Unnamed: 1": "https://www.cdisc.org/foundational/qrs"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "\"All Published QRS Supplements\" section",
+            "Unnamed: 1": "https://www.cdisc.org/standards/foundational/qrs#QRS_Supplements"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library API documentation",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library/api-documentation"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library release notes",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/Release+Notes"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library knowledge base",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/How-to+articles"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Instrument",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Short Name (Column A)",
+            "Unnamed: 1": "Short Name (--CAT) in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Name (Column B)",
+            "Unnamed: 1": "QRS Name in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Version (Column C)",
+            "Unnamed: 1": "Version in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Release Date (Column D)",
+            "Unnamed: 1": "Release Date in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Description (Column E)",
+            "Unnamed: 1": "CDISC Definition for this QRS instrument from one of these CDISC Controlled Terminology codelists: CCCAT (C118971), FTCAT (C115304), or QSCAT (C100129).\n\nRefer to columns H and G for exact code and codelist and code."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Type (Column F)",
+            "Unnamed: 1": "Questionnaire, Functional Test, or Clinical Classification.\n\nDerived (i.e., spelled out) from the SDTM Domain information in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument.\n\nVisit the CDISC QRS standards page for up-to-date definitions for these values, as well as choosing an SDTM domain for each type."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Copyright Permission (Column G)",
+            "Unnamed: 1": "Copyright permission status for this QRS instrument.\n\nFor details, refer to the QRS SDTMIG and ADaMIG Supplements Addendum of CDISC COP-001."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--CAT' (Column H)",
+            "Unnamed: 1": "C100129 (QSCAT), C115304 (FTCAT), or C118971 (CCCAT), depending on whether the Type in column F is Questionnaire, Functional Test, or Clinical Classification, respectively. \n\nUse in conjunction with column I."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--CAT' (Column I)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this specific instrument in column B; this is a member of the codelist referenced in column H.\n\nUse the Submission Value of this Code from the codelist referenced in column G to populate --CAT in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Items",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Order (Column A)",
+            "Unnamed: 1": "Derived from the ordering of a term in a codelist, i.e., the position of the term (column G) in the CDISC Controlled Terminology codelist (column F)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Test Name (Column B)",
+            "Unnamed: 1": "CDISC Submission Value for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Text (Column C)",
+            "Unnamed: 1": "CDISC Definition for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TEST' (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column E."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TEST' (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this is member of the codelist referenced in column D.\n\nUse the Submission Value of this Code from the codelist referenced in column D to populate --TEST in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TESTCD' (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column G."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TESTCD' (Column G)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this term is member of the codelist referenced in column F.\n\nUse the Submission Value of this Code from the codelist referenced in column F to populate --TESTCD in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column H)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with QRS Responses tab, when it is populated for this QRS item. When it is not populated, Controlled Terminology is not available for this QRS item."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Responses\nNote: Populated when Controlled Terminology for responses is available",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column A)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with column I of QRS Items tab."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Order (Column B)",
+            "Unnamed: 1": "Derived from the ordering of a term in a QRS response codelist, i.e., the position of the term (columns D and F) in the CDISC Controlled Terminology codelist (columns C and E)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Codelist C-Code (Column C)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's original result.\n\nUse in conjunction with column D."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Term C-Code (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response; this is member of the codelist referenced in column C.\n\nUse the Submission Value of this Code from the codelist referenced in column C to populate --ORRES in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Codelist C-Code (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's standardized result.\n\nUse in conjunction with column F."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Term C-Code (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response's standardized result; this is member of the codelist referenced in column E.\n\nUse the Submission Value of this Code from the codelist referenced in column E to populate --STRESN in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Numeric Standardized Results? (Column G)",
+            "Unnamed: 1": "Boolean indicator for standardized result is numeric, and whether --STRESN is to be used."
+        }
+    ],
+    "QRS Instrument": [
+        {
+            "Short Name": "APACHE II",
+            "QRS Name": "Acute Physiology and Chronic Health Evaluation II Supplement v1.0",
+            "Supplement Version": 1.0,
+            "Supplement Release Date": "2016-06-29",
+            "Description": "Acute Physiology and Chronic Health Evaluation II (APACHE II) (Knaus WA, Draper EA, Wagner DP, Zimmerman JE. APACHE II: a severity of disease classification system. Critical Care Medicine 1985; 13(10):818-29). CDISC believes this instrument to be in the public domain, but you should perform your own assessment.",
+            "Type": "Clinical Classification",
+            "Copyright\nPermission": "Public Domain",
+            "Codelist Code for '--CAT'": "C118971",
+            "Code for\n'--CAT'": "C121005"
+        }
+    ],
+    "QRS Items": [
+        {
+            "Item\nOrder": 1,
+            "Item Test Name": "APCH1-Temperature - Rectal",
+            "Item Text": "QRS Instrument Item APCH1-Temperature - Rectal for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121096",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121096",
+            "Response Group": "APCH1:VD.APCH1-Temperature"
+        },
+        {
+            "Item\nOrder": 2,
+            "Item Test Name": "APCH1-Mean Arterial Pressure",
+            "Item Text": "QRS Instrument Item APCH1-Mean Arterial Pressure for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121097",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121097",
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure"
+        },
+        {
+            "Item\nOrder": 3,
+            "Item Test Name": "APCH1-Heart Rate",
+            "Item Text": "QRS Instrument Item APCH1-Heart Rate for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121098",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121098",
+            "Response Group": "APCH1:VD.APCH1-Heart Rate"
+        },
+        {
+            "Item\nOrder": 4,
+            "Item Test Name": "APCH1-Respiratory Rate",
+            "Item Text": "QRS Instrument Item APCH1-Respiratory Rate for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121099",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121099",
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate"
+        },
+        {
+            "Item\nOrder": 5,
+            "Item Test Name": "APCH1-Oxygenation: A-aDO2",
+            "Item Text": "QRS Instrument Item APCH1-Oxygenation: A-aDO2 for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121100",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121100",
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: A-aDO2"
+        },
+        {
+            "Item\nOrder": 6,
+            "Item Test Name": "APCH1-Oxygenation: PaO2",
+            "Item Text": "QRS Instrument Item APCH1-Oxygenation: PaO2 for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121101",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121101",
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: PaO2"
+        },
+        {
+            "Item\nOrder": 7,
+            "Item Test Name": "APCH1-Arterial pH",
+            "Item Text": "QRS Instrument Item APCH1-Arterial pH for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121102",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121102",
+            "Response Group": "APCH1:VD.APCH1-Arterial pH"
+        },
+        {
+            "Item\nOrder": 8,
+            "Item Test Name": "APCH1-Serum HCO3",
+            "Item Text": "QRS Instrument Item APCH1-Serum HCO3 for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121103",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121103",
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3"
+        },
+        {
+            "Item\nOrder": 9,
+            "Item Test Name": "APCH1-Serum Sodium",
+            "Item Text": "QRS Instrument Item APCH1-Serum Sodium for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121104",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121104",
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium"
+        },
+        {
+            "Item\nOrder": 10,
+            "Item Test Name": "APCH1-Serum Potassium",
+            "Item Text": "QRS Instrument Item APCH1-Serum Potassium for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121105",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121105",
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium"
+        },
+        {
+            "Item\nOrder": 11,
+            "Item Test Name": "APCH1-Serum Creatinine",
+            "Item Text": "QRS Instrument Item APCH1-Serum Creatinine for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121106",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121106",
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine"
+        },
+        {
+            "Item\nOrder": 12,
+            "Item Test Name": "APCH1-Hematocrit",
+            "Item Text": "QRS Instrument Item APCH1-Hematocrit for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121107",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121107",
+            "Response Group": "APCH1:VD.APCH1-Hematocrit"
+        },
+        {
+            "Item\nOrder": 13,
+            "Item Test Name": "APCH1-White Blood Count",
+            "Item Text": "QRS Instrument Item APCH1-White Blood Count for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121108",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121108",
+            "Response Group": "APCH1:VD.APCH1-White Blood Count"
+        },
+        {
+            "Item\nOrder": 14,
+            "Item Test Name": "APCH1-B: Age Points",
+            "Item Text": "QRS Instrument Item APCH1-B: Age Points for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121111",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121111",
+            "Response Group": "APCH1:VD.APCH1-B: Age Points"
+        },
+        {
+            "Item\nOrder": 15,
+            "Item Test Name": "APCH1-C: Chronic Health Points",
+            "Item Text": "QRS Instrument Item APCH1-C: Chronic Health Points for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121112",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121112",
+            "Response Group": "APCH1:VD.APCH1-C: Chronic Health Points"
+        },
+        {
+            "Item\nOrder": 16,
+            "Item Test Name": "APCH1-15 Minus Glasgow Coma Score",
+            "Item Text": "QRS Instrument Item APCH1-15 Minus Glasgow Coma Score for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121109",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121109",
+            "Response Group": "APCH1:VD.APCH1-15 Minus Glasgow Coma Score"
+        },
+        {
+            "Item\nOrder": 17,
+            "Item Test Name": "APCH1-A: Total Acute Physiology Score",
+            "Item Text": "QRS Instrument Item APCH1-A: Total Acute Physiology Score for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121110",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121110",
+            "Response Group": "APCH1:VD.APCH1-A: Total Acute Physiology Score"
+        },
+        {
+            "Item\nOrder": 18,
+            "Item Test Name": "APCH1-Total APACHE II Score",
+            "Item Text": "QRS Instrument Item APCH1-Total APACHE II Score for APACHE II Supplement v1.0",
+            "Codelist Code for '--TEST'": "C120984",
+            "Code\nfor '--TEST'": "C121113",
+            "Codelist Code\nfor '--TESTCD'": "C120985",
+            "Code\nfor '--TESTCD'": "C121113",
+            "Response Group": "APCH1:VD.APCH1-Total APACHE II Score"
+        }
+    ],
+    "QRS Responses": [
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182882",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182890",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182883",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182891",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182884",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182893",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182885",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182894",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182886",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182893",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182887",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182892",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182888",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182891",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Temperature",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182484",
+            "Response's Original Result Term C-Code": "C182889",
+            "Response's Standardized Result Codelist C-Code": "C182522",
+            "Response's Standardized Result Term C-Code": "C182890",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182895",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182901",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182896",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182902",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182897",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182903",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182898",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182904",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182899",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182903",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Mean Arterial Pressure",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182485",
+            "Response's Original Result Term C-Code": "C182900",
+            "Response's Standardized Result Codelist C-Code": "C182523",
+            "Response's Standardized Result Term C-Code": "C182901",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182905",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182912",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182906",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182913",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182907",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182914",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182908",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182915",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182909",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182914",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182910",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182913",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Heart Rate",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182486",
+            "Response's Original Result Term C-Code": "C182911",
+            "Response's Standardized Result Codelist C-Code": "C182524",
+            "Response's Standardized Result Term C-Code": "C182912",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182916",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182923",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182917",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182924",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182918",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182926",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182919",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182927",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182920",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182926",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182921",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182925",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Respiratory Rate",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182487",
+            "Response's Original Result Term C-Code": "C182922",
+            "Response's Standardized Result Codelist C-Code": "C182525",
+            "Response's Standardized Result Term C-Code": "C182923",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: A-aDO2",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182488",
+            "Response's Original Result Term C-Code": "C182928",
+            "Response's Standardized Result Codelist C-Code": "C182526",
+            "Response's Standardized Result Term C-Code": "C182932",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: A-aDO2",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182488",
+            "Response's Original Result Term C-Code": "C182929",
+            "Response's Standardized Result Codelist C-Code": "C182526",
+            "Response's Standardized Result Term C-Code": "C182933",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: A-aDO2",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182488",
+            "Response's Original Result Term C-Code": "C182930",
+            "Response's Standardized Result Codelist C-Code": "C182526",
+            "Response's Standardized Result Term C-Code": "C182934",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: A-aDO2",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182488",
+            "Response's Original Result Term C-Code": "C182931",
+            "Response's Standardized Result Codelist C-Code": "C182526",
+            "Response's Standardized Result Term C-Code": "C182935",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: PaO2",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182489",
+            "Response's Original Result Term C-Code": "C182936",
+            "Response's Standardized Result Codelist C-Code": "C182527",
+            "Response's Standardized Result Term C-Code": "C182940",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: PaO2",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182489",
+            "Response's Original Result Term C-Code": "C182937",
+            "Response's Standardized Result Codelist C-Code": "C182527",
+            "Response's Standardized Result Term C-Code": "C182941",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: PaO2",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182489",
+            "Response's Original Result Term C-Code": "C182938",
+            "Response's Standardized Result Codelist C-Code": "C182527",
+            "Response's Standardized Result Term C-Code": "C182942",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Oxygenation: PaO2",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182489",
+            "Response's Original Result Term C-Code": "C182939",
+            "Response's Standardized Result Codelist C-Code": "C182527",
+            "Response's Standardized Result Term C-Code": "C182943",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182944",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182951",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182945",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182952",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182946",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182954",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182947",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182955",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182948",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182953",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182949",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182952",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Arterial pH",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182490",
+            "Response's Original Result Term C-Code": "C182950",
+            "Response's Standardized Result Codelist C-Code": "C182528",
+            "Response's Standardized Result Term C-Code": "C182951",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182956",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182963",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182957",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182964",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182958",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182966",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182959",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182967",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182960",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182965",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182961",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182964",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum HCO3",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182491",
+            "Response's Original Result Term C-Code": "C182962",
+            "Response's Standardized Result Codelist C-Code": "C182529",
+            "Response's Standardized Result Term C-Code": "C182963",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182968",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182976",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182969",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182977",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182970",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182978",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182971",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182979",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182972",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182980",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182973",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182978",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182974",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182977",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Sodium",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182492",
+            "Response's Original Result Term C-Code": "C182975",
+            "Response's Standardized Result Codelist C-Code": "C182530",
+            "Response's Standardized Result Term C-Code": "C182976",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182981",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182988",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182982",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182989",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182983",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182991",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182984",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182992",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182985",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182991",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182986",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182990",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Potassium",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182493",
+            "Response's Original Result Term C-Code": "C182987",
+            "Response's Standardized Result Codelist C-Code": "C182531",
+            "Response's Standardized Result Term C-Code": "C182988",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182993",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183001",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182994",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183002",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182995",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183003",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182996",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183003",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182997",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183004",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182998",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183005",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C182999",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183006",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Serum Creatinine",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182494",
+            "Response's Original Result Term C-Code": "C183000",
+            "Response's Standardized Result Codelist C-Code": "C182532",
+            "Response's Standardized Result Term C-Code": "C183005",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183007",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183013",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183008",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183014",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183009",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183015",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183010",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183016",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183011",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183014",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-Hematocrit",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182495",
+            "Response's Original Result Term C-Code": "C183012",
+            "Response's Standardized Result Codelist C-Code": "C182533",
+            "Response's Standardized Result Term C-Code": "C183013",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183017",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183023",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183018",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183024",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183019",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183025",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183020",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183026",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183021",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183024",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-White Blood Count",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182496",
+            "Response's Original Result Term C-Code": "C183022",
+            "Response's Standardized Result Codelist C-Code": "C182534",
+            "Response's Standardized Result Term C-Code": "C183023",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-B: Age Points",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182497",
+            "Response's Original Result Term C-Code": "C183027",
+            "Response's Standardized Result Codelist C-Code": "C182535",
+            "Response's Standardized Result Term C-Code": "C183032",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-B: Age Points",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182497",
+            "Response's Original Result Term C-Code": "C183028",
+            "Response's Standardized Result Codelist C-Code": "C182535",
+            "Response's Standardized Result Term C-Code": "C183033",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-B: Age Points",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182497",
+            "Response's Original Result Term C-Code": "C183029",
+            "Response's Standardized Result Codelist C-Code": "C182535",
+            "Response's Standardized Result Term C-Code": "C183034",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-B: Age Points",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182497",
+            "Response's Original Result Term C-Code": "C183030",
+            "Response's Standardized Result Codelist C-Code": "C182535",
+            "Response's Standardized Result Term C-Code": "C183035",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-B: Age Points",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182497",
+            "Response's Original Result Term C-Code": "C183031",
+            "Response's Standardized Result Codelist C-Code": "C182535",
+            "Response's Standardized Result Term C-Code": "C183036",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-C: Chronic Health Points",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182498",
+            "Response's Original Result Term C-Code": "C183037",
+            "Response's Standardized Result Codelist C-Code": "C182536",
+            "Response's Standardized Result Term C-Code": "C183039",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "APCH1:VD.APCH1-C: Chronic Health Points",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182498",
+            "Response's Original Result Term C-Code": "C183038",
+            "Response's Standardized Result Codelist C-Code": "C182536",
+            "Response's Standardized Result Term C-Code": "C183040",
+            "Numeric Standardized Results?": "Yes"
+        }
+    ]
+}
