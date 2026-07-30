@@ -160,3 +160,13 @@ def audit_context_decorator(
         return sync_wrapper  # type: ignore
 
     return decorator
+
+
+@contextmanager
+def service_audit_context(
+    service_name: str,
+    change_reason: str,
+) -> Generator[None, None, None]:
+    """Lightweight context manager wrapper around audit_context to bind a service identity and change reason."""
+    with audit_context(user_id=service_name, change_reason=change_reason):
+        yield

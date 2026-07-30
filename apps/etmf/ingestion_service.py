@@ -303,6 +303,12 @@ async def ingest_tmf_document(
     # 7. Add document and log action within transactional boundaries
     try:
         async with session.begin_nested():
+            resolved_expiration_date = expiration_date
+            if resolved_expiration_date is not None and not isinstance(resolved_expiration_date, datetime):
+                resolved_expiration_date = datetime.combine(
+                    resolved_expiration_date, datetime.min.time()
+                ).replace(tzinfo=timezone.utc)
+
             doc = TMFDocument(
                 study_id=study_id,
                 site_id=resolved_site_id,
@@ -334,7 +340,7 @@ async def ingest_tmf_document(
                 if protocol_version
                 else None,
                 issue_date=issue_date,
-                expiration_date=expiration_date,
+                expiration_date=resolved_expiration_date,
                 document_owner_id=document_owner_id,
             )
 

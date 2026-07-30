@@ -6,6 +6,7 @@ from packages.security.context import (
     current_signature_context,
     current_timestamp,
     current_user_id,
+    service_audit_context,
 )
 from packages.security.delegation import (
     DelegationChecker,
@@ -66,6 +67,7 @@ __all__ = [
     "current_signature_context",
     "audit_context",
     "audit_context_decorator",
+    "service_audit_context",
     "canonical_serialize",
     "generate_canonical_signature",
     "verify_canonical_signature",

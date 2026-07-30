@@ -71,6 +71,7 @@ def receive_before_flush(session: Session, flush_context, instances):
             "tmf_audit_logs",
             "tmf_expected_documents",
             "tmf_document_qc_transitions",
+            "tmf_document_expiration_alert_states",
             "epro_submissions",
             "epro_defeated_submissions",
             "interop_audit_logs",
