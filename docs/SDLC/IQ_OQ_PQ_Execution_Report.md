@@ -17,6 +17,8 @@ Based on the executed automated verification suite, the platform meets all prede
 - **Passed:** 1454 🟢
 - **Total Automated Test Cases Run:** 1439
 - **Passed:** 1439 🟢
+- **Total Automated Test Cases Run:** 1458
+- **Passed:** 1458 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -670,6 +672,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_etmf_ingest_date_validation_rejected` | `tests.test_etmf_eisf_expiration_metadata` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_manage_expiration_rbac_permissions` | `tests.test_etmf_eisf_expiration_metadata` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_migration_adds_expiration_columns_idempotently` | `tests.test_etmf_eisf_expiration_metadata` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_audit_attribution` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_determine_warning_window` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_execute_expiration_scan_cycle_thresholds` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_failure_isolation_and_resilience` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_scanner_idempotency_restart_and_rearming` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_scanner_shutdown_cancellation` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_idempotency` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_immutability_violation_inbound_email` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_invalid_signature_rejection` | `tests.test_etmf_inbound_email` | *Regression/Helper* | 🟢 PASSED | < 1s |

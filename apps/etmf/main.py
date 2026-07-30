@@ -1,7 +1,7 @@
 import email.utils
 import os
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import (
@@ -125,12 +125,20 @@ async def etmf_startup() -> None:
 
     await start_background_etmf_sealer(db_manager.get_session_maker())
 
+    from apps.etmf.expiration_scanner import start_background_etmf_expiration_scanner
+
+    await start_background_etmf_expiration_scanner(db_manager.get_session_maker())
+
 
 async def etmf_shutdown() -> None:
     """Shutdown hook to stop the background sealer."""
     from apps.etmf.sealer import stop_background_etmf_sealer
 
     await stop_background_etmf_sealer()
+
+    from apps.etmf.expiration_scanner import stop_background_etmf_expiration_scanner
+
+    await stop_background_etmf_expiration_scanner()
 
 
 app = FastAPI(
@@ -336,7 +344,11 @@ def to_document_response(doc: TMFDocument) -> DocumentResponse:
             else None
         ),
         issue_date=doc.issue_date,
-        expiration_date=doc.expiration_date,
+        expiration_date=(
+            doc.expiration_date.date()
+            if isinstance(doc.expiration_date, datetime)
+            else doc.expiration_date
+        ),
         document_owner_id=doc.document_owner_id,
     )
 
@@ -2464,7 +2476,14 @@ async def update_document_expiration_endpoint(
 
     # 5. Mutate the fields and increment version index
     doc.issue_date = payload.issue_date
-    doc.expiration_date = payload.expiration_date
+    resolved_expiration_date = payload.expiration_date
+    if resolved_expiration_date is not None and not isinstance(
+        resolved_expiration_date, datetime
+    ):
+        resolved_expiration_date = datetime.combine(
+            resolved_expiration_date, datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+    doc.expiration_date = resolved_expiration_date
     doc.document_owner_id = payload.document_owner_id
     doc.version_index += 1
 
