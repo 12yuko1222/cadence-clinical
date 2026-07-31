@@ -1,4 +1,3 @@
-import pytest
 from enum import Enum
 
 
@@ -9,6 +8,7 @@ def test_audit_action_imports_bare_name():
     the same way standard core models are resolved.
     """
     from audit import AuditAction
+
     assert issubclass(AuditAction, str)
     assert issubclass(AuditAction, Enum)
 
@@ -20,8 +20,11 @@ def test_audit_action_members_value_stability():
     byte-identical to its SCREAMING_SNAKE_CASE name.
     """
     from audit import AuditAction
+
     for member in AuditAction:
-        assert member.name == member.value, f"Name/value mismatch for member {member.name}"
+        assert member.name == member.value, (
+            f"Name/value mismatch for member {member.name}"
+        )
 
 
 def test_audit_action_taxonomy_groupings():
