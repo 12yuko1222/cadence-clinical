@@ -25,6 +25,18 @@ def get_primary_key(obj):
 
 @event.listens_for(Session, "before_flush")
 def receive_before_flush(session: Session, flush_context, instances):
+    """
+    Enforces write restrictions and records audited changes before a session flush.
+
+    Parameters:
+        session (Session): SQLAlchemy session containing pending changes.
+        flush_context: SQLAlchemy flush context.
+        instances: Instances involved in the flush.
+
+    Raises:
+        PermissionError: If the trial or referenced site, visit, subject, or form is locked, re-consent is required, or a prohibited unblinded-subject write is attempted.
+        ValueError: If a verified observation is modified without a meaningful change reason, or a protected record is hard-deleted.
+    """
     if not session.is_modified:
         return
 
@@ -50,11 +62,16 @@ def receive_before_flush(session: Session, flush_context, instances):
 
     # If the session contains eTMF, Interop, CTMS, Quality, eISF, or Notifications objects, skip execution auditing
     for obj in list(session.new) + list(session.dirty) + list(session.deleted):
+        module_name = getattr(obj.__class__, "__module__", "")
+        if "apps.econsent" in module_name:
+            return
+
         if hasattr(obj, "__tablename__") and obj.__tablename__ in (
             "tmf_documents",
             "tmf_audit_logs",
             "tmf_expected_documents",
             "tmf_document_qc_transitions",
+            "tmf_document_expiration_alert_states",
             "epro_submissions",
             "epro_defeated_submissions",
             "interop_audit_logs",
@@ -73,6 +90,8 @@ def receive_before_flush(session: Session, flush_context, instances):
             "ctms_budget_line_items",
             "ctms_payment_milestones",
             "ctms_investigator_payables",
+            "ctms_clinical_queries",
+            "ctms_defeated_monitoring_visits",
             "quality_deviations",
             "quality_root_cause_analyses",
             "quality_capa_records",
@@ -275,6 +294,43 @@ def receive_before_flush(session: Session, flush_context, instances):
             raise PermissionError(
                 f"Form {form_id} is currently locked in a read-only state."
             )
+
+        # Check if subject is unblinded and restrict subsequent non-safety writes
+        if tablename in (
+            "clinical_observations",
+            "form_submissions",
+        ):
+            sub_id = getattr(obj, "subject_id", None)
+            if sub_id:
+                subj_obj = None
+                with session.no_autoflush:
+                    from sqlalchemy import select
+
+                    from .models import ClinicalSubject
+
+                    stmt_subj = select(ClinicalSubject).where(
+                        (ClinicalSubject.subject_id == sub_id)
+                        | (ClinicalSubject.id == sub_id)
+                    )
+                    subj_obj = session.execute(stmt_subj).scalars().first()
+
+                if subj_obj and subj_obj.is_unblinded:
+                    # Check safety-data exception path
+                    is_safety_data = False
+                    if tablename == "clinical_observations":
+                        # If domain is AE or SAE, allow it as a safety exception
+                        domain = getattr(obj, "domain", "").upper()
+                        if domain in ("AE", "SAE"):
+                            is_safety_data = True
+                    elif tablename == "form_submissions":
+                        form_id = getattr(obj, "form_id", "").upper()
+                        if "AE" in form_id or "SAFETY" in form_id:
+                            is_safety_data = True
+
+                    if not is_safety_data:
+                        raise PermissionError(
+                            f"Subject {sub_id} is unblinded. Subsequent non-safety clinical write operations are blocked."
+                        )
 
     # GxP compliance: Centralized automatic verification drop
     user_id = current_user_id.get()

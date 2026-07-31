@@ -1,8 +1,9 @@
 import time
+from typing import Optional
 
 import pytest
 import pytest_asyncio
-from fastapi import HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
@@ -13,8 +14,12 @@ from apps.execution.database.core import db_manager as exec_db_manager
 from apps.execution.database.models import Base as ExecBase
 from apps.execution.main import app as exec_app
 from apps.gateway.main import generate_signature
+from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import (
+    Principal,
     get_normalized_roles,
+    get_principal,
+    get_principal_sync,
     verify_is_auditor,
     verify_not_auditor,
 )
@@ -422,10 +427,18 @@ async def test_execution_observation_creation_auditor_forbidden() -> None:
 
 
 def test_role_aliases_normalization() -> None:
-    """Verify that role aliases map to canonical forms correctly."""
+    """Verify that role aliases map to canonical forms correctly.
+
+    'pi' and 'principal investigator' must map to ROLE_PRINCIPAL_INVESTIGATOR
+    (not ROLE_INVESTIGATOR) so that role-based access control for the
+    emergency-unblinding endpoint works correctly.
+
+    Requirements: PRD-SYS-RBAC-001
+    """
     from packages.security.rbac import (
         ROLE_CRA_CANONICAL,
         ROLE_INVESTIGATOR,
+        ROLE_PRINCIPAL_INVESTIGATOR,
         ROLE_SPONSOR_DESIGNER,
         ROLE_SPONSOR_DM,
         ROLE_SYSADMIN,
@@ -436,8 +449,12 @@ def test_role_aliases_normalization() -> None:
     assert normalize_role("system_admin") == ROLE_SYSADMIN
     assert normalize_role("Admin") == ROLE_SPONSOR_DM
     assert normalize_role("Sponsor DM") == ROLE_SPONSOR_DM
-    assert normalize_role("pi") == ROLE_INVESTIGATOR
-    assert normalize_role("principal investigator") == ROLE_INVESTIGATOR
+    # "pi" aliases ROLE_PRINCIPAL_INVESTIGATOR, which is a distinct, more-privileged
+    # role than ROLE_INVESTIGATOR (the basic site investigator).
+    assert normalize_role("pi") == ROLE_PRINCIPAL_INVESTIGATOR
+    assert normalize_role("principal investigator") == ROLE_PRINCIPAL_INVESTIGATOR
+    # "investigator" / "site investigator" still maps to the base ROLE_INVESTIGATOR.
+    assert normalize_role("investigator") == ROLE_INVESTIGATOR
     assert normalize_role("cra_monitor") == ROLE_CRA_CANONICAL
     assert normalize_role("unknown_role") == "unknown_role"
     assert normalize_role("study_designer") == ROLE_SPONSOR_DESIGNER
@@ -783,3 +800,615 @@ async def test_external_monitor_principal_resolution(monkeypatch) -> None:
     assert can_access_site(principal, "site_gamma") is False
     assert can_access_study(principal, "study_x") is True
     assert can_access_study(principal, "study_z") is False
+
+
+def test_rtsm_role_aliases_normalization() -> None:
+    """Verify normalization of all new RTSM role synonym aliases.
+
+    Requirements: PRD-SYS-042, Trace-294
+    """
+    from packages.security.rbac import (
+        ROLE_EMERGENCY_UNBLINDER,
+        ROLE_IDMC,
+        ROLE_PHARMACIST,
+        ROLE_UNBLINDED_STATISTICIAN,
+        normalize_role,
+    )
+
+    assert normalize_role("unblinded statistician") == ROLE_UNBLINDED_STATISTICIAN
+    assert normalize_role("lead unblinded statistician") == ROLE_UNBLINDED_STATISTICIAN
+    assert normalize_role("idmc") == ROLE_IDMC
+    assert normalize_role("dsmb") == ROLE_IDMC
+    assert normalize_role("unblinded pharmacist") == ROLE_PHARMACIST
+    assert normalize_role("emergency unblinder") == ROLE_EMERGENCY_UNBLINDER
+
+
+def test_rtsm_role_permissions() -> None:
+    """Verify that rtsm resource permissions are mapped correctly for new RTSM roles.
+
+    Requirements: PRD-SYS-042, Trace-294
+    """
+    from packages.security.rbac import (
+        ROLE_CRA_CANONICAL,
+        ROLE_EMERGENCY_UNBLINDER,
+        ROLE_IDMC,
+        ROLE_PHARMACIST,
+        ROLE_UNBLINDED_STATISTICIAN,
+        Principal,
+        has_permission,
+    )
+
+    stat = Principal(user_id="s1", roles=[ROLE_UNBLINDED_STATISTICIAN])
+    idmc = Principal(user_id="i1", roles=[ROLE_IDMC])
+    pharm = Principal(user_id="p1", roles=[ROLE_PHARMACIST])
+    emerg = Principal(user_id="e1", roles=[ROLE_EMERGENCY_UNBLINDER])
+    cra = Principal(user_id="c1", roles=[ROLE_CRA_CANONICAL])
+
+    assert has_permission(stat, "rtsm_allocation:read") is True
+    assert has_permission(idmc, "rtsm_allocation:read") is True
+    assert has_permission(pharm, "rtsm_supply:write") is True
+    assert has_permission(emerg, "rtsm_unblind:write") is True
+
+    # Blinded roles (CRA, etc.) must not receive allocation-read grants
+    assert has_permission(cra, "rtsm_allocation:read") is False
+
+
+def test_rtsm_role_aware_masking() -> None:
+    """Verify that mask_payload applies role-conditioned unmasking for RTSM unblinded roles.
+
+    Requirements: PRD-SYS-042, Trace-294
+    """
+    from packages.security.rbac import (
+        ROLE_CRA_CANONICAL,
+        ROLE_PHARMACIST,
+        ROLE_UNBLINDED_STATISTICIAN,
+        Principal,
+        mask_payload,
+    )
+
+    payload = {
+        "treatment_arm": "Active Arm",
+        "randomization_seed": 12345,
+        "kit_reference": "KIT-XYZ",
+        "drug_code": "DRUG-123",
+    }
+
+    # CRA/blinded role -> fully masked
+    cra_p = Principal(user_id="c1", roles=[ROLE_CRA_CANONICAL], unblinded_access=False)
+    masked_cra = mask_payload(payload, cra_p)
+    assert masked_cra["treatment_arm"] == "BLINDED"
+    assert masked_cra["randomization_seed"] == "MASKED"
+    assert masked_cra["kit_reference"] == "Obfuscated Kit"
+    assert masked_cra["drug_code"] == "Obfuscated Kit"
+
+    # Statistician -> sees allocation fields but NOT drug code / kit reference
+    stat_p = Principal(
+        user_id="s1", roles=[ROLE_UNBLINDED_STATISTICIAN], unblinded_access=False
+    )
+    masked_stat = mask_payload(payload, stat_p)
+    assert masked_stat["treatment_arm"] == "Active Arm"
+    assert masked_stat["randomization_seed"] == 12345
+    assert masked_stat["kit_reference"] == "Obfuscated Kit"
+    assert masked_stat["drug_code"] == "Obfuscated Kit"
+
+    # Pharmacist -> sees drug/kit details but NOT treatment arm / seed
+    pharm_p = Principal(user_id="p1", roles=[ROLE_PHARMACIST], unblinded_access=False)
+    masked_pharm = mask_payload(payload, pharm_p)
+    assert masked_pharm["treatment_arm"] == "BLINDED"
+    assert masked_pharm["randomization_seed"] == "MASKED"
+    assert masked_pharm["kit_reference"] == "KIT-XYZ"
+    assert masked_pharm["drug_code"] == "DRUG-123"
+
+
+# ==========================================
+# Integration Tests for RTSM Authorization
+# ==========================================
+
+
+@pytest.mark.asyncio
+async def test_cross_site_unblind_denied_with_alert(monkeypatch) -> None:
+    """Verify cross-site unblinding returns 403 and triggers an access violation alert.
+
+    Requirements: PRD-SYS-042, Trace-294
+    """
+    import asyncio
+
+    import httpx
+
+    from apps.execution.database.core import db_manager as exec_db_mgr
+    from apps.execution.database.models import ClinicalSubject
+    from tests.test_emergency_unblinding import get_sig_token
+
+    # Create subject in site_boston
+    async with exec_db_mgr.get_session_maker()() as session:
+        subj = ClinicalSubject(
+            subject_id="SUBJ-BOSTON",
+            study_id="STUDY-1",
+            site_id="site_boston",
+        )
+        session.add(subj)
+        await session.flush()
+        subj.status = "ENROLLED"
+        await session.flush()
+        subj.status = "RANDOMIZED"
+        await session.commit()
+
+    # Access using principal_investigator scoped to site_chicago (cross-site)
+    # The PI role clears the require_roles gate; the site check then denies access.
+    timestamp = str(time.time())
+    sig = generate_signature(
+        user_id="test_inv",
+        roles="principal_investigator",
+        timestamp=timestamp,
+        version="2",
+        change_reason="Emergency unblinding requested",
+        site_id="site_chicago",
+        tenant_id="tenant_default",
+    )
+    headers = {
+        "X-User-Id": "test_inv",
+        "X-User-Roles": "principal_investigator",
+        "X-Assigned-Sites": "site_chicago",
+        "X-Site-Id": "site_chicago",
+        "X-Tenant-Id": "tenant_default",
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": "Emergency unblinding requested",
+        "X-Sig-Token": get_sig_token(roles="principal_investigator"),
+    }
+
+    # Monkeypatch publish_notification to capture the dispatched security alert
+    captured_payloads = []
+
+    async def mock_publish(payload):
+        captured_payloads.append(payload)
+        return True
+
+    def mock_run_async(coro):
+        asyncio.create_task(coro)
+
+    import apps.execution.notifications_client
+    import apps.execution.rtsm_authz
+
+    monkeypatch.setattr(
+        apps.execution.notifications_client, "publish_notification", mock_publish
+    )
+    monkeypatch.setattr(apps.execution.rtsm_authz, "publish_notification", mock_publish)
+    monkeypatch.setattr(apps.execution.rtsm_authz, "run_async", mock_run_async)
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=exec_app), base_url="http://test"
+    ) as client:
+        res = await client.post(
+            "/api/v1/execution/subjects/SUBJ-BOSTON/unblind",
+            headers=headers,
+            json={
+                "reason_code": "SAE-Life-Threatening-Event",
+                "justification": "Critical adverse event: patient non-responsive, immediate intervention required per protocol.",
+                "shares": [
+                    {
+                        "custodian": "Lead Unblinded Statistician",
+                        "version": 1,
+                        "x": 1,
+                        "y": 42,
+                    },
+                    {"custodian": "IDMC", "version": 1, "x": 2, "y": 87},
+                ],
+            },
+        )
+        assert res.status_code == 403
+        assert "access restricted to your assigned site(s)" in res.json()["detail"]
+
+    await asyncio.sleep(0.01)
+    # Verify that a security alert was dispatched to appropriate roles
+    assert len(captured_payloads) > 0
+    assert any(
+        p["category"] == "ALERTS"
+        and p["related_entity_type"] == "rtsm-access-violation"
+        for p in captured_payloads
+    )
+
+
+@pytest.mark.asyncio
+async def test_cross_site_query_read_isolation(monkeypatch) -> None:
+    """Verify single query GET returns 403 on cross-site, and list queries narrows results.
+
+    Requirements: PRD-SYS-042, Trace-294
+    """
+    import asyncio
+
+    import httpx
+
+    from apps.execution.database.core import db_manager as exec_db_mgr
+    from apps.execution.database.models import ClinicalQuery
+
+    # Patch notification dispatching to avoid external side-effects
+    captured_payloads = []
+
+    async def mock_publish(payload):
+        captured_payloads.append(payload)
+        return True
+
+    def mock_run_async(coro):
+        asyncio.create_task(coro)
+
+    import apps.execution.notifications_client
+    import apps.execution.rtsm_authz
+
+    monkeypatch.setattr(
+        apps.execution.notifications_client, "publish_notification", mock_publish
+    )
+    monkeypatch.setattr(apps.execution.rtsm_authz, "publish_notification", mock_publish)
+    monkeypatch.setattr(apps.execution.rtsm_authz, "run_async", mock_run_async)
+
+    # Create queries across different sites
+    async with exec_db_mgr.get_session_maker()() as session:
+        q_boston = ClinicalQuery(
+            study_id="STUDY-1",
+            site_id="site_boston",
+            subject_id="SUBJ-B",
+            test_code="SYSBP",
+            status="OPEN",
+            explanation="Check value",
+        )
+        q_chicago = ClinicalQuery(
+            study_id="STUDY-1",
+            site_id="site_chicago",
+            subject_id="SUBJ-C",
+            test_code="SYSBP",
+            status="OPEN",
+            explanation="Check value",
+        )
+        session.add(q_boston)
+        session.add(q_chicago)
+        await session.commit()
+        await session.refresh(q_boston)
+        await session.refresh(q_chicago)
+
+    # Chicago Investigator credentials
+    timestamp = str(time.time())
+    sig = generate_signature(
+        user_id="test_inv",
+        roles="site investigator",
+        timestamp=timestamp,
+        version="2",
+        change_reason="Query check",
+        site_id="site_chicago",
+        tenant_id="tenant_default",
+    )
+    headers = {
+        "X-User-Id": "test_inv",
+        "X-User-Roles": "site investigator",
+        "X-Site-Id": "site_chicago",
+        "X-Tenant-Id": "tenant_default",
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": "Query check",
+    }
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=exec_app), base_url="http://test"
+    ) as client:
+        # Single record cross-site read -> 403 Forbidden
+        res_single = await client.get(
+            f"/api/v1/execution/queries/{q_boston.id}", headers=headers
+        )
+        assert res_single.status_code == 403
+
+        # List read -> filters and returns ONLY site_chicago queries for STUDY-1
+        res_list = await client.get(
+            "/api/v1/execution/queries?study_id=STUDY-1", headers=headers
+        )
+        assert res_list.status_code == 200
+        queries = res_list.json()
+        query_ids = [q["id"] for q in queries]
+        assert q_chicago.id in query_ids
+        assert q_boston.id not in query_ids
+
+
+rbac_test_app = FastAPI()
+rbac_test_app.add_middleware(GatewayAuthMiddleware)
+
+
+@rbac_test_app.get("/test-principal")
+async def handle_get_test_principal(principal: Principal = Depends(get_principal)):
+    return principal.model_dump()
+
+
+@rbac_test_app.get("/test-principal-sync")
+async def handle_get_test_principal_sync(request: Request):
+    principal = get_principal_sync(request)
+    return principal.model_dump()
+
+
+def test_principal_agreement_with_middleware_coercion() -> None:
+    """
+    In tests/test_rbac.py, add tests that:
+    1. build a signed scoped request (using the local get_auth_headers/generate_signature pattern
+       extended with site_id/sponsor_id/unblinded_access),
+    2. drive it through a TestClient/request path that populates request.state,
+    3. assert get_principal/get_principal_sync return assigned_sites, sponsor_id, and unblinded_access
+       matching the normalized values produced by the middleware/context.
+    4. Add a mismatch/normalization case (e.g., list vs CSV site input, "yes" unblinded coercion)
+       proving Principal agrees with normalize_scope_values's canonical output.
+    5. Include a scope-free case asserting Principal reports empty site/sponsor and unblinded_access=False.
+    """
+    client = TestClient(rbac_test_app)
+
+    # Helper to generate signed headers for scoped requests
+    def get_scoped_auth_headers(
+        roles: str = "sponsor_designer",
+        change_reason: str = "Authorized change",
+        site_id: Optional[str] = None,
+        sponsor_id: Optional[str] = None,
+        unblinded_access: bool = False,
+        tenant_id: str = "tenant_default",
+    ) -> dict:
+        timestamp = str(time.time())
+        user_id = "test_user_agreement"
+        sig = generate_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            version="2",
+            change_reason=change_reason,
+            site_id=site_id,
+            sponsor_id=sponsor_id,
+            unblinded_access=unblinded_access,
+            tenant_id=tenant_id,
+        )
+        headers = {
+            "X-User-Id": user_id,
+            "X-User-Roles": roles,
+            "X-Gateway-Timestamp": timestamp,
+            "X-Gateway-Signature": sig,
+            "X-Signature-Version": "2",
+            "X-Change-Reason": change_reason,
+            "X-Tenant-Id": tenant_id,
+        }
+        if site_id is not None:
+            headers["X-Site-Id"] = site_id
+        if sponsor_id is not None:
+            headers["X-Sponsor-Id"] = sponsor_id
+        if unblinded_access:
+            headers["X-Unblinded-Access"] = "true"
+        return headers
+
+    # --- Part 1: Signed scoped request ---
+    headers_scoped = get_scoped_auth_headers(
+        site_id="site_A,site_B",
+        sponsor_id="sponsor_01",
+        unblinded_access=True,
+    )
+
+    # Test Depends(get_principal) endpoint
+    res_async = client.get("/test-principal", headers=headers_scoped)
+    assert res_async.status_code == 200
+    data_async = res_async.json()
+    assert data_async["assigned_sites"] == ["site_A", "site_B"]
+    assert data_async["sponsor_id"] == "sponsor_01"
+    assert data_async["unblinded_access"] is True
+
+    # Test get_principal_sync endpoint
+    res_sync = client.get("/test-principal-sync", headers=headers_scoped)
+    assert res_sync.status_code == 200
+    data_sync = res_sync.json()
+    assert data_sync["assigned_sites"] == ["site_A", "site_B"]
+    assert data_sync["sponsor_id"] == "sponsor_01"
+    assert data_sync["unblinded_access"] is True
+
+    # --- Part 2: Mismatch / Normalization Case (coercion agreement) ---
+    # We pass duplicate unblinded-access headers, spaces in sponsor CSV, etc.
+    # Note: TestClient headers list can simulate multiple headers/whitespace.
+    timestamp_norm = str(time.time())
+    # The signature is generated with normalized values:
+    # site_id="site_X,site_Y", sponsor_id="sponsor_X,sponsor_Y", unblinded_access=True
+    sig_norm = generate_signature(
+        user_id="test_user_agreement",
+        roles="sponsor_designer",
+        timestamp=timestamp_norm,
+        version="2",
+        change_reason="Authorized change",
+        site_id="site_X,site_Y",
+        sponsor_id="sponsor_X,sponsor_Y",
+        unblinded_access=True,
+        tenant_id="tenant_default",
+    )
+
+    headers_norm_list = [
+        ("X-User-Id", "test_user_agreement"),
+        ("X-User-Roles", "sponsor_designer"),
+        ("X-Gateway-Timestamp", timestamp_norm),
+        ("X-Gateway-Signature", sig_norm),
+        ("X-Signature-Version", "2"),
+        ("X-Change-Reason", "Authorized change"),
+        ("X-Site-Id", "  site_X,site_Y  "),  # whitespace normalization
+        ("X-Sponsor-Id", " sponsor_X,sponsor_Y "),  # CSV and whitespace
+        ("X-Unblinded-Access", "yes"),  # "yes" unblinded coercion
+    ]
+
+    res_norm = client.get("/test-principal", headers=headers_norm_list)
+    assert res_norm.status_code == 200
+    data_norm = res_norm.json()
+    assert data_norm["assigned_sites"] == ["site_X", "site_Y"]
+    assert data_norm["sponsor_id"] == "sponsor_X,sponsor_Y"
+    assert data_norm["unblinded_access"] is True
+
+    # --- Part 3: Scope-free Case ---
+    headers_free = get_scoped_auth_headers(
+        site_id=None,
+        sponsor_id=None,
+        unblinded_access=False,
+    )
+
+    res_free = client.get("/test-principal", headers=headers_free)
+    assert res_free.status_code == 200
+    data_free = res_free.json()
+    assert data_free["assigned_sites"] == []
+    assert data_free["sponsor_id"] is None
+    assert data_free["unblinded_access"] is False
+
+
+def test_new_execution_permissions() -> None:
+    """Verify has_permission allows/denies the new resource permissions correctly.
+
+    Resources: tsdv_config, form_submission, pi_signoff, medical_coding, trial_lock, export_unmasked
+    """
+    from packages.security.rbac import (
+        ROLE_AUDITOR_CANONICAL,
+        ROLE_CRA_CANONICAL,
+        ROLE_CRC,
+        ROLE_EXTERNAL_MONITOR,
+        ROLE_INVESTIGATOR,
+        ROLE_SPONSOR_DESIGNER,
+        ROLE_SPONSOR_DM,
+        ROLE_SPONSOR_MM,
+        ROLE_SPONSOR_STATISTICIAN,
+        ROLE_SUBJECT,
+        ROLE_SYSADMIN,
+        ROLE_UNBLINDED_STATISTICIAN,
+        Principal,
+        has_permission,
+    )
+
+    sysadmin = Principal(user_id="sys", roles=[ROLE_SYSADMIN])
+    dm = Principal(user_id="dm", roles=[ROLE_SPONSOR_DM])
+    designer = Principal(user_id="des", roles=[ROLE_SPONSOR_DESIGNER])
+    mm = Principal(user_id="mm", roles=[ROLE_SPONSOR_MM])
+    statistician = Principal(user_id="stat", roles=[ROLE_SPONSOR_STATISTICIAN])
+    pi = Principal(user_id="pi", roles=[ROLE_INVESTIGATOR])
+    crc = Principal(user_id="crc", roles=[ROLE_CRC])
+    cra = Principal(user_id="cra", roles=[ROLE_CRA_CANONICAL])
+    subject = Principal(user_id="subj", roles=[ROLE_SUBJECT])
+    auditor = Principal(user_id="aud", roles=[ROLE_AUDITOR_CANONICAL])
+    ext_monitor = Principal(user_id="em", roles=[ROLE_EXTERNAL_MONITOR])
+    unblinded_stat = Principal(user_id="ustat", roles=[ROLE_UNBLINDED_STATISTICIAN])
+
+    # 1. TSDV Config (tsdv_config)
+    assert has_permission(sysadmin, "tsdv_config:create") is True
+    assert has_permission(cra, "tsdv_config:create") is True
+    assert has_permission(dm, "tsdv_config:read") is True
+    assert has_permission(pi, "tsdv_config:read") is True
+    assert has_permission(auditor, "tsdv_config:read") is True
+    assert has_permission(ext_monitor, "tsdv_config:read") is True
+    assert has_permission(crc, "tsdv_config:read") is False
+
+    # 2. Form Submission (form_submission)
+    assert has_permission(sysadmin, "form_submission:delete") is True
+    assert has_permission(crc, "form_submission:create") is True
+    assert has_permission(pi, "form_submission:create") is True
+    assert has_permission(subject, "form_submission:create") is True
+    assert has_permission(dm, "form_submission:read") is True
+    assert has_permission(mm, "form_submission:read") is True
+    assert has_permission(cra, "form_submission:read") is True
+    assert has_permission(auditor, "form_submission:read") is True
+    assert has_permission(designer, "form_submission:read") is False
+
+    # 3. PI Sign-off (pi_signoff)
+    assert has_permission(sysadmin, "pi_signoff:delete") is True
+    assert has_permission(pi, "pi_signoff:create") is True
+    assert has_permission(crc, "pi_signoff:read") is True
+    assert has_permission(dm, "pi_signoff:read") is True
+    assert has_permission(cra, "pi_signoff:read") is True
+    assert has_permission(crc, "pi_signoff:create") is False
+
+    # 4. Medical Coding (medical_coding)
+    assert has_permission(sysadmin, "medical_coding:create") is True
+    assert has_permission(dm, "medical_coding:create") is True
+    assert has_permission(mm, "medical_coding:read") is True
+    assert has_permission(auditor, "medical_coding:read") is True
+    assert has_permission(pi, "medical_coding:read") is False
+
+    # 5. Trial Lock (trial_lock)
+    assert has_permission(sysadmin, "trial_lock:create") is True
+    assert has_permission(dm, "trial_lock:create") is True
+    assert has_permission(designer, "trial_lock:read") is True
+    assert has_permission(mm, "trial_lock:read") is True
+    assert has_permission(statistician, "trial_lock:read") is True
+    assert has_permission(pi, "trial_lock:read") is True
+    assert has_permission(crc, "trial_lock:read") is True
+    assert has_permission(cra, "trial_lock:read") is True
+    assert has_permission(subject, "trial_lock:read") is False
+
+    # 6. Export Unmasked (export_unmasked)
+    assert has_permission(sysadmin, "export_unmasked:create") is True
+    assert has_permission(statistician, "export_unmasked:create") is True
+    assert has_permission(unblinded_stat, "export_unmasked:create") is True
+    assert has_permission(dm, "export_unmasked:create") is False
+    assert has_permission(pi, "export_unmasked:create") is False
+
+
+def test_is_auditor_helper() -> None:
+    """Test is_auditor helper identifies auditor personas correctly."""
+    from packages.security.rbac import is_auditor
+
+    class MockRequest:
+        def __init__(self, roles_str: str):
+            class State:
+                pass
+
+            self.state = State()
+            self.state.roles = roles_str
+            self.headers = {}
+
+    assert is_auditor(MockRequest("auditor")) is True
+    assert is_auditor(MockRequest("inspector")) is True
+    assert is_auditor(MockRequest("regulatory_inspector")) is True
+    assert is_auditor(MockRequest("cra")) is False
+    assert is_auditor(MockRequest("admin")) is False
+
+
+def test_require_role_dependency() -> None:
+    """Test require_role dependency factory enforces a single role."""
+    from packages.security.rbac import require_role
+
+    class MockRequest:
+        def __init__(self, roles_str: str):
+            class State:
+                pass
+
+            self.state = State()
+            self.state.roles = roles_str
+            self.headers = {}
+
+    req_cra = require_role("CRA")
+
+    # 1. Allowed
+    res = req_cra(MockRequest("cra"))
+    assert "cra" in res
+
+    # 2. Denied
+    with pytest.raises(HTTPException) as exc_info:
+        req_cra(MockRequest("admin"))
+    assert exc_info.value.status_code == 403
+
+
+def test_require_any_role_dependency() -> None:
+    """Test require_any_role dependency factory enforces any of specified roles."""
+    from packages.security.rbac import require_any_role
+
+    class MockRequest:
+        def __init__(self, roles_str: str):
+            class State:
+                pass
+
+            self.state = State()
+            self.state.roles = roles_str
+            self.headers = {}
+
+    req_roles = require_any_role("CRA", "Data Manager")
+
+    # 1. Allowed CRA
+    res = req_roles(MockRequest("cra"))
+    assert "cra" in res
+
+    # 2. Allowed DM
+    res = req_roles(MockRequest("data manager"))
+    assert "data_manager" in res or "sponsor_dm" in res or "data manager" in res
+
+    # 3. Denied
+    with pytest.raises(HTTPException) as exc_info:
+        req_roles(MockRequest("auditor"))
+    assert exc_info.value.status_code == 403

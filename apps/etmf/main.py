@@ -1,7 +1,7 @@
 import email.utils
 import os
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import (
@@ -26,7 +26,11 @@ from tmf_reference_model import (
 from apps.etmf.database import db_manager
 from apps.etmf.export import generate_binder_zip
 from apps.etmf.ingestion_service import ingest_tmf_document
-from apps.etmf.lifecycle import validate_and_transition_document_status
+from apps.etmf.lifecycle import (
+    apply_document_query_filter,
+    authorize_document_read,
+    validate_and_transition_document_status,
+)
 from apps.etmf.models import (
     Base,
     DocumentQCTransition,
@@ -35,13 +39,20 @@ from apps.etmf.models import (
     TMFAuditLog,
     TMFDocument,
 )
+from apps.etmf.routers.archive import router as archive_router
 from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.deid.detector import DeidDetector
 from packages.deid.manifest import build_redaction_manifest, sign_manifest_symmetric
 from packages.deid.models import ComplianceProfile, DetectionResult, DetectorCategory
 from packages.deid.transforms import apply_deid_transforms
 from packages.security.middleware import GatewayAuthMiddleware
-from packages.security.rbac import Principal, get_principal, has_permission
+from packages.security.rbac import (
+    Principal,
+    get_principal,
+    has_permission,
+    verify_is_auditor,
+    verify_not_auditor,
+)
 
 DATABASE_URL = os.getenv("ETMF_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
@@ -121,12 +132,20 @@ async def etmf_startup() -> None:
 
     await start_background_etmf_sealer(db_manager.get_session_maker())
 
+    from apps.etmf.expiration_scanner import start_background_etmf_expiration_scanner
+
+    await start_background_etmf_expiration_scanner(db_manager.get_session_maker())
+
 
 async def etmf_shutdown() -> None:
     """Shutdown hook to stop the background sealer."""
     from apps.etmf.sealer import stop_background_etmf_sealer
 
     await stop_background_etmf_sealer()
+
+    from apps.etmf.expiration_scanner import stop_background_etmf_expiration_scanner
+
+    await stop_background_etmf_expiration_scanner()
 
 
 app = FastAPI(
@@ -143,6 +162,8 @@ app = FastAPI(
 
 # Enforce secure gateway authentication middleware
 app.add_middleware(GatewayAuthMiddleware)
+
+app.include_router(archive_router)
 
 
 # Dependable to obtain database session
@@ -187,6 +208,9 @@ class IngestionRequest(BaseModel):
 
     study_id: str = Field(..., description="Unique identifier of the clinical study")
     site_id: Optional[str] = Field(None, description="Optional site identifier")
+    idempotency_key: Optional[str] = Field(
+        None, description="Optional idempotency key for deduplication"
+    )
     artifact_type: str = Field(
         ..., description="Type of artifact (e.g. Approved Protocol, Define-XML)"
     )
@@ -216,9 +240,26 @@ class IngestionRequest(BaseModel):
     document_owner_id: Optional[str] = Field(
         None, description="Optional document owner ID"
     )
+    correlation_key: Optional[str] = Field(
+        None, description="Optional stable correlation key for synchronized documents"
+    )
+    content_checksum: Optional[str] = Field(
+        None, description="Optional deterministic checksum of the content"
+    )
+    source_system: Optional[str] = Field(
+        None, description="Optional originating source system"
+    )
 
     @model_validator(mode="after")
     def validate_dates(self) -> "IngestionRequest":
+        """Validate that issue_date does not exceed expiration_date.
+
+        Returns:
+            IngestionRequest: The validated model instance.
+
+        Raises:
+            ValueError: If ``issue_date`` is later than ``expiration_date``.
+        """
         if self.issue_date and self.expiration_date:
             if self.issue_date > self.expiration_date:
                 raise ValueError("issue_date cannot be later than expiration_date")
@@ -265,8 +306,28 @@ class DocumentResponse(BaseModel):
     expiration_date: Optional[date] = None
     document_owner_id: Optional[str] = None
 
+    # Synchronization and provenance fields
+    correlation_key: Optional[str] = None
+    content_checksum: Optional[str] = None
+    source_system: Optional[str] = None
+    sync_status: Optional[str] = None
+
 
 def to_document_response(doc: TMFDocument) -> DocumentResponse:
+    """Construct a ``DocumentResponse`` schema object from a ``TMFDocument`` ORM row.
+
+    This mapper is the single authoritative point for converting the internal
+    database representation into the public API response shape, ensuring that
+    optional nested structures (e.g. ``ProtocolVersionRef``) are only populated
+    when all required sub-fields are present.
+
+    Args:
+        doc: The ``TMFDocument`` SQLAlchemy ORM instance to convert.
+
+    Returns:
+        DocumentResponse: A fully populated Pydantic response model ready for
+        serialisation by FastAPI.
+    """
     return DocumentResponse(
         id=doc.id,
         study_id=doc.study_id,
@@ -307,12 +368,27 @@ def to_document_response(doc: TMFDocument) -> DocumentResponse:
             else None
         ),
         issue_date=doc.issue_date,
-        expiration_date=doc.expiration_date,
+        expiration_date=(
+            doc.expiration_date.date()
+            if isinstance(doc.expiration_date, datetime)
+            else doc.expiration_date
+        ),
         document_owner_id=doc.document_owner_id,
+        correlation_key=doc.correlation_key,
+        content_checksum=doc.content_checksum,
+        source_system=doc.source_system,
+        sync_status=doc.sync_status,
     )
 
 
 class DocumentExpirationUpdate(BaseModel):
+    """Payload for patching the date-range and ownership metadata of an eTMF document.
+
+    All fields are optional; only the supplied fields are applied.  The
+    ``validate_dates`` validator enforces chronological ordering when both
+    ``issue_date`` and ``expiration_date`` are provided together.
+    """
+
     issue_date: Optional[date] = Field(None, description="Optional document issue date")
     expiration_date: Optional[date] = Field(
         None, description="Optional document expiration date"
@@ -323,6 +399,14 @@ class DocumentExpirationUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "DocumentExpirationUpdate":
+        """Validate that issue_date does not exceed expiration_date.
+
+        Returns:
+            DocumentExpirationUpdate: The validated model instance.
+
+        Raises:
+            ValueError: If ``issue_date`` is later than ``expiration_date``.
+        """
         if self.issue_date and self.expiration_date:
             if self.issue_date > self.expiration_date:
                 raise ValueError("issue_date cannot be later than expiration_date")
@@ -622,6 +706,79 @@ class CompletenessResponse(BaseModel):
     per_artifact_detail: List[ArtifactDetail]
 
 
+class BinderArtifactNode(BaseModel):
+    """
+    Representation of an artifact node in the binder structure.
+    """
+
+    artifact_code: str
+    artifact_name: str
+    status: str  # EXPECTED/PRESENT/MISSING
+    document_id: Optional[str] = None
+    version_index: Optional[int] = None
+
+
+class BinderSectionNode(BaseModel):
+    """
+    Representation of a section node in the binder structure.
+    """
+
+    section_code: str
+    section_name: str
+    artifacts: List[BinderArtifactNode]
+
+
+class BinderZoneNode(BaseModel):
+    """
+    Representation of a zone node in the binder structure.
+    """
+
+    zone_code: int
+    zone_name: str
+    sections: List[BinderSectionNode]
+
+
+class BinderStructureResponse(BaseModel):
+    """
+    Top-level binder structure response.
+    """
+
+    study_id: str
+    milestone: Optional[str] = None
+    site_id: Optional[str] = None
+    zones: List[BinderZoneNode]
+    present_artifacts: List[str]
+    missing_artifacts: List[str]
+
+
+class DocumentVersionEntry(BaseModel):
+    """
+    Representation of a specific document version lineage entry.
+    """
+
+    id: str
+    version_index: int
+    status: str
+    approval_status: str
+    created_at: str
+    created_by: str
+    filename: str
+    artifact_code: str
+    signer: Optional[str] = None
+    signing_timestamp: Optional[str] = None
+    transitions: List[TransitionResponse]
+
+
+class DocumentVersionsResponse(BaseModel):
+    """
+    Response containing all versions and transitions for a document's lineage.
+    """
+
+    study_id: str
+    artifact_code: str
+    versions: List[DocumentVersionEntry]
+
+
 # Helper to secure and log actions
 async def write_audit_log(
     session: AsyncSession,
@@ -630,6 +787,7 @@ async def write_audit_log(
     action: str,
     document_id: Optional[str],
     details: str,
+    reason_for_change: Optional[str] = None,
 ) -> None:
     """
     Utility function to write to the immutable eTMF audit ledger.
@@ -645,6 +803,7 @@ async def write_audit_log(
         action=action,
         document_id=document_id,
         details=details,
+        reason_for_change=reason_for_change,
     )
     session.add(log_entry)
     await session.flush()
@@ -653,17 +812,19 @@ async def write_audit_log(
 def enforce_document_site_visibility(doc: TMFDocument, principal: Principal) -> None:
     """
     Enforces document-level site-scope visibility rules.
-    Site-scoped users are restricted to documents at their assigned sites and cannot see study-level documents (null site_id).
-    Sponsor/DM/Sysadmin users with global access can see all documents.
     """
-    is_site_scoped = len(principal.assigned_sites) > 0
+    from packages.security.rbac import can_access_site, can_access_study
 
-    if is_site_scoped:
-        if not doc.site_id or doc.site_id not in principal.assigned_sites:
-            raise HTTPException(
-                status_code=403,
-                detail="Forbidden: Access is restricted to documents at your assigned site(s).",
-            )
+    if not can_access_study(principal, doc.study_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Access is restricted to authorized studies.",
+        )
+    if not can_access_site(principal, doc.site_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Access is restricted to authorized sites.",
+        )
 
 
 @app.get("/health")
@@ -681,6 +842,7 @@ async def ingest_document(
     payload: IngestionRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> Dict[str, Any]:
     """
     Listen to and ingest system publication events or manual document archives.
@@ -730,6 +892,7 @@ async def ingest_document(
             session=session,
             study_id=payload.study_id,
             site_id=payload.site_id,
+            idempotency_key=payload.idempotency_key,
             artifact_type=payload.artifact_type,
             filename=payload.filename,
             content=payload.content,
@@ -747,6 +910,9 @@ async def ingest_document(
             issue_date=payload.issue_date,
             expiration_date=payload.expiration_date,
             document_owner_id=payload.document_owner_id,
+            correlation_key=payload.correlation_key,
+            content_checksum=payload.content_checksum,
+            source_system=payload.source_system,
         )
     except ValueError as e:
         raise HTTPException(
@@ -758,8 +924,27 @@ async def ingest_document(
             status_code=403,
             detail=str(e),
         )
+
+    # Determine if it was ignored/no-op or newly created/versioned
+    # Wait, we need to know what result status to return! Let's check how ingest_tmf_document behaves.
+    # Ingest_tmf_document returns a TMFDocument. If it's a no-op, we could return a different status.
+    # If the document_id/id was already retrieved and we wrote an INGEST_NOOP, let's see.
+    # Let's check the request-time result status contract.
+    # "update eTMF ingestion to: return a no-op/ignored result for the same correlation key and checksum; append a version only for changed content;"
+    # "update the response dict to include site_id, correlation_key, content_checksum, source_system, sync_status, and an explicit result status distinguishing a created/versioned document from an ignored no-op."
+
+    # We will let ingest_tmf_document return a tuple (TMFDocument, status_str) or we can inspect the audit log / document to determine.
+    # Wait, it's cleaner to have ingest_tmf_document return a TMFDocument and have its properties or a custom flag, OR we can return a tuple / Custom object from ingest_tmf_document.
+    # But wait! Let's see what calls ingest_tmf_document. We have main.py (at lines 848, 2979, 3009) and ingestion.py.
+    # If we return a tuple `(doc, result_status)` or similar, we must not break those existing call sites, OR we can support returning a tuple or have a default return.
+    # Let's inspect ingest_tmf_document. We can modify it to return a tuple or modify it to set a transient attribute on `doc` if it was a no-op!
+    # For example: `doc._ingest_result_status = "ignored"` or `"created"`. That way we don't break any return types! That is extremely elegant and backwards-compatible.
+
+    result_status = getattr(doc, "_ingest_result_status", "created")
+
     return {
         "status": "success",
+        "id": doc.id,
         "document_id": doc.id,
         "zone": doc.zone,
         "section": doc.section,
@@ -767,6 +952,12 @@ async def ingest_document(
         "taxonomy_version": doc.taxonomy_version,
         "artifact_code": doc.artifact_code,
         "document_status": doc.status,
+        "site_id": doc.site_id,
+        "correlation_key": doc.correlation_key,
+        "content_checksum": doc.content_checksum,
+        "source_system": doc.source_system,
+        "sync_status": doc.sync_status,
+        "result": result_status,
     }
 
 
@@ -776,6 +967,7 @@ async def list_documents(
     study_id: Optional[str] = Query(None, description="Filter by study ID"),
     zone: Optional[int] = Query(None, description="Filter by TMF Zone"),
     search: Optional[str] = Query(None, description="Search document content"),
+    status: Optional[str] = Query(None, description="Filter by status"),
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
 ) -> List[DocumentResponse]:
@@ -786,6 +978,13 @@ async def list_documents(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
     stmt = select(TMFDocument)
     if study_id:
         stmt = stmt.where(TMFDocument.study_id == study_id)
@@ -794,18 +993,23 @@ async def list_documents(
     if search:
         # Simple SQLite/Postgres text search indexing
         stmt = stmt.where(TMFDocument.content.contains(search))
+    if status:
+        stmt = stmt.where(TMFDocument.status == status)
 
-    # Enforce site visibility and study-level semantics
-    is_site_scoped = len(principal.assigned_sites) > 0
-
-    if is_site_scoped:
-        if principal.assigned_sites:
-            stmt = stmt.where(TMFDocument.site_id.in_(principal.assigned_sites))
-        else:
-            stmt = stmt.where(TMFDocument.site_id == "NONE_ASSIGNED")
+    # Apply the query-filter helper (site scope + fail-closed + raw-original suppression for non-read_raw callers)
+    stmt = apply_document_query_filter(stmt, principal)
 
     result = await session.execute(stmt)
     docs = result.scalars().all()
+
+    # Apply the centralized read authorization for defense in depth
+    filtered_docs = []
+    for doc in docs:
+        try:
+            await authorize_document_read(principal, doc, session)
+            filtered_docs.append(doc)
+        except Exception:
+            continue
 
     # Log action to immutable audit trail
     search_criteria = f"study_id={study_id}, zone={zone}, search={search}"
@@ -818,7 +1022,7 @@ async def list_documents(
         details=f"Listed eTMF documents matching criteria: {search_criteria}.",
     )
 
-    return [to_document_response(doc) for doc in docs]
+    return [to_document_response(doc) for doc in filtered_docs]
 
 
 @app.get("/api/v1/etmf/documents/{document_id}", response_model=DocumentResponse)
@@ -835,6 +1039,13 @@ async def view_document(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
     stmt = select(TMFDocument).where(TMFDocument.id == document_id)
     result = await session.execute(stmt)
     doc = result.scalars().first()
@@ -842,21 +1053,8 @@ async def view_document(
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
-    # Enforce site visibility and study-level semantics
-    enforce_document_site_visibility(doc, principal)
-
-    # Enforce raw-original authorization controls
-    if not doc.is_redacted:
-        stmt_redacted = select(TMFDocument).where(
-            TMFDocument.redaction_source_id == doc.id
-        )
-        res_redacted = await session.execute(stmt_redacted)
-        if res_redacted.scalars().first() is not None:
-            if not has_permission(principal, "etmf_document:read_raw"):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Forbidden: Raw-original retrieval is restricted to privileged roles.",
-                )
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc, session)
 
     # Log action to immutable audit trail
     await write_audit_log(
@@ -869,6 +1067,102 @@ async def view_document(
     )
 
     return to_document_response(doc)
+
+
+@app.get(
+    "/api/v1/etmf/documents/{document_id}/versions",
+    response_model=DocumentVersionsResponse,
+)
+async def get_document_versions(
+    request: Request,
+    document_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> DocumentVersionsResponse:
+    """
+    Retrieve all versions/revisions of a document's lineage and their QC transition histories.
+    """
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+
+    stmt = select(TMFDocument).where(TMFDocument.id == document_id)
+    result = await session.execute(stmt)
+    doc = result.scalars().first()
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="eTMF Document not found")
+
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc, session)
+
+    # Query the full lineage (all documents of same study and artifact code) sorted by version_index asc
+    stmt_lineage = (
+        select(TMFDocument)
+        .where(
+            TMFDocument.study_id == doc.study_id,
+            TMFDocument.artifact_code == doc.artifact_code,
+        )
+        .order_by(TMFDocument.version_index.asc())
+    )
+    res_lineage = await session.execute(stmt_lineage)
+    versions_docs = res_lineage.scalars().all()
+
+    versions_list = []
+    for v in versions_docs:
+        # For each version, fetch its QC transitions ordered chronologically by timestamp
+        stmt_transitions = (
+            select(DocumentQCTransition)
+            .where(DocumentQCTransition.document_id == v.id)
+            .order_by(DocumentQCTransition.timestamp.asc())
+        )
+        res_trans = await session.execute(stmt_transitions)
+        transitions = res_trans.scalars().all()
+
+        versions_list.append(
+            DocumentVersionEntry(
+                id=v.id,
+                version_index=v.version_index,
+                status=v.status,
+                approval_status=v.approval_status,
+                created_at=v.created_at.isoformat(),
+                created_by=v.created_by,
+                filename=v.filename,
+                artifact_code=v.artifact_code,
+                signer=v.signer,
+                signing_timestamp=(
+                    v.signing_timestamp.isoformat() if v.signing_timestamp else None
+                ),
+                transitions=[
+                    TransitionResponse(
+                        id=t.id,
+                        document_id=t.document_id,
+                        from_status=t.from_status,
+                        to_status=t.to_status,
+                        actor_id=t.actor_id,
+                        actor_role=t.actor_role,
+                        reason_for_change=t.reason_for_change,
+                        timestamp=t.timestamp.isoformat(),
+                    )
+                    for t in transitions
+                ],
+            )
+        )
+
+    await write_audit_log(
+        session=session,
+        user_id=user_id,
+        user_role=user_roles,
+        action="VERSION_HISTORY_VIEW",
+        document_id=doc.id,
+        details=f"Viewed version history and QC transitions for document lineage (study: {doc.study_id}, artifact: {doc.artifact_code}).",
+    )
+    await session.commit()
+
+    return DocumentVersionsResponse(
+        study_id=doc.study_id,
+        artifact_code=doc.artifact_code,
+        versions=versions_list,
+    )
 
 
 @app.get("/api/v1/etmf/documents/{document_id}/download")
@@ -906,21 +1200,8 @@ async def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
-    # Enforce site visibility and study-level semantics
-    enforce_document_site_visibility(doc, principal)
-
-    # Enforce raw-original authorization controls
-    if not doc.is_redacted:
-        stmt_redacted = select(TMFDocument).where(
-            TMFDocument.redaction_source_id == doc.id
-        )
-        res_redacted = await session.execute(stmt_redacted)
-        if res_redacted.scalars().first() is not None:
-            if not has_permission(principal, "etmf_document:read_raw"):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Forbidden: Raw-original retrieval is restricted to privileged roles.",
-                )
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc, session)
 
     if should_watermark:
         from apps.etmf.watermark import apply_watermark
@@ -984,21 +1265,8 @@ async def download_watermarked_document(
     if not doc:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
-    # Enforce site visibility and study-level semantics
-    enforce_document_site_visibility(doc, principal)
-
-    # Enforce raw-original authorization controls
-    if not doc.is_redacted:
-        stmt_redacted = select(TMFDocument).where(
-            TMFDocument.redaction_source_id == doc.id
-        )
-        res_redacted = await session.execute(stmt_redacted)
-        if res_redacted.scalars().first() is not None:
-            if not has_permission(principal, "etmf_document:read_raw"):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Forbidden: Raw-original retrieval is restricted to privileged roles.",
-                )
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc, session)
 
     from apps.etmf.watermark import apply_watermark
 
@@ -1041,6 +1309,7 @@ async def get_audit_trail(
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _is_auditor: list[str] = Depends(verify_is_auditor),
 ) -> PaginatedAuditLogResponse:
     """
     Retrieve audit trail of all eTMF interactions.
@@ -1048,12 +1317,6 @@ async def get_audit_trail(
     """
     request_user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
-
-    if not has_permission(principal, "etmf_audit_logs:read"):
-        raise HTTPException(
-            status_code=403,
-            detail="Forbidden: Access is restricted to authorized auditor/inspection roles.",
-        )
 
     # Log access to the audit trail itself
     await write_audit_log(
@@ -1205,6 +1468,7 @@ async def create_expectation(
     payload: ExpectedDocumentCreate,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> ExpectedDocumentResponse:
     """
     Create a new Expected Document List (EDL) expectation.
@@ -1277,6 +1541,7 @@ async def update_expectation(
     payload: ExpectedDocumentCreate,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> ExpectedDocumentResponse:
     """
     Update an existing Expected Document List (EDL) expectation.
@@ -1363,15 +1628,26 @@ async def check_completeness(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
-    # Enforce site isolation on completeness checking for site-scoped users
-    is_site_scoped = len(principal.assigned_sites) > 0
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
 
-    if is_site_scoped:
-        if not site_id or site_id not in principal.assigned_sites:
-            raise HTTPException(
-                status_code=403,
-                detail="Forbidden: You can only check completeness for your assigned site(s).",
-            )
+    # Use can_access_site/can_access_study for site-scoped EDL/completeness filtering
+    from packages.security.rbac import can_access_site, can_access_study
+
+    if not can_access_study(principal, study_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You cannot check completeness for this study.",
+        )
+    if not can_access_site(principal, site_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You can only check completeness for your assigned site(s).",
+        )
 
     milestone_normalized = normalize_milestone(milestone)
 
@@ -1518,6 +1794,7 @@ async def redact_document_endpoint(
     payload: RedactRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> DocumentResponse:
     """
     Perform controlled redaction on an existing unredacted eTMF document, producing a new
@@ -1553,9 +1830,10 @@ async def redact_document_endpoint(
     # Enforce site visibility and study-level semantics
     enforce_document_site_visibility(source_doc, principal)
 
-    # Check if already signed
+    # Check if already signed or archived
     if (
         source_doc.status == "SIGNED"
+        or source_doc.status == "ARCHIVED"
         or source_doc.approval_status == "APPROVED"
         or source_doc.signature_manifestation is not None
     ):
@@ -1660,6 +1938,7 @@ async def auto_redact_document_endpoint(
     payload: AutomatedRedactRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> AutomatedRedactResponse:
     """
     Perform controlled automated redaction on an existing unredacted eTMF document, producing a new
@@ -1695,9 +1974,10 @@ async def auto_redact_document_endpoint(
     # Enforce site visibility and study-level semantics
     enforce_document_site_visibility(source_doc, principal)
 
-    # Check if already signed
+    # Check if already signed or archived
     if (
         source_doc.status == "SIGNED"
+        or source_doc.status == "ARCHIVED"
         or source_doc.approval_status == "APPROVED"
         or source_doc.signature_manifestation is not None
     ):
@@ -1855,6 +2135,7 @@ async def manual_redact_document_endpoint(
     payload: ManualRedactRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> ManualRedactResponse:
     """
     Perform controlled manual redaction on an existing unredacted eTMF document using specified character spans and literal terms.
@@ -1890,9 +2171,10 @@ async def manual_redact_document_endpoint(
     # Enforce site visibility and study-level semantics
     enforce_document_site_visibility(source_doc, principal)
 
-    # Check if already signed
+    # Check if already signed or archived
     if (
         source_doc.status == "SIGNED"
+        or source_doc.status == "ARCHIVED"
         or source_doc.approval_status == "APPROVED"
         or source_doc.signature_manifestation is not None
     ):
@@ -2101,6 +2383,7 @@ async def transition_document_status_endpoint(
     payload: TransitionRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> Dict[str, Any]:
     """
     Perform a secure, 21 CFR Part 11 compliant Quality Control (QC) status transition on an eTMF document.
@@ -2133,9 +2416,10 @@ async def transition_document_status_endpoint(
             detail=f"Invalid status: '{payload.to_status}'. Must be one of {sorted(list(valid_qc_statuses))}.",
         )
 
-    # Check if already signed
+    # Check if already signed or archived
     if (
         doc.status == "SIGNED"
+        or doc.status == "ARCHIVED"
         or doc.approval_status == "APPROVED"
         or doc.signature_manifestation is not None
     ):
@@ -2194,6 +2478,7 @@ async def update_document_expiration_endpoint(
     payload: DocumentExpirationUpdate,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> DocumentResponse:
     """
     Update expiration-related metadata for an eTMF document.
@@ -2228,9 +2513,10 @@ async def update_document_expiration_endpoint(
             detail="Forbidden: Trial is currently locked in a read-only state due to a security violation.",
         )
 
-    # 4. Check if already signed
+    # 4. Check if already signed or archived
     if (
         doc.status == "SIGNED"
+        or doc.status == "ARCHIVED"
         or doc.approval_status == "APPROVED"
         or doc.signature_manifestation is not None
     ):
@@ -2250,7 +2536,14 @@ async def update_document_expiration_endpoint(
 
     # 5. Mutate the fields and increment version index
     doc.issue_date = payload.issue_date
-    doc.expiration_date = payload.expiration_date
+    resolved_expiration_date = payload.expiration_date
+    if resolved_expiration_date is not None and not isinstance(
+        resolved_expiration_date, datetime
+    ):
+        resolved_expiration_date = datetime.combine(
+            resolved_expiration_date, datetime.min.time()
+        ).replace(tzinfo=timezone.utc)
+    doc.expiration_date = resolved_expiration_date
     doc.document_owner_id = payload.document_owner_id
     doc.version_index += 1
 
@@ -2294,6 +2587,7 @@ async def sign_document_endpoint(
     payload: SignDocumentRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> DocumentResponse:
     """
     Approve and cryptographically sign an eTMF document, producing a 21 CFR Part 11 compliant
@@ -2329,9 +2623,10 @@ async def sign_document_endpoint(
     # Enforce site visibility and study-level semantics
     enforce_document_site_visibility(doc, principal)
 
-    # 2. Check if already signed/approved
+    # 2. Check if already signed/approved or archived
     if (
         doc.status == "SIGNED"
+        or doc.status == "ARCHIVED"
         or doc.approval_status == "APPROVED"
         or doc.signature_manifestation is not None
     ):
@@ -2484,6 +2779,13 @@ async def get_artifact_history(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
     # Resolve active taxonomy/catalog to obtain the canonical artifact type if possible
     from tmf_reference_model import get_active_catalog, resolve_artifact
 
@@ -2504,13 +2806,20 @@ async def get_artifact_history(
     # Order chronologically by version_index ascending
     stmt = stmt.order_by(TMFDocument.version_index.asc())
 
-    # Enforce site visibility and study-level semantics
-    is_site_scoped = len(principal.assigned_sites) > 0
-    if is_site_scoped:
-        stmt = stmt.where(TMFDocument.site_id.in_(principal.assigned_sites))
+    # Apply the query-filter helper
+    stmt = apply_document_query_filter(stmt, principal)
 
     result = await session.execute(stmt)
     docs = result.scalars().all()
+
+    # Apply the centralized read authorization for defense in depth
+    filtered_docs = []
+    for doc in docs:
+        try:
+            await authorize_document_read(principal, doc, session)
+            filtered_docs.append(doc)
+        except Exception:
+            continue
 
     # Log action to immutable audit trail
     await write_audit_log(
@@ -2522,7 +2831,7 @@ async def get_artifact_history(
         details=f"Viewed artifact history for study '{study_id}', artifact_type '{artifact_type}'.",
     )
 
-    return [to_document_response(doc) for doc in docs]
+    return [to_document_response(doc) for doc in filtered_docs]
 
 
 @app.get(
@@ -2541,6 +2850,13 @@ async def get_document_transition_history(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
     # Verify document exists
     stmt_exist = select(TMFDocument).where(TMFDocument.id == document_id)
     res_exist = await session.execute(stmt_exist)
@@ -2548,8 +2864,8 @@ async def get_document_transition_history(
     if not doc_obj:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
-    # Enforce site visibility and study-level semantics
-    enforce_document_site_visibility(doc_obj, principal)
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc_obj, session)
 
     stmt = (
         select(DocumentQCTransition)
@@ -2804,6 +3120,216 @@ async def inbound_email_webhook(
         raise HTTPException(status_code=500, detail="Internal processing failure")
 
 
+def build_binder_structure(
+    catalog,
+    archived_docs: List[TMFDocument],
+    expected_codes: set[str],
+    site_id: Optional[str] = None,
+    is_site_scoped: bool = False,
+    principal: Optional[Principal] = None,
+) -> tuple[List[BinderZoneNode], List[str], List[str]]:
+    """
+    Build the nested structure models.
+    """
+    from packages.security.rbac import can_access_site, can_access_study
+
+    highest_docs = {}  # artifact_code -> TMFDocument
+    for doc in archived_docs:
+        if not doc.artifact_code:
+            continue
+
+        if principal:
+            if not can_access_study(principal, doc.study_id):
+                continue
+            if not can_access_site(principal, doc.site_id):
+                continue
+            if site_id and doc.site_id != site_id:
+                continue
+            if not site_id and not is_site_scoped and doc.site_id is not None:
+                continue
+        else:
+            if site_id:
+                if doc.site_id != site_id:
+                    continue
+            else:
+                if doc.site_id is not None:
+                    continue
+
+        existing = highest_docs.get(doc.artifact_code)
+        if not existing or doc.version_index > existing.version_index:
+            highest_docs[doc.artifact_code] = doc
+
+    zones_list = []
+    present_artifacts = []
+    missing_artifacts = []
+
+    for z in catalog.zones:
+        zone = catalog.get_zone(z.code)
+        if not zone:
+            continue
+        sections_list = []
+        for s in zone.sections:
+            section = catalog.get_section(s.code)
+            if not section:
+                continue
+            artifacts_list = []
+            for artifact in section.artifacts:
+                doc = highest_docs.get(artifact.code)
+                if doc:
+                    status = "PRESENT"
+                    doc_id = doc.id
+                    v_idx = doc.version_index
+                    if artifact.name not in present_artifacts:
+                        present_artifacts.append(artifact.name)
+                else:
+                    doc_id = None
+                    v_idx = None
+                    if artifact.code in expected_codes:
+                        status = "MISSING"
+                        if artifact.name not in missing_artifacts:
+                            missing_artifacts.append(artifact.name)
+                    else:
+                        status = "EXPECTED"
+
+                artifacts_list.append(
+                    BinderArtifactNode(
+                        artifact_code=artifact.code,
+                        artifact_name=artifact.name,
+                        status=status,
+                        document_id=doc_id,
+                        version_index=v_idx,
+                    )
+                )
+            sections_list.append(
+                BinderSectionNode(
+                    section_code=section.code,
+                    section_name=section.name,
+                    artifacts=artifacts_list,
+                )
+            )
+        zones_list.append(
+            BinderZoneNode(
+                zone_code=zone.code,
+                zone_name=zone.name,
+                sections=sections_list,
+            )
+        )
+
+    return zones_list, present_artifacts, missing_artifacts
+
+
+@app.get(
+    "/api/v1/etmf/studies/{study_id}/binder/structure",
+    response_model=BinderStructureResponse,
+)
+async def get_binder_structure(
+    study_id: str,
+    milestone: Optional[str] = Query(
+        None, description="Optional clinical study milestone"
+    ),
+    site_id: Optional[str] = Query(None, description="Optional clinical site ID"),
+    session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> BinderStructureResponse:
+    """
+    Expose the structured Zone -> Section -> Artifact tree for a study binder,
+    annotated with expected/present/missing status.
+    """
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
+    # Use can_access_site/can_access_study for site-scoped EDL/completeness filtering
+    from packages.security.rbac import can_access_site, can_access_study
+
+    if not can_access_study(principal, study_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You cannot view binder structure for this study.",
+        )
+    if not can_access_site(principal, site_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You can only view binder structure for your assigned site(s).",
+        )
+
+    is_site_scoped = len(principal.assigned_sites) > 0
+
+    version = get_active_catalog().version
+
+    milestone_normalized = None
+    if milestone:
+        milestone_normalized = normalize_milestone(milestone)
+        try:
+            get_mandatory_artifacts(milestone_normalized, version)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown milestone. Supported: INITIATION, CONDUCT, CLOSEOUT. Error: {str(e)}",
+            )
+        await seed_default_edl(session, study_id, milestone_normalized)
+
+    stmt = select(ExpectedDocument).where(ExpectedDocument.study_id == study_id)
+    if milestone_normalized:
+        stmt = stmt.where(ExpectedDocument.milestone == milestone_normalized)
+    if site_id:
+        stmt = stmt.where(
+            (ExpectedDocument.site_id.is_(None)) | (ExpectedDocument.site_id == site_id)
+        )
+    else:
+        stmt = stmt.where(ExpectedDocument.site_id.is_(None))
+
+    result = await session.execute(stmt)
+    expected_docs = result.scalars().all()
+
+    stmt_docs = select(TMFDocument).where(TMFDocument.study_id == study_id)
+    result_docs = await session.execute(stmt_docs)
+    archived_docs = result_docs.scalars().all()
+
+    expected_codes = set()
+    for exp in expected_docs:
+        try:
+            resolved_exp = resolve_artifact(version, name=exp.artifact_type)
+            expected_codes.add(resolved_exp["artifact"].code)
+        except ValueError:
+            pass
+
+    catalog = get_active_catalog()
+    zones_list, present_artifacts, missing_artifacts = build_binder_structure(
+        catalog=catalog,
+        archived_docs=archived_docs,
+        expected_codes=expected_codes,
+        site_id=site_id,
+        is_site_scoped=is_site_scoped,
+        principal=principal,
+    )
+
+    await write_audit_log(
+        session=session,
+        user_id=user_id,
+        user_role=user_roles,
+        action="BINDER_STRUCTURE_VIEW",
+        document_id=None,
+        details=f"Viewed binder structure for study '{study_id}', site '{site_id}', milestone '{milestone_normalized}'.",
+    )
+    await session.commit()
+
+    return BinderStructureResponse(
+        study_id=study_id,
+        milestone=milestone_normalized,
+        site_id=site_id,
+        zones=zones_list,
+        present_artifacts=present_artifacts,
+        missing_artifacts=missing_artifacts,
+    )
+
+
 @app.get("/api/v1/etmf/studies/{study_id}/binder")
 async def export_regulatory_binder(
     study_id: str,
@@ -2815,18 +3341,12 @@ async def export_regulatory_binder(
 ) -> Response:
     """
     Generate an inspection-ready ZIP binder for an eTMF study.
-    Restricted to authorized auditor roles.
     """
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
-    # Restrict access to authorized auditor roles
-    is_auditor = "auditor" in principal.roles or any(
-        r in {"auditor", "inspector", "regulatory_inspector"}
-        for r in principal.raw_roles
-    )
-
-    if not is_auditor:
+    # Require positive etmf_audit_logs:read authorization
+    if not has_permission(principal, "etmf_audit_logs:read"):
         raise HTTPException(
             status_code=403,
             detail="Forbidden: Access is restricted to authorized auditor/inspection roles.",
@@ -2872,6 +3392,7 @@ async def bulk_archive_study_documents(
     payload: StudyArchiveRequest,
     session: AsyncSession = Depends(get_db_session),
     principal: Principal = Depends(get_principal),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> StudyArchiveResponse:
     """
     Perform authorized bulk study-level document archival transitioning eligible eTMF documents to
@@ -3022,6 +3543,13 @@ async def get_document_qc_history(
     user_id = principal.user_id
     user_roles = ",".join(principal.raw_roles)
 
+    # Require etmf_document:read up front
+    if not has_permission(principal, "etmf_document:read"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient permissions to read eTMF documents.",
+        )
+
     # Verify document exists
     stmt_exist = select(TMFDocument).where(TMFDocument.id == document_id)
     res_exist = await session.execute(stmt_exist)
@@ -3029,8 +3557,8 @@ async def get_document_qc_history(
     if not doc_obj:
         raise HTTPException(status_code=404, detail="eTMF Document not found")
 
-    # Enforce site visibility and study-level semantics
-    enforce_document_site_visibility(doc_obj, principal)
+    # Centralized read-authorization policy
+    await authorize_document_read(principal, doc_obj, session)
 
     stmt = (
         select(DocumentQCTransition)

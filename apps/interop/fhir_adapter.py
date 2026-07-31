@@ -130,6 +130,23 @@ def strip_pii_from_patient(patient_resource: Dict[str, Any]) -> Dict[str, Any]:
     return stripped
 
 
+"""
+FHIR to eCRF Canonical Mapping Table
+====================================
+This table documents the mapping of FHIR resource parameters to de-identified
+canonical eCRF namespace variables (prefixed as 'eCRF.<DOMAIN>.<VARIABLE>').
+
+FHIR Resource          | FHIR Attribute          | Intermediate Mapped CDASH  | Canonical eCRF Key
+---------------------- | ----------------------- | -------------------------- | ----------------------
+Patient                | gender                  | DM.SEX                     | eCRF.DM.SEX
+Patient                | birthDate               | DM.BRTHDTC                 | eCRF.DM.AGE (derived integer)
+Observation (vitals)   | valueQuantity           | cdash_testcd (e.g. SYSBP)  | eCRF.VS.SYSBP
+Observation (labs)     | valueQuantity           | cdash_testcd (e.g. GLUC)   | eCRF.LB.GLUC
+Condition              | code.text/display       | MH.MHTERM                  | eCRF.MH.MHTERM
+MedicationStatement    | medication.text/display | CM.CMTRT                   | eCRF.CM.CMTRT
+"""
+
+
 class FHIRAdapter:
     """
     FHIR to CDASH eCRF data mapping adapter.
@@ -138,6 +155,72 @@ class FHIRAdapter:
 
     def __init__(self, study_id: str) -> None:
         self.study_id = study_id
+
+    def build_ecrf_context(self, parsed_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Consumes the output of parse_bundle and returns a flat dictionary mapping
+        variables to the canonical "eCRF.<DOMAIN>.<VARIABLE>" namespace.
+        Operates exclusively on de-identified structures. Does not read raw PII.
+        Handles missing/absent values gracefully by omitting keys.
+        """
+        ecrf_context: Dict[str, Any] = {}
+
+        # 1. Demographics
+        mapped_fields = parsed_result.get("mapped_fields", {})
+        if "DM.SEX" in mapped_fields:
+            ecrf_context["eCRF.DM.SEX"] = mapped_fields["DM.SEX"]
+
+        # Derive eCRF.DM.AGE from de-identified DM.BRTHDTC to avoid storing raw birth date
+        birth_date_str = mapped_fields.get("DM.BRTHDTC")
+        if birth_date_str:
+            try:
+                birth_year = int(birth_date_str.split("-")[0])
+                from datetime import datetime
+
+                current_year = datetime.now().year
+                ecrf_context["eCRF.DM.AGE"] = current_year - birth_year
+            except (ValueError, IndexError):
+                pass
+
+        # 2. Vital Signs
+        for vs in parsed_result.get("clinical_records", {}).get("vital_signs", []):
+            test_cd = vs.get("cdash_testcd")
+            val = vs.get("value")
+            if test_cd and val is not None:
+                ecrf_context[f"eCRF.VS.{test_cd}"] = val
+
+        # 3. Labs
+        for lab in parsed_result.get("clinical_records", {}).get("labs", []):
+            test_cd = lab.get("cdash_testcd")
+            val = lab.get("value")
+            if test_cd and val is not None:
+                ecrf_context[f"eCRF.LB.{test_cd}"] = val
+
+        # 4. Conditions
+        conditions = [
+            c["display_name"]
+            for c in parsed_result.get("clinical_records", {}).get("conditions", [])
+            if c.get("display_name")
+        ]
+        if conditions:
+            # If multiple, store list; if single, store string
+            ecrf_context["eCRF.MH.MHTERM"] = (
+                conditions[0] if len(conditions) == 1 else conditions
+            )
+
+        # 5. Medications
+        medications = [
+            m["display_name"]
+            for m in parsed_result.get("clinical_records", {}).get("medications", [])
+            if m.get("display_name")
+        ]
+        if medications:
+            # If multiple, store list; if single, store string
+            ecrf_context["eCRF.CM.CMTRT"] = (
+                medications[0] if len(medications) == 1 else medications
+            )
+
+        return ecrf_context
 
     def parse_bundle(self, bundle: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -267,7 +350,14 @@ class FHIRAdapter:
                     break
 
         # Also fallback detection via loinc codes
-        vital_loincs = ["8480-6", "8462-4", "8867-4", "8310-5", "29463-7", "8302-2"]
+        vital_loincs = [
+            "8480-6",
+            "8462-4",
+            "8867-4",
+            "8310-5",
+            "29463-7",  # deid: ignore
+            "8302-2",
+        ]
         if loinc_code in vital_loincs or "vital" in display_name.lower():
             is_vital = True
 
@@ -297,7 +387,9 @@ class FHIRAdapter:
             elif "8310-5" in loinc_code or "temp" in display_name.lower():
                 record["cdash_testcd"] = "TEMP"
                 record["cdash_test"] = "Temperature"
-            elif "29463-7" in loinc_code or "weight" in display_name.lower():
+            elif (
+                "29463-7" in loinc_code or "weight" in display_name.lower()
+            ):  # deid: ignore
                 record["cdash_testcd"] = "WEIGHT"
                 record["cdash_test"] = "Weight"
             elif "8302-2" in loinc_code or "height" in display_name.lower():

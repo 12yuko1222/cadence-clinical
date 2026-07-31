@@ -1,0 +1,62 @@
+"""Live subject data migration engine for protocol amendments.
+
+Requirements: PRD-SYS-001
+"""
+
+from typing import Any, Dict, List
+
+import packages  # noqa: F401
+
+
+class LiveSubjectMigrationEngine:
+    """Engine migrating existing subject eCRF form submissions to amended protocol versions.
+
+    Requirements: PRD-SYS-001
+    """
+
+    def migrate_subject_submissions(
+        self,
+        subject_id: str,
+        old_version: str,
+        new_version: str,
+        form_submissions: List[Dict[str, Any]],
+        field_mapping: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """Migrate subject eCRF form submissions from old protocol version to new version.
+
+        Args:
+            subject_id: Target subject ID.
+            old_version: Baseline protocol version string.
+            new_version: Target amended protocol version string.
+            form_submissions: List of submission dictionaries.
+            field_mapping: Mapping dictionary of old_field_name -> new_field_name.
+
+        Returns:
+            Migration summary metrics dictionary.
+        """
+        migrated_count = 0
+        updated_fields_count = 0
+
+        for sub in form_submissions:
+            if sub.get("protocol_version") == old_version or not sub.get(
+                "protocol_version"
+            ):
+                sub["protocol_version"] = new_version
+                migrated_count += 1
+
+                # Re-map fields if mapping present
+                data = sub.get("data", {})
+                for old_key, new_key in field_mapping.items():
+                    if old_key in data:
+                        val = data.pop(old_key)
+                        data[new_key] = val
+                        updated_fields_count += 1
+
+        return {
+            "subject_id": subject_id,
+            "version_from": old_version,
+            "version_to": new_version,
+            "migrated_submissions_count": migrated_count,
+            "updated_fields_count": updated_fields_count,
+            "status": "COMPLETED",
+        }

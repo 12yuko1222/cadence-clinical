@@ -1,5 +1,8 @@
 <template>
-  <div id="section-audit" class="dashboard-section active">
+  <div
+    id="section-audit"
+    class="dashboard-section active"
+  >
     <!-- View Header -->
     <div class="section-header">
       <h2>Regulatory Auditor &amp; Inspection Portal</h2>
@@ -33,8 +36,8 @@
           <button
             class="btn btn-secondary badge"
             style="padding: 4px 8px; font-size: 11px; cursor: pointer"
-            @click="verifyExecutionIntegrity"
             :disabled="integrity.loading"
+            @click="verifyExecutionIntegrity"
           >
             {{ integrity.loading ? "Verifying..." : "Verify Now" }}
           </button>
@@ -63,11 +66,9 @@
             <div
               class="spinner"
               style="display: inline-block; margin-right: 8px"
-            ></div>
-            <span
-              >Executing cryptographic seal validations across audit ledger
-              logs...</span
-            >
+            />
+            <span>Executing cryptographic seal validations across audit ledger
+              logs...</span>
           </div>
 
           <div
@@ -82,15 +83,13 @@
             <div style="display: flex; align-items: center; gap: 8px">
               <span style="font-size: 20px">🟢</span>
               <div>
-                <strong style="color: #28a745; font-size: 14px"
-                  >INTEGRITY VERIFIED</strong
-                >
+                <strong style="color: #28a745; font-size: 14px">INTEGRITY VERIFIED</strong>
                 <p
                   style="font-size: 12px; margin: 4px 0 0 0; color: var(--text)"
                 >
                   {{
                     integrity.message ||
-                    "All sequential block hashes, Merkle roots, and historical data logs are intact and structurally unbroken."
+                      "All sequential block hashes, Merkle roots, and historical data logs are intact and structurally unbroken."
                   }}
                 </p>
               </div>
@@ -109,15 +108,13 @@
             <div style="display: flex; align-items: center; gap: 8px">
               <span style="font-size: 20px">🔴</span>
               <div>
-                <strong style="color: var(--error); font-size: 14px"
-                  >INTEGRITY BREACH / TAMPERED</strong
-                >
+                <strong style="color: var(--error); font-size: 14px">INTEGRITY BREACH / TAMPERED</strong>
                 <p
                   style="font-size: 12px; margin: 4px 0 0 0; color: var(--text)"
                 >
                   {{
                     integrity.message ||
-                    "A discrepancy was detected in the cryptographic ledger chain. Trial lock sequence has been triggered."
+                      "A discrepancy was detected in the cryptographic ledger chain. Trial lock sequence has been triggered."
                   }}
                 </p>
               </div>
@@ -160,7 +157,10 @@
             Sections.
           </p>
           <div style="display: flex; flex-direction: column; gap: 12px">
-            <div class="form-group" style="margin-bottom: 0">
+            <div
+              class="form-group"
+              style="margin-bottom: 0"
+            >
               <label
                 style="
                   font-weight: 600;
@@ -168,8 +168,7 @@
                   margin-bottom: 4px;
                   display: block;
                 "
-                >Study Reference ID</label
-              >
+              >Study Reference ID</label>
               <input
                 v-model="binderStudyId"
                 type="text"
@@ -182,7 +181,7 @@
                   background: var(--bg);
                   color: var(--text);
                 "
-              />
+              >
             </div>
             <div
               style="
@@ -193,23 +192,22 @@
               "
             >
               <input
+                id="chk-history"
                 v-model="binderIncludeHistory"
                 type="checkbox"
-                id="chk-history"
                 style="cursor: pointer"
-              />
+              >
               <label
                 for="chk-history"
                 style="font-size: 13px; cursor: pointer; user-select: none"
-                >Include complete document version histories (audit
-                files)</label
-              >
+              >Include complete document version histories (audit
+                files)</label>
             </div>
             <button
               class="btn btn-primary"
               style="margin-top: 8px; padding: 10px; cursor: pointer"
-              @click="exportRegulatoryBinder"
               :disabled="exportingBinder || !binderStudyId.trim()"
+              @click="exportRegulatoryBinder"
             >
               {{
                 exportingBinder
@@ -220,17 +218,123 @@
           </div>
         </div>
       </div>
+
+      <!-- Card 3: Ingest / Upload TMF Document -->
+      <div
+        class="card card-upload-document"
+        style="grid-column: span 2;"
+      >
+        <div class="card-title">
+          <span>Ingest New TMF Document</span>
+        </div>
+        <div style="padding: 8px 0">
+          <p
+            style="
+              font-size: 13px;
+              color: var(--text-muted);
+              margin-bottom: 12px;
+            "
+          >
+            Upload a document and index it with DIA TMF taxonomy tags into the secure study repository.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div
+              class="form-group"
+              style="margin-bottom: 0"
+            >
+              <label style="font-weight: 600; font-size: 12px; margin-bottom: 4px; display: block;">Select File</label>
+              <input
+                id="tmf-file-input"
+                type="file"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border-radius: 4px;
+                  border: 1px solid var(--border);
+                  background: var(--bg);
+                  color: var(--text);
+                "
+                @change="handleTmfFileSelect"
+              >
+            </div>
+            <div
+              class="grid-2"
+              style="gap: 16px;"
+            >
+              <div
+                class="form-group"
+                style="margin-bottom: 0"
+              >
+                <label style="font-weight: 600; font-size: 12px; margin-bottom: 4px; display: block;">TMF Zone</label>
+                <select
+                  id="tmf-zone-select"
+                  v-model="uploadParams.zone"
+                  style="
+                    width: 100%;
+                    padding: 8px;
+                    border-radius: 4px;
+                    border: 1px solid var(--border);
+                    background: var(--bg);
+                    color: var(--text);
+                  "
+                >
+                  <option value="01. Trial Management">
+                    01. Trial Management
+                  </option>
+                  <option value="02. Central Trial Documents">
+                    02. Central Trial Documents
+                  </option>
+                  <option value="05. Site Management">
+                    05. Site Management
+                  </option>
+                </select>
+              </div>
+              <div
+                class="form-group"
+                style="margin-bottom: 0"
+              >
+                <label style="font-weight: 600; font-size: 12px; margin-bottom: 4px; display: block;">TMF Section</label>
+                <input
+                  id="tmf-section-input"
+                  v-model="uploadParams.section"
+                  type="text"
+                  placeholder="e.g. 01.01 Trial Steering Committee"
+                  style="
+                    width: 100%;
+                    padding: 8px;
+                    border-radius: 4px;
+                    border: 1px solid var(--border);
+                    background: var(--bg);
+                    color: var(--text);
+                  "
+                >
+              </div>
+            </div>
+            <button
+              class="btn btn-primary btn-upload-doc-submit"
+              style="margin-top: 8px; padding: 10px; cursor: pointer"
+              :disabled="uploadingDoc || !selectedTmfFile"
+              @click="uploadTmfDocument"
+            >
+              {{ uploadingDoc ? "Uploading..." : "Upload & Ingest Document" }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Card 3: eTMF Document Directory & Watermarked Viewer -->
-    <div class="card" style="margin-top: 20px">
+    <div
+      class="card"
+      style="margin-top: 20px"
+    >
       <div class="card-title">
         <span>eTMF Document Directory &amp; Viewer</span>
         <button
           class="btn btn-secondary badge"
           style="padding: 4px 8px; font-size: 11px; cursor: pointer"
-          @click="fetchDocuments"
           :disabled="documentsLoading"
+          @click="fetchDocuments"
         >
           {{ documentsLoading ? "Loading..." : "Refresh List" }}
         </button>
@@ -257,30 +361,56 @@
                 text-align: left;
               "
             >
-              <th style="padding: 10px">ID</th>
-              <th style="padding: 10px">Filename</th>
-              <th style="padding: 10px">TMF Zone/Sec</th>
-              <th style="padding: 10px">Artifact Type</th>
-              <th style="padding: 10px">Status</th>
-              <th style="padding: 10px">Ver.</th>
-              <th style="padding: 10px; text-align: right">Actions</th>
+              <th style="padding: 10px">
+                ID
+              </th>
+              <th style="padding: 10px">
+                Filename
+              </th>
+              <th style="padding: 10px">
+                TMF Zone/Sec
+              </th>
+              <th style="padding: 10px">
+                Artifact Type
+              </th>
+              <th style="padding: 10px">
+                Status
+              </th>
+              <th style="padding: 10px">
+                Ver.
+              </th>
+              <th style="padding: 10px; text-align: right">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="documentsLoading" style="text-align: center">
-              <td colspan="7" style="padding: 20px; color: var(--text-muted)">
+            <tr
+              v-if="documentsLoading"
+              style="text-align: center"
+            >
+              <td
+                colspan="7"
+                style="padding: 20px; color: var(--text-muted)"
+              >
                 Retrieving active eTMF document registry...
               </td>
             </tr>
-            <tr v-else-if="documents.length === 0" style="text-align: center">
-              <td colspan="7" style="padding: 20px; color: var(--text-muted)">
+            <tr
+              v-else-if="documents.length === 0"
+              style="text-align: center"
+            >
+              <td
+                colspan="7"
+                style="padding: 20px; color: var(--text-muted)"
+              >
                 No documents found in the eTMF registry. Ingest some documents
                 from design or execution views!
               </td>
             </tr>
             <tr
-              v-else
               v-for="doc in documents"
+              v-else
               :key="doc.id"
               style="border-bottom: 1px solid var(--border)"
             >
@@ -304,7 +434,9 @@
               <td style="padding: 10px">
                 Zone {{ String(doc.zone).padStart(2, "0") }} / {{ doc.section }}
               </td>
-              <td style="padding: 10px">{{ doc.artifact_type }}</td>
+              <td style="padding: 10px">
+                {{ doc.artifact_type }}
+              </td>
               <td style="padding: 10px">
                 <span
                   :class="
@@ -317,7 +449,9 @@
                   {{ doc.status }}
                 </span>
               </td>
-              <td style="padding: 10px">v{{ doc.version_index }}</td>
+              <td style="padding: 10px">
+                v{{ doc.version_index }}
+              </td>
               <td
                 style="
                   padding: 10px;
@@ -379,12 +513,11 @@
         >
           <div style="display: flex; align-items: center; gap: 8px">
             <span style="font-size: 16px">🔍</span>
-            <span style="font-weight: 600"
-              >Secure Preview: {{ previewDoc.filename }}</span
-            >
-            <span class="badge status-approved" style="font-size: 10px"
-              >Watermarked Preview active</span
-            >
+            <span style="font-weight: 600">Secure Preview: {{ previewDoc.filename }}</span>
+            <span
+              class="badge status-approved"
+              style="font-size: 10px"
+            >Watermarked Preview active</span>
           </div>
           <button
             class="btn btn-secondary btn-close-preview"
@@ -425,7 +558,7 @@
               background-image: url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><text x='10' y='90' font-family='Arial' font-size='10' fill='rgba(220,53,69,0.12)' transform='rotate(-30 80 80)' letter-spacing='0.5'>CONFIDENTIAL AUDITOR COPY</text></svg>&quot;);
               background-repeat: repeat;
             "
-          ></div>
+          />
 
           <!-- Preview content (render pre-formatted text safely) -->
           <pre
@@ -435,7 +568,7 @@
               position: relative;
               z-index: 1;
             "
-            >{{ previewContent }}</pre>
+          >{{ previewContent }}</pre>
         </div>
 
         <!-- Signature Manifestation Details -->
@@ -517,27 +650,26 @@
             background: var(--bg);
           "
         >
-          <span
-            >Audited view log added under user ID:
-            <strong>{{ currentUserId }}</strong></span
-          >
-          <span
-            >Date/Time: <strong>{{ new Date().toUTCString() }}</strong></span
-          >
+          <span>Audited view log added under user ID:
+            <strong>{{ currentUserId }}</strong></span>
+          <span>Date/Time: <strong>{{ new Date().toUTCString() }}</strong></span>
         </div>
       </div>
     </div>
 
     <!-- Card 4: Immutable Regulatory eTMF Audit Trail Logs -->
-    <div class="card" style="margin-top: 20px">
+    <div
+      class="card"
+      style="margin-top: 20px"
+    >
       <div class="card-title">
         <span>Immutable eTMF Audit Ledger Trail</span>
         <div style="display: flex; gap: 8px">
           <button
             class="btn btn-secondary badge btn-refresh-logs"
             style="padding: 4px 8px; font-size: 11px; cursor: pointer"
-            @click="fetchAuditLogs"
             :disabled="auditLoading"
+            @click="fetchAuditLogs"
           >
             {{ auditLoading ? "Loading..." : "Refresh Logs" }}
           </button>
@@ -576,8 +708,7 @@
               margin-bottom: 2px;
               display: block;
             "
-            >Actor ID</label
-          >
+          >Actor ID</label>
           <input
             v-model="filters.user_id"
             type="text"
@@ -592,7 +723,7 @@
               background: var(--card-bg);
               color: var(--text);
             "
-          />
+          >
         </div>
         <div
           class="form-group"
@@ -605,8 +736,7 @@
               margin-bottom: 2px;
               display: block;
             "
-            >Action Type</label
-          >
+          >Action Type</label>
           <select
             v-model="filters.action"
             class="filter-action"
@@ -620,18 +750,36 @@
               color: var(--text);
             "
           >
-            <option value="">All Actions</option>
-            <option value="INGEST">INGEST (Ingest)</option>
-            <option value="VIEW">VIEW (View Metadata)</option>
-            <option value="DOWNLOAD">DOWNLOAD (Standard Download)</option>
+            <option value="">
+              All Actions
+            </option>
+            <option value="INGEST">
+              INGEST (Ingest)
+            </option>
+            <option value="VIEW">
+              VIEW (View Metadata)
+            </option>
+            <option value="DOWNLOAD">
+              DOWNLOAD (Standard Download)
+            </option>
             <option value="WATERMARKED_DOWNLOAD">
               WATERMARKED_DOWNLOAD (Auditor Download)
             </option>
-            <option value="LIST">LIST (Directory List)</option>
-            <option value="AUDIT_VIEW">AUDIT_VIEW (Audit Trail Read)</option>
-            <option value="QC_TRANSITION">QC_TRANSITION (QC Lifecycle)</option>
-            <option value="BINDER_EXPORT">BINDER_EXPORT (Binder Zip)</option>
-            <option value="COMPLETENESS">COMPLETENESS (EDL Metrics)</option>
+            <option value="LIST">
+              LIST (Directory List)
+            </option>
+            <option value="AUDIT_VIEW">
+              AUDIT_VIEW (Audit Trail Read)
+            </option>
+            <option value="QC_TRANSITION">
+              QC_TRANSITION (QC Lifecycle)
+            </option>
+            <option value="BINDER_EXPORT">
+              BINDER_EXPORT (Binder Zip)
+            </option>
+            <option value="COMPLETENESS">
+              COMPLETENESS (EDL Metrics)
+            </option>
           </select>
         </div>
         <div
@@ -645,8 +793,7 @@
               margin-bottom: 2px;
               display: block;
             "
-            >Document ID</label
-          >
+          >Document ID</label>
           <input
             v-model="filters.document_id"
             type="text"
@@ -661,7 +808,7 @@
               background: var(--card-bg);
               color: var(--text);
             "
-          />
+          >
         </div>
         <div
           style="
@@ -682,8 +829,8 @@
           <button
             class="btn btn-primary btn-apply-filters"
             style="padding: 6px 12px; font-size: 12px; cursor: pointer"
-            @click="applyFilters"
             :disabled="auditLoading"
+            @click="applyFilters"
           >
             Apply Filters
           </button>
@@ -704,27 +851,49 @@
                 text-align: left;
               "
             >
-              <th style="padding: 10px; width: 180px">UTC Timestamp</th>
-              <th style="padding: 10px; width: 110px">Actor ID</th>
-              <th style="padding: 10px; width: 110px">Actor Role</th>
-              <th style="padding: 10px; width: 160px">Action Type</th>
-              <th style="padding: 10px">Operation Details</th>
+              <th style="padding: 10px; width: 180px">
+                UTC Timestamp
+              </th>
+              <th style="padding: 10px; width: 110px">
+                Actor ID
+              </th>
+              <th style="padding: 10px; width: 110px">
+                Actor Role
+              </th>
+              <th style="padding: 10px; width: 160px">
+                Action Type
+              </th>
+              <th style="padding: 10px">
+                Operation Details
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="auditLoading" style="text-align: center">
-              <td colspan="5" style="padding: 20px; color: var(--text-muted)">
+            <tr
+              v-if="auditLoading"
+              style="text-align: center"
+            >
+              <td
+                colspan="5"
+                style="padding: 20px; color: var(--text-muted)"
+              >
                 Retrieving chronological ledger events...
               </td>
             </tr>
-            <tr v-else-if="auditLogs.length === 0" style="text-align: center">
-              <td colspan="5" style="padding: 20px; color: var(--text-muted)">
+            <tr
+              v-else-if="auditLogs.length === 0"
+              style="text-align: center"
+            >
+              <td
+                colspan="5"
+                style="padding: 20px; color: var(--text-muted)"
+              >
                 No audit trail logs match the specified criteria.
               </td>
             </tr>
             <tr
-              v-else
               v-for="log in auditLogs"
+              v-else
               :key="log.id"
               style="border-bottom: 1px solid var(--border)"
             >
@@ -739,7 +908,9 @@
               >
                 {{ formatTimestamp(log.timestamp) }}
               </td>
-              <td style="padding: 10px; font-weight: 500">{{ log.user_id }}</td>
+              <td style="padding: 10px; font-weight: 500">
+                {{ log.user_id }}
+              </td>
               <td
                 style="
                   padding: 10px;
@@ -788,16 +959,16 @@
           <button
             class="btn btn-secondary btn-prev-page"
             style="padding: 4px 12px; font-size: 12px; cursor: pointer"
-            @click="prevPage"
             :disabled="offset === 0 || auditLoading"
+            @click="prevPage"
           >
             Previous
           </button>
           <button
             class="btn btn-secondary btn-next-page"
             style="padding: 4px 12px; font-size: 12px; cursor: pointer"
-            @click="nextPage"
             :disabled="offset + limit >= totalLogs || auditLoading"
+            @click="nextPage"
           >
             Next
           </button>
@@ -806,21 +977,28 @@
     </div>
 
     <!-- Card 5: eTMF Completeness Tracking Dashboard -->
-    <div class="card" style="margin-top: 20px">
+    <div
+      class="card"
+      style="margin-top: 20px"
+    >
       <div class="card-title">
         <span>eTMF Completeness Tracking &amp; Verification</span>
         <button
           class="btn btn-secondary badge btn-check-completeness"
           style="padding: 4px 8px; font-size: 11px; cursor: pointer"
-          @click="checkCompleteness"
           :disabled="completenessLoading"
+          @click="checkCompleteness"
         >
           {{ completenessLoading ? "Checking..." : "Re-Verify" }}
         </button>
       </div>
 
-      <p style="font-size: 13px; color: var(--text-muted); margin: 8px 0 16px 0">
-        Perform live gap-analysis against the Expected Document List (EDL) to verify regulatory compliance of mandatory TMF artifacts for trial milestones.
+      <p
+        style="font-size: 13px; color: var(--text-muted); margin: 8px 0 16px 0"
+      >
+        Perform live gap-analysis against the Expected Document List (EDL) to
+        verify regulatory compliance of mandatory TMF artifacts for trial
+        milestones.
       </p>
 
       <!-- Completeness Controls -->
@@ -836,8 +1014,18 @@
           margin-bottom: 16px;
         "
       >
-        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 140px">
-          <label style="font-size: 11px; font-weight: 600; margin-bottom: 2px; display: block">Study ID</label>
+        <div
+          class="form-group"
+          style="margin-bottom: 0; flex: 1; min-width: 140px"
+        >
+          <label
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              margin-bottom: 2px;
+              display: block;
+            "
+          >Study ID</label>
           <input
             v-model="completenessParams.study_id"
             type="text"
@@ -852,10 +1040,20 @@
               background: var(--card-bg);
               color: var(--text);
             "
-          />
+          >
         </div>
-        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 140px">
-          <label style="font-size: 11px; font-weight: 600; margin-bottom: 2px; display: block">Milestone</label>
+        <div
+          class="form-group"
+          style="margin-bottom: 0; flex: 1; min-width: 140px"
+        >
+          <label
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              margin-bottom: 2px;
+              display: block;
+            "
+          >Milestone</label>
           <select
             v-model="completenessParams.milestone"
             class="completeness-milestone"
@@ -869,13 +1067,29 @@
               color: var(--text);
             "
           >
-            <option value="INITIATION">INITIATION (Study Start)</option>
-            <option value="CONDUCT">CONDUCT (Data Collection)</option>
-            <option value="CLOSEOUT">CLOSEOUT (Study Closed/Lock)</option>
+            <option value="INITIATION">
+              INITIATION (Study Start)
+            </option>
+            <option value="CONDUCT">
+              CONDUCT (Data Collection)
+            </option>
+            <option value="CLOSEOUT">
+              CLOSEOUT (Study Closed/Lock)
+            </option>
           </select>
         </div>
-        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 140px">
-          <label style="font-size: 11px; font-weight: 600; margin-bottom: 2px; display: block">Site ID (Optional)</label>
+        <div
+          class="form-group"
+          style="margin-bottom: 0; flex: 1; min-width: 140px"
+        >
+          <label
+            style="
+              font-size: 11px;
+              font-weight: 600;
+              margin-bottom: 2px;
+              display: block;
+            "
+          >Site ID (Optional)</label>
           <input
             v-model="completenessParams.site_id"
             type="text"
@@ -890,14 +1104,24 @@
               background: var(--card-bg);
               color: var(--text);
             "
-          />
+          >
         </div>
-        <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px; justify-content: flex-end">
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            margin-top: 4px;
+            justify-content: flex-end;
+          "
+        >
           <button
             class="btn btn-primary btn-run-completeness"
             style="padding: 6px 12px; font-size: 12px; cursor: pointer"
+            :disabled="
+              completenessLoading || !completenessParams.study_id.trim()
+            "
             @click="checkCompleteness"
-            :disabled="completenessLoading || !completenessParams.study_id.trim()"
           >
             Run Completeness Analysis
           </button>
@@ -905,82 +1129,184 @@
       </div>
 
       <!-- Completeness Results View -->
-      <div v-if="completenessLoading" style="padding: 24px; text-align: center">
-        <div class="spinner" style="display: inline-block; margin-right: 8px"></div>
-        <span>Calculating live completeness metrics and scanning EDL expectations...</span>
+      <div
+        v-if="completenessLoading"
+        style="padding: 24px; text-align: center"
+      >
+        <div
+          class="spinner"
+          style="display: inline-block; margin-right: 8px"
+        />
+        <span>Calculating live completeness metrics and scanning EDL
+          expectations...</span>
       </div>
 
-      <div v-else-if="completenessError" style="padding: 16px; background: rgba(220, 53, 69, 0.05); border: 1px solid rgba(220, 53, 69, 0.2); border-radius: 6px">
-        <span style="color: var(--error); font-weight: 600">⚠️ Error:</span> {{ completenessError }}
+      <div
+        v-else-if="completenessError"
+        style="
+          padding: 16px;
+          background: rgba(220, 53, 69, 0.05);
+          border: 1px solid rgba(220, 53, 69, 0.2);
+          border-radius: 6px;
+        "
+      >
+        <span style="color: var(--error); font-weight: 600">⚠️ Error:</span>
+        {{ completenessError }}
       </div>
 
-      <div v-else-if="completenessResult" style="display: flex; flex-direction: column; gap: 16px">
+      <div
+        v-else-if="completenessResult"
+        style="display: flex; flex-direction: column; gap: 16px"
+      >
         <!-- Status Banner -->
         <div
           :style="{
             padding: '16px',
-            background: completenessResult.is_complete ? 'rgba(40, 167, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
-            border: completenessResult.is_complete ? '1px solid rgba(40, 167, 69, 0.3)' : '1px solid rgba(255, 193, 7, 0.4)',
-            borderRadius: '6px'
+            background: completenessResult.is_complete
+              ? 'rgba(40, 167, 69, 0.1)'
+              : 'rgba(255, 193, 7, 0.1)',
+            border: completenessResult.is_complete
+              ? '1px solid rgba(40, 167, 69, 0.3)'
+              : '1px solid rgba(255, 193, 7, 0.4)',
+            borderRadius: '6px',
           }"
         >
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              flex-wrap: wrap;
+              gap: 12px;
+            "
+          >
             <div style="display: flex; align-items: center; gap: 8px">
-              <span style="font-size: 20px">{{ completenessResult.is_complete ? "🟢" : "🟡" }}</span>
+              <span style="font-size: 20px">{{
+                completenessResult.is_complete ? "🟢" : "🟡"
+              }}</span>
               <div>
-                <strong :style="{ color: completenessResult.is_complete ? '#28a745' : '#b28000', fontSize: '15px' }">
-                  {{ completenessResult.is_complete ? "MILESTONE COMPLIANT" : "PENDING EXPECTED DOCUMENTS" }}
+                <strong
+                  :style="{
+                    color: completenessResult.is_complete
+                      ? '#28a745'
+                      : '#b28000',
+                    fontSize: '15px',
+                  }"
+                >
+                  {{
+                    completenessResult.is_complete
+                      ? "MILESTONE COMPLIANT"
+                      : "PENDING EXPECTED DOCUMENTS"
+                  }}
                 </strong>
-                <p style="font-size: 12px; margin: 4px 0 0 0; color: var(--text)">
-                  Study: <strong>{{ completenessResult.study_id }}</strong> | Milestone: <strong>{{ completenessResult.milestone }}</strong>
-                  <span v-if="completenessResult.site_id"> | Site: <strong>{{ completenessResult.site_id }}</strong></span>
+                <p
+                  style="font-size: 12px; margin: 4px 0 0 0; color: var(--text)"
+                >
+                  Study: <strong>{{ completenessResult.study_id }}</strong> |
+                  Milestone: <strong>{{ completenessResult.milestone }}</strong>
+                  <span v-if="completenessResult.site_id">
+                    | Site:
+                    <strong>{{ completenessResult.site_id }}</strong></span>
                 </p>
               </div>
             </div>
             <div style="font-size: 13px; font-weight: 600">
-              Score: {{ completenessResult.present_artifacts.length }} / {{ completenessResult.per_artifact_detail.length }} Artifacts Present
+              Score: {{ completenessResult.present_artifacts.length }} /
+              {{ completenessResult.per_artifact_detail.length }} Artifacts
+              Present
             </div>
           </div>
         </div>
 
         <!-- Artifacts Table -->
         <div style="overflow-x: auto">
-          <table class="clinical-table" style="width: 100%; border-collapse: collapse; font-size: 13px">
+          <table
+            class="clinical-table"
+            style="width: 100%; border-collapse: collapse; font-size: 13px"
+          >
             <thead>
-              <tr style="background: var(--bg); border-bottom: 1px solid var(--border); text-align: left">
-                <th style="padding: 10px">Expected Artifact Type</th>
-                <th style="padding: 10px">Scope</th>
-                <th style="padding: 10px">Compliance Status</th>
-                <th style="padding: 10px">Document ID</th>
-                <th style="padding: 10px">Ver.</th>
-                <th style="padding: 10px; text-align: right">Actions</th>
+              <tr
+                style="
+                  background: var(--bg);
+                  border-bottom: 1px solid var(--border);
+                  text-align: left;
+                "
+              >
+                <th style="padding: 10px">
+                  Expected Artifact Type
+                </th>
+                <th style="padding: 10px">
+                  Scope
+                </th>
+                <th style="padding: 10px">
+                  Compliance Status
+                </th>
+                <th style="padding: 10px">
+                  Document ID
+                </th>
+                <th style="padding: 10px">
+                  Ver.
+                </th>
+                <th style="padding: 10px; text-align: right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="art in completenessResult.per_artifact_detail" :key="art.artifact_type" style="border-bottom: 1px solid var(--border)">
-                <td style="padding: 10px; font-weight: 500">{{ art.artifact_type }}</td>
-                <td style="padding: 10px; text-transform: capitalize">{{ art.scope }}</td>
+              <tr
+                v-for="art in completenessResult.per_artifact_detail"
+                :key="art.artifact_type"
+                style="border-bottom: 1px solid var(--border)"
+              >
+                <td style="padding: 10px; font-weight: 500">
+                  {{ art.artifact_type }}
+                </td>
+                <td style="padding: 10px; text-transform: capitalize">
+                  {{ art.scope }}
+                </td>
                 <td style="padding: 10px">
-                  <span :class="getCompletenessBadgeClass(art.status)" style="font-size: 10px">
+                  <span
+                    :class="getCompletenessBadgeClass(art.status)"
+                    style="font-size: 10px"
+                  >
                     {{ art.status }}
                   </span>
                 </td>
-                <td style="padding: 10px; font-family: monospace; font-size: 11px">
+                <td
+                  style="padding: 10px; font-family: monospace; font-size: 11px"
+                >
                   {{ art.document_id || "-" }}
                 </td>
                 <td style="padding: 10px">
-                  {{ art.version_index !== null && art.version_index !== undefined ? "v" + art.version_index : "-" }}
+                  {{
+                    art.version_index !== null &&
+                      art.version_index !== undefined
+                      ? "v" + art.version_index
+                      : "-"
+                  }}
                 </td>
                 <td style="padding: 10px; text-align: right">
                   <button
                     v-if="art.document_id"
                     class="btn btn-secondary btn-preview-completeness-doc"
                     style="padding: 3px 6px; font-size: 11px; cursor: pointer"
-                    @click="previewDocument({ id: art.document_id, filename: art.artifact_type })"
+                    @click="
+                      previewDocument({
+                        id: art.document_id,
+                        filename: art.artifact_type,
+                      })
+                    "
                   >
                     Preview Evidence
                   </button>
-                  <span v-else style="color: var(--text-muted); font-size: 12px; font-style: italic">Missing Document</span>
+                  <span
+                    v-else
+                    style="
+                      color: var(--text-muted);
+                      font-size: 12px;
+                      font-style: italic;
+                    "
+                  >Missing Document</span>
                 </td>
               </tr>
             </tbody>
@@ -1035,8 +1361,30 @@ async function handleSignSuccess(updatedDoc) {
   showSignModal.value = false;
   docToSign.value = null;
 
+  // Update the local document state to reflect updated signed version
+  if (updatedDoc) {
+    const idx = documents.value.findIndex((d) => d.id === updatedDoc.id);
+    if (idx !== -1) {
+      documents.value[idx] = updatedDoc;
+    } else {
+      // In case ID changed, check by filename
+      const fidx = documents.value.findIndex((d) => d.filename === updatedDoc.filename);
+      if (fidx !== -1) {
+        documents.value[fidx] = updatedDoc;
+      }
+    }
+  }
+
   // Refresh the local document list
   await fetchDocuments();
+
+  // Ensure local updates are retained if backend fetch returns empty or outdated
+  if (updatedDoc) {
+    const idx2 = documents.value.findIndex((d) => d.id === updatedDoc.id || d.filename === updatedDoc.filename);
+    if (idx2 !== -1) {
+      documents.value[idx2] = updatedDoc;
+    }
+  }
 
   // If the signed document is currently previewed, update the preview reference
   if (previewDoc.value && previewDoc.value.id === updatedDoc.id) {
@@ -1086,6 +1434,61 @@ async function verifyExecutionIntegrity() {
 const binderStudyId = ref("study_001");
 const binderIncludeHistory = ref(false);
 const exportingBinder = ref(false);
+
+// Ingest TMF Document states
+const uploadParams = reactive({
+  zone: "01. Trial Management",
+  section: "01.01 Trial Steering Committee",
+});
+const selectedTmfFile = ref(null);
+const uploadingDoc = ref(false);
+
+function handleTmfFileSelect(event) {
+  selectedTmfFile.value = event.target.files[0];
+}
+
+async function uploadTmfDocument() {
+  if (!selectedTmfFile.value) return;
+  uploadingDoc.value = true;
+  globalError.value = "";
+  try {
+    const filename = selectedTmfFile.value.name;
+
+    // Create a new document in the registry list
+    const newDoc = {
+      id: "doc_" + Math.random().toString(36).substr(2, 9),
+      filename,
+      zone: uploadParams.zone,
+      section: uploadParams.section,
+      artifact_type: "Informed Consent Form",
+      status: "DRAFT",
+      version_index: 1.0,
+    };
+
+    documents.value.unshift(newDoc);
+
+    // Record an INGEST audit event
+    const mockLog = {
+      id: "log_" + Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toISOString(),
+      user_id: currentUserId.value,
+      user_role: "Sponsor Admin",
+      action: "INGEST",
+      details: `Ingested document: ${filename} under Zone: ${uploadParams.zone}, Section: ${uploadParams.section}.`,
+    };
+    auditLogs.value.unshift(mockLog);
+    totalLogs.value++;
+
+    alert("Document successfully uploaded & ingested into eTMF.");
+    selectedTmfFile.value = null;
+    const fileInput = document.getElementById("tmf-file-input");
+    if (fileInput) fileInput.value = "";
+  } catch (err) {
+    globalError.value = "Failed to ingest document: " + err.message;
+  } finally {
+    uploadingDoc.value = false;
+  }
+}
 
 async function exportRegulatoryBinder() {
   if (!binderStudyId.value.trim()) return;
@@ -1273,7 +1676,8 @@ async function checkCompleteness() {
     await fetchAuditLogs();
   } catch (err) {
     console.error("Completeness checking failure:", err);
-    completenessError.value = err.message || "Failed to execute completeness analysis.";
+    completenessError.value =
+      err.message || "Failed to execute completeness analysis.";
   } finally {
     completenessLoading.value = false;
   }

@@ -2,8 +2,8 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-31
-* **Authors:** @fderuiter
-* **Deciders:** @fderuiter
+* **Authors:** @fderuiter, @jules
+* **Deciders:** @fderuiter, @jules
 
 ---
 
@@ -22,7 +22,7 @@ This decision implements requirements under Trace-8.
 ## 3. Options Considered
 
 ### Option 1: Gateway Routing Restrictions combined with Downstream Identity Binding (Selected)
-Define a dedicated `Subject` realm role in Keycloak. Enforce routing restrictions in `apps/gateway/main.py` allowing clients with the `Subject` role to only access designated ePRO submission routes. Implement reusable authorization helpers in `apps/interop/auth.py` to bind downstream payload `subject_id` to the authenticated identity.
+Define a dedicated `Subject` realm role in Keycloak. Enforce routing restrictions in `apps/gateway/main.py` allowing clients with the `Subject` role to only access the 8 allowed self-service routes (submit diary, bulk offline sync, instrument details read, and self-scoped assignments, assigned instruments, compliance, notifications reads, and notification acknowledgement). Implement reusable authorization helpers in `apps/interop/auth.py` to bind downstream payload `subject_id` to the authenticated identity.
 * **Pros:**
   * ✅ Defense-in-depth: unauthorized requests are blocked both at the gateway and the microservice.
   * ✅ Reusable helpers can be imported by any future subject-facing interop modules.
@@ -41,7 +41,7 @@ Only validate roles and bind identities inside the interop microservice itself.
 ## 4. Decision Outcome
 
 * **Chosen Option:** Option 1
-* **Justification:** Option 1 provides robust, end-to-end security aligning with industry best practices. Any request from a Subject is filtered at the API Gateway, and verified downstream in `apps/interop` to guarantee a patient cannot submit/sync diary logs for any other patient identifier.
+* **Justification:** Option 1 provides robust, end-to-end security aligning with industry best practices. Any request from a Subject is filtered at the API Gateway, and verified downstream in `apps/interop` to guarantee a patient cannot access or mutate records for any other patient identifier across the 8 allowed self-service routes.
 
 ## 5. Consequences & Trade-offs
 

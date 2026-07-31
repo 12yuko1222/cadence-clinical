@@ -9,13 +9,21 @@
     :aria-labelledby="idPrefix + 'modal-title'"
   >
     <div class="modal">
-      <div :id="idPrefix + 'modal-title'" class="modal-header">
+      <div
+        :id="idPrefix + 'modal-title'"
+        class="modal-header"
+      >
         {{ title }}
       </div>
       <div class="modal-body">
-        <p v-if="description">{{ description }}</p>
+        <p v-if="description">
+          {{ description }}
+        </p>
 
-        <div class="form-group" style="margin-bottom: 12px">
+        <div
+          class="form-group"
+          style="margin-bottom: 12px"
+        >
           <label :for="idPrefix + 'change-reason-select'">Select Standard Reason</label>
           <select
             :id="idPrefix + 'change-reason-select'"
@@ -90,13 +98,17 @@ const props = defineProps({
   },
   description: {
     type: String,
-    default: "To comply with 21 CFR Part 11 / EU Annex 11, you must document a reason for this modification.",
+    default:
+      "To comply with 21 CFR Part 11 / EU Annex 11, you must document a reason for this modification.",
   },
   options: {
     type: Array,
     default: () => [
       { value: "Initial Entry", text: "Initial Data Entry" },
-      { value: "Typographical Error", text: "Correction of typographical error" },
+      {
+        value: "Typographical Error",
+        text: "Correction of typographical error",
+      },
       { value: "Other", text: "Other (specify below)" },
     ],
   },
@@ -119,7 +131,7 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: "Explain the clinical reason for this modification...",
-  }
+  },
 });
 
 const emit = defineEmits(["confirm", "cancel"]);
@@ -133,7 +145,8 @@ watch(
   () => props.show,
   (newVal) => {
     if (newVal) {
-      selectedOption.value = props.defaultOption || (props.options[0]?.value || "");
+      selectedOption.value =
+        props.defaultOption || props.options[0]?.value || "";
       customText.value = "";
       validationError.value = "";
     }
@@ -160,15 +173,18 @@ function onConfirm() {
   // Strict non-empty and non-whitespace validation for 'Other'
   if (sel === "Other") {
     if (!cust) {
-      validationError.value = "Custom explanation is required when selecting 'Other'.";
+      validationError.value =
+        "Custom explanation is required when selecting 'Other'.";
       return;
     }
   }
 
   // General check that we actually have a non-empty resolved reason
-  const finalReason = sel === "Other" && cust ? cust : `${sel}${cust ? ": " + cust : ""}`;
+  const finalReason =
+    sel === "Other" && cust ? cust : `${sel}${cust ? ": " + cust : ""}`;
   if (!finalReason.trim()) {
-    validationError.value = "A non-empty reason for change is strictly required.";
+    validationError.value =
+      "A non-empty reason for change is strictly required.";
     return;
   }
 

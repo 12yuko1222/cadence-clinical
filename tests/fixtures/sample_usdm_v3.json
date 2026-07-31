@@ -1,0 +1,113 @@
+{
+  "id": "study_usdm_benchmark_v3",
+  "name": "CADENCE-BENCHMARK-001",
+  "protocolTitle": "A Phase III Double-Blind Randomized Controlled Trial",
+  "usdmVersion": "3.0",
+  "studyDesigns": [
+    {
+      "id": "design_main_01",
+      "name": "Primary Parallel Group Design",
+      "designType": "Parallel Group",
+      "arms": [
+        {
+          "id": "arm_01",
+          "name": "Treatment Arm 100mg",
+          "armType": "Experimental"
+        },
+        {
+          "id": "arm_02",
+          "name": "Control Arm Placebo",
+          "armType": "Placebo Comparator"
+        }
+      ],
+      "epochs": [
+        {
+          "id": "epoch_01",
+          "name": "Screening Epoch",
+          "epochType": "Screening",
+          "sequenceNumber": 1
+        },
+        {
+          "id": "epoch_02",
+          "name": "Treatment Epoch",
+          "epochType": "Treatment",
+          "sequenceNumber": 2
+        },
+        {
+          "id": "epoch_03",
+          "name": "Follow-up Epoch",
+          "epochType": "Follow-Up",
+          "sequenceNumber": 3
+        }
+      ],
+      "encounters": [
+        {
+          "id": "enc_01",
+          "name": "Screening Visit V1",
+          "encounterType": "Screening",
+          "startDate": "2026-01-01",
+          "endDate": "2026-01-07"
+        },
+        {
+          "id": "enc_02",
+          "name": "Randomization Visit V2",
+          "encounterType": "Baseline",
+          "startDate": "2026-01-08",
+          "endDate": "2026-01-08"
+        }
+      ],
+      "activities": [
+        {
+          "id": "act_01",
+          "name": "Vital Signs Assessment",
+          "description": "Blood pressure, heart rate, temperature",
+          "definedProcedures": [
+            {
+              "code": "VS_PROC_01",
+              "name": "Blood Pressure Measurement"
+            }
+          ]
+        },
+        {
+          "id": "act_02",
+          "name": "Serum Chemistry Laboratory Test",
+          "description": "Central lab blood draw",
+          "definedProcedures": [
+            {
+              "code": "LAB_PROC_01",
+              "name": "Serum Creatinine"
+            }
+          ]
+        }
+      ],
+      "eligibilityCriteria": [
+        {
+          "id": "crit_01",
+          "name": "Minimum Age Requirement",
+          "criterionType": "Inclusion",
+          "category": "Demographics",
+          "text": "Subject must be between 18 and 75 years of age at the time of consent",
+          "template": {
+            "id": "tmpl_01",
+            "name": "Age Template",
+            "text": "AGE >= 18 AND AGE <= 75",
+            "notes": ["Standard adult inclusion criterion"]
+          }
+        },
+        {
+          "id": "crit_02",
+          "name": "Renal Impairment Exclusion",
+          "criterionType": "Exclusion",
+          "category": "Medical History",
+          "text": "Serum creatinine > 2.0 mg/dL at screening",
+          "template": {
+            "id": "tmpl_02",
+            "name": "Renal Function Template",
+            "text": "CREATININE <= 2.0",
+            "notes": ["Safety exclusion for renal impairment"]
+          }
+        }
+      ]
+    }
+  ]
+}

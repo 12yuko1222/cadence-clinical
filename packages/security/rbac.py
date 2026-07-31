@@ -28,8 +28,27 @@ ROLE_AUDITOR_CANONICAL = "auditor"
 ROLE_EXTERNAL_MONITOR = "external_monitor"
 ROLE_REVIEWER = "protocol_reviewer"
 
+# RTSM roles
+ROLE_PHARMACIST = "pharmacist"
+ROLE_UNBLINDED_STATISTICIAN = "unblinded_statistician"
+ROLE_IDMC = "idmc"
+ROLE_EMERGENCY_UNBLINDER = "emergency_unblinder"
+ROLE_PRINCIPAL_INVESTIGATOR = "principal_investigator"
+ROLE_AUTHORIZED_ER_PHYSICIAN = "authorized_er_physician"
+ROLE_LEAD_INVESTIGATOR = "lead_investigator"
+
 
 ROLE_ALIASES = {
+    "unblinded statistician": ROLE_UNBLINDED_STATISTICIAN,
+    "lead unblinded statistician": ROLE_UNBLINDED_STATISTICIAN,
+    "unblinded_statistician": ROLE_UNBLINDED_STATISTICIAN,
+    "idmc": ROLE_IDMC,
+    "dsmb": ROLE_IDMC,
+    "pharmacist": ROLE_PHARMACIST,
+    "unblinded pharmacist": ROLE_PHARMACIST,
+    "unblinded_pharmacist": ROLE_PHARMACIST,
+    "emergency unblinder": ROLE_EMERGENCY_UNBLINDER,
+    "emergency_unblinder": ROLE_EMERGENCY_UNBLINDER,
     "protocol_reviewer": ROLE_REVIEWER,
     "protocol reviewer": ROLE_REVIEWER,
     "protocol-reviewer": ROLE_REVIEWER,
@@ -78,13 +97,26 @@ ROLE_ALIASES = {
     "site investigator": ROLE_INVESTIGATOR,
     "site_investigator": ROLE_INVESTIGATOR,
     "site-investigator": ROLE_INVESTIGATOR,
-    "principal investigator": ROLE_INVESTIGATOR,
-    "pi": ROLE_INVESTIGATOR,
-    "principal_investigator": ROLE_INVESTIGATOR,
-    "principalinvestigator": ROLE_INVESTIGATOR,
+    "principal investigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "pi": ROLE_PRINCIPAL_INVESTIGATOR,
+    "principal_investigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "principalinvestigator": ROLE_PRINCIPAL_INVESTIGATOR,
+    "authorized er physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorized_er_physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorized-er-physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "authorederphysician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "er physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "er_physician": ROLE_AUTHORIZED_ER_PHYSICIAN,
+    "lead investigator": ROLE_LEAD_INVESTIGATOR,
+    "lead_investigator": ROLE_LEAD_INVESTIGATOR,
+    "lead-investigator": ROLE_LEAD_INVESTIGATOR,
+    "leadinvestigator": ROLE_LEAD_INVESTIGATOR,
     "investigator_user": ROLE_INVESTIGATOR,
     "crc": ROLE_CRC,
     "clinical research coordinator": ROLE_CRC,
+    "study coordinator": ROLE_CRC,
+    "study_coordinator": ROLE_CRC,
+    "study-coordinator": ROLE_CRC,
     "coordinator": ROLE_CRC,
     "cra": ROLE_CRA_CANONICAL,
     "clinical research associate": ROLE_CRA_CANONICAL,
@@ -106,10 +138,22 @@ ROLE_ALIASES = {
 # Actions: "create", "read", "update", "delete"
 ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     ROLE_SYSADMIN: {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
+        "protocol_section": {"lock", "unlock", "approve", "review", "read"},
         # New permissions
         "protocol_version": {"sign", "transition_approved"},
         "regulatory_form": {"create", "read", "sign"},
@@ -117,7 +161,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -150,33 +194,59 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_audit_logs": {"read"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"create", "read", "update", "delete"},
+        "form_submission": {"create", "read", "update", "delete"},
+        "pi_signoff": {"create", "read", "update", "delete"},
+        "medical_coding": {"create", "read", "update", "delete"},
+        "trial_lock": {"create", "read", "update", "delete"},
+        "export_unmasked": {"create", "read", "update", "delete"},
+        "sdv": {"create", "read", "update", "delete"},
     },
     ROLE_SPONSOR_DESIGNER: {
-        "study_design": {"create", "read", "update", "delete"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
         "protocol_version": {"sign", "transition_approved"},
+        "protocol_section": {"lock", "unlock", "approve", "review", "read"},
         "regulatory_form": {"read"},
         "training_log": {"read"},
+        "trial_lock": {"read"},
     },
     ROLE_REVIEWER: {
         "study_design": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
+        "protocol_section": {"review", "read"},
     },
     ROLE_SPONSOR_DM: {
-        "study_design": {"read"},
+        "study_design": {"read", "approve"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "export_masked": {"create", "read", "update"},
         "protocol_version": {"transition_approved"},
+        "protocol_section": {"read"},
         "regulatory_form": {"create", "read", "sign"},
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -207,6 +277,13 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_audit_logs": {"read"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"read"},
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "medical_coding": {"create", "read", "update", "delete"},
+        "trial_lock": {"create", "read", "update", "delete"},
+        "sdv": {"read", "update"},
     },
     ROLE_SPONSOR_MM: {
         "study_design": {"read"},
@@ -218,6 +295,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "eisf_document": {"read"},
         "regulatory_form": {"read"},
         "training_log": {"read"},
+        # Execution Core Resources
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "medical_coding": {"read"},
+        "trial_lock": {"read"},
     },
     ROLE_SPONSOR_STATISTICIAN: {
         "study_design": {"read"},
@@ -226,10 +308,14 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "eisf_document": {"read"},
         "regulatory_form": {"read"},
         "training_log": {"read"},
+        # Execution Core Resources
+        "export_unmasked": {"create", "read", "update"},
+        "trial_lock": {"read"},
     },
     ROLE_INVESTIGATOR: {
         "study_design": {"read"},
         "subject_enrollment": {"create", "read", "update"},
+        "rtsm_unblind": {"write"},
         "ecrf_data_entry": {"create", "read", "update"},
         "query_lifecycle": {
             "read",
@@ -252,6 +338,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_event": {"read"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"read"},
+        "form_submission": {"create", "read", "update"},
+        "pi_signoff": {"create", "read", "update"},
+        "trial_lock": {"read"},
     },
     ROLE_CRC: {
         "study_design": {"read"},
@@ -278,6 +369,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_event": {"read"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "form_submission": {"create", "read", "update"},
+        "pi_signoff": {"read"},
+        "trial_lock": {"read"},
     },
     ROLE_CRA_CANONICAL: {
         "study_design": {"read"},
@@ -291,7 +386,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
-        "ctms_monitoring_visit": {"create", "update", "read"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -304,6 +399,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_event": {"create", "read", "update"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"create", "read", "update", "delete"},
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "trial_lock": {"read"},
     },
     "monitor": {
         "study_design": {"read"},
@@ -312,7 +412,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
-        "ctms_monitoring_visit": {"read", "sign_off"},
+        "ctms_monitoring_visit": {"read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -325,9 +425,17 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_event": {"create", "read", "update"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"create", "read", "update", "delete"},
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "trial_lock": {"read"},
+        "sdv": {"create", "read", "update", "delete"},
     },
     ROLE_SUBJECT: {
         "ecrf_data_entry": {"create", "update"},  # 'Diary' maps to create/update
+        # Execution Core Resources
+        "form_submission": {"create", "update"},
     },
     ROLE_AUDITOR_CANONICAL: {
         "system_audit_logs": {"read"},
@@ -355,6 +463,12 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_audit_logs": {"read"},
         # eISF
         "eisf_document": {"read"},
+        # Execution Core Resources
+        "tsdv_config": {"read"},
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "medical_coding": {"read"},
+        "trial_lock": {"read"},
     },
     ROLE_EXTERNAL_MONITOR: {
         "etmf_document": {"read"},
@@ -363,6 +477,11 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "eisf_document": {"read"},
         "regulatory_form": {"read"},
         "training_log": {"read"},
+        # Execution Core Resources
+        "tsdv_config": {"read"},
+        "form_submission": {"read"},
+        "pi_signoff": {"read"},
+        "trial_lock": {"read"},
     },
     "grants manager": {
         "ctms_study": {"create", "read"},
@@ -398,19 +517,23 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         }
     },
     "admin": {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
         "system_audit_logs": {"read"},
         "export_masked": {"create", "read", "update"},
         "protocol_version": {"sign", "transition_approved"},
+        "protocol_section": {"lock", "unlock", "approve", "review", "read"},
         "regulatory_form": {"create", "read", "sign"},
         "training_log": {"create", "read", "sign"},
         # CTMS
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -442,6 +565,14 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_audit_logs": {"read"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"create", "read", "update", "delete"},
+        "form_submission": {"create", "read", "update", "delete"},
+        "pi_signoff": {"create", "read", "update", "delete"},
+        "medical_coding": {"create", "read", "update", "delete"},
+        "trial_lock": {"create", "read", "update", "delete"},
+        "export_unmasked": {"create", "read", "update", "delete"},
+        "sdv": {"create", "read", "update", "delete"},
     },
     "quality_manager": {
         "quality_event": {"create", "read", "update", "delete", "investigate"},
@@ -458,7 +589,7 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     "system": {
         "ctms_study": {"create", "read"},
         "ctms_audit_logs": {"read"},
-        "ctms_monitoring_visit": {"create", "update", "read", "sign_off"},
+        "ctms_monitoring_visit": {"create", "update", "read", "sign_off", "sync"},
         "ctms_monitoring_letter": {"read", "read_type"},
         "ctms_recruitment": {"create", "read"},
         "ctms_site_milestone": {"create", "update", "read"},
@@ -481,10 +612,19 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "quality_event": {"create", "read", "update", "delete", "investigate"},
         "quality_audit_logs": {"read"},
         "protocol_version": {"sign", "transition_approved"},
+        "protocol_section": {"lock", "unlock", "approve", "review", "read"},
         "regulatory_form": {"create", "read", "sign"},
         "training_log": {"create", "read", "sign"},
         # eISF
         "eisf_document": {"create", "read", "update", "delete", "sync"},
+        # Execution Core Resources
+        "tsdv_config": {"create", "read", "update", "delete"},
+        "form_submission": {"create", "read", "update", "delete"},
+        "pi_signoff": {"create", "read", "update", "delete"},
+        "medical_coding": {"create", "read", "update", "delete"},
+        "trial_lock": {"create", "read", "update", "delete"},
+        "export_unmasked": {"create", "read", "update", "delete"},
+        "sdv": {"create", "read", "update", "delete"},
     },
     "anonymous": {
         "ctms_study": {"read"},
@@ -500,7 +640,36 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         # eISF
         "eisf_document": {"read"},
     },
+    ROLE_UNBLINDED_STATISTICIAN: {
+        "rtsm_randomization": {"read"},
+        "rtsm_allocation": {"read"},
+        # Execution Core Resources
+        "export_unmasked": {"create", "read", "update"},
+    },
+    ROLE_IDMC: {
+        "rtsm_randomization": {"read"},
+        "rtsm_allocation": {"read"},
+    },
+    ROLE_PHARMACIST: {
+        "rtsm_supply": {"read", "write"},
+    },
+    ROLE_EMERGENCY_UNBLINDER: {
+        "rtsm_unblind": {"write"},
+    },
 }
+
+# Derive PI / ER-Physician / Lead-Investigator permissions from the base
+# ROLE_INVESTIGATOR grant set so a single edit propagates to all three personas.
+# Each derivative role adds rtsm_unblind:write (controlled by the emergency-
+# unblinding endpoint) and full eISF document access beyond the base.
+_PI_BASE_PERMISSIONS: dict = {
+    **ROLE_PERMISSIONS[ROLE_INVESTIGATOR],
+    "rtsm_unblind": {"write"},
+    "eisf_document": {"create", "read", "update", "delete", "sync"},
+}
+ROLE_PERMISSIONS[ROLE_PRINCIPAL_INVESTIGATOR] = _PI_BASE_PERMISSIONS.copy()
+ROLE_PERMISSIONS[ROLE_AUTHORIZED_ER_PHYSICIAN] = _PI_BASE_PERMISSIONS.copy()
+ROLE_PERMISSIONS[ROLE_LEAD_INVESTIGATOR] = _PI_BASE_PERMISSIONS.copy()
 
 
 # Field-level blinding/masking rules from §2.3
@@ -514,15 +683,66 @@ MASKING_RULES: Dict[str, Callable[[Any], Any]] = {
     "administered_drug_code": lambda val: "Obfuscated Kit" if val else val,
     "drug_code": lambda val: "Obfuscated Kit" if val else val,
     "changed_reason_for_blinded_field": lambda val: "Obfuscated" if val else val,
+    "randomization_seed": lambda val: "MASKED" if val is not None else val,
+    "seed": lambda val: "MASKED" if val is not None else val,
+    "encrypted_allocation": lambda val: "MASKED" if val is not None else val,
+    "kit_reference": lambda val: "Obfuscated Kit" if val else val,
+    "stratum_key": lambda val: "MASKED" if val else val,
+    "randomization_id": lambda val: "MASKED" if val else val,
+    "encrypted_sequence": lambda val: "MASKED" if val else val,
+}
+
+# Canonical set of site-scoped trial personas
+SITE_SCOPED_ROLES: Set[str] = {
+    ROLE_INVESTIGATOR,
+    ROLE_CRC,
+    ROLE_CRA_CANONICAL,
+    "monitor",
+    ROLE_EXTERNAL_MONITOR,
+    ROLE_PRINCIPAL_INVESTIGATOR,
+    ROLE_AUTHORIZED_ER_PHYSICIAN,
+    ROLE_LEAD_INVESTIGATOR,
+}
+
+UNMASKED_ALLOCATION_FIELDS: Set[str] = {
+    "treatment_arm",
+    "treatment_arm_id",
+    "randomization_seed",
+    "seed",
+    "encrypted_allocation",
+    "stratum_key",
+    "randomization_id",
+    "encrypted_sequence",
+}
+
+UNMASKED_SUPPLY_FIELDS: Set[str] = {
+    "drug_code",
+    "administered_drug_code",
+    "kit_reference",
+}
+
+# Role-aware masking policy mapping unblinded RTSM roles to visible fields.
+# NOTE: Routine investigator personas (PI, ER Physician, Lead Investigator) do NOT
+# receive blanket unmasked-allocation or unmasked-supply grants here. Allocation
+# field visibility for those roles is conferred only via the controlled emergency-
+# unblinding endpoint, which returns the decrypted value directly in its response
+# without persisting wide-open field visibility in the session principal.
+ROLE_UNMASKED_FIELDS: Dict[str, Set[str]] = {
+    ROLE_UNBLINDED_STATISTICIAN: UNMASKED_ALLOCATION_FIELDS,
+    ROLE_IDMC: UNMASKED_ALLOCATION_FIELDS,
+    ROLE_PHARMACIST: UNMASKED_SUPPLY_FIELDS,
+    ROLE_EMERGENCY_UNBLINDER: UNMASKED_ALLOCATION_FIELDS | UNMASKED_SUPPLY_FIELDS,
 }
 
 
+# Traceability Note: Principal now captures sponsor scope (sponsor_id) as a contract change per ADR-86.
 class Principal(BaseModel):
     user_id: str
     roles: List[str]  # Normalized canonical roles
     assigned_sites: List[str] = Field(default_factory=list)
     assigned_studies: List[str] = Field(default_factory=list)
     unblinded_access: bool = False
+    sponsor_id: Optional[str] = None
     change_reason: Optional[str] = None
     raw_roles: List[str] = Field(default_factory=list)
 
@@ -563,32 +783,28 @@ def has_permission(principal: Principal, permission: str) -> bool:
 
 def can_access_site(principal: Principal, site_id: str) -> bool:
     """
-    Checks if the principal has access to a specific site.
-    Site-scoped users are restricted to their assigned_sites.
-    Sponsor/SysAdmin users with empty assigned_sites are allowed global access.
+    Determine whether a principal is permitted to access a given site.
+
+    Site-scoped roles (e.g., investigators, CRCs, CRAs, ER physicians, lead
+    investigators) are restricted to the sites listed in *principal.assigned_sites*.
+    Sponsor/SysAdmin principals with an empty *assigned_sites* list are granted
+    global access. The function is fail-closed: a site-scoped user with no
+    assigned sites is denied access everywhere.
+
+    Args:
+        principal: The authenticated principal making the request.
+        site_id: The site identifier to check access for.
+
+    Returns:
+        True if the principal may access the site; False otherwise.
     """
+    user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+
     # Fail-closed handling for missing/empty site_id on legacy/study-level rows
     if site_id is None or str(site_id).strip() == "":
-        site_scoped_roles = {
-            ROLE_INVESTIGATOR,
-            ROLE_CRC,
-            ROLE_CRA_CANONICAL,
-            "monitor",
-            ROLE_EXTERNAL_MONITOR,
-        }
-        user_site_roles = [r for r in principal.roles if r in site_scoped_roles]
         if user_site_roles or principal.assigned_sites:
             return False
         return True
-
-    site_scoped_roles = {
-        ROLE_INVESTIGATOR,
-        ROLE_CRC,
-        ROLE_CRA_CANONICAL,
-        "monitor",
-        ROLE_EXTERNAL_MONITOR,
-    }
-    user_site_roles = [r for r in principal.roles if r in site_scoped_roles]
 
     if user_site_roles:
         return site_id in principal.assigned_sites
@@ -604,6 +820,11 @@ def can_access_study(principal: Principal, study_id: str) -> bool:
     Checks if the principal has access to a specific study.
     Study-scoped users are restricted to their assigned_studies.
     """
+    if study_id is None or str(study_id).strip() == "":
+        if "external_monitor" in principal.roles or principal.assigned_studies:
+            return False
+        return True
+
     if "external_monitor" in principal.roles:
         return study_id in principal.assigned_studies
     if principal.assigned_studies:
@@ -670,6 +891,30 @@ def get_principal_sync(request: Request) -> Principal:
     if site_id_val:
         assigned_sites = [s.strip() for s in site_id_val.split(",") if s.strip()]
 
+    # 3.5. Sponsor ID
+    sponsor_id_val = None
+    if hasattr(request, "state"):
+        sponsor_id_val = getattr(request.state, "sponsor_id", None)
+    if sponsor_id_val is None and hasattr(request, "headers"):
+        sponsor_id_val = (
+            request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+            or ""
+        )
+
+    sponsor_id = None
+    if sponsor_id_val:
+        if isinstance(sponsor_id_val, list):
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
+        else:
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
+        if not sponsor_id:
+            sponsor_id = None
+
     # 4. Unblinded status
     unblinded_access = False
     if hasattr(request, "headers"):
@@ -730,6 +975,7 @@ def get_principal_sync(request: Request) -> Principal:
         roles=normalized_roles,
         assigned_sites=assigned_sites,
         unblinded_access=unblinded_access,
+        sponsor_id=sponsor_id,
         change_reason=change_reason,
         raw_roles=raw_roles_list,
     )
@@ -788,6 +1034,30 @@ async def get_principal(request: Request) -> Principal:
     if site_id_val:
         assigned_sites = [s.strip() for s in site_id_val.split(",") if s.strip()]
 
+    # 3.5. Sponsor ID
+    sponsor_id_val = None
+    if hasattr(request, "state"):
+        sponsor_id_val = getattr(request.state, "sponsor_id", None)
+    if sponsor_id_val is None and hasattr(request, "headers"):
+        sponsor_id_val = (
+            request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+            or ""
+        )
+
+    sponsor_id = None
+    if sponsor_id_val:
+        if isinstance(sponsor_id_val, list):
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
+        else:
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
+        if not sponsor_id:
+            sponsor_id = None
+
     unblinded_access = False
     if hasattr(request, "headers"):
         unblinded_header = (
@@ -842,6 +1112,7 @@ async def get_principal(request: Request) -> Principal:
         roles=normalized_roles,
         assigned_sites=assigned_sites,
         unblinded_access=unblinded_access,
+        sponsor_id=sponsor_id,
         change_reason=change_reason,
         raw_roles=raw_roles_list,
     )
@@ -940,45 +1211,69 @@ def require_permission(permission: str) -> Callable[[Principal], Principal]:
 
 
 def mask_payload(payload: Any, principal: Principal) -> Any:
-    """
-    Recursively masks sensitive fields in dictionaries, lists, or Pydantic models
-    based on the principal's unblinded status.
-    If principal.unblinded_access is True, no masking is performed.
+    """Recursively mask sensitive fields in dictionaries, lists, or Pydantic models based on principal authorization.
+
+    If principal.unblinded_access is True, no masking is performed and the original payload is returned unchanged.
+    Otherwise, if the principal possesses unblinded RTSM roles configured in ROLE_UNMASKED_FIELDS, field-level
+    masking rules are bypassed for fields included in the principal's unmasked set.
+
+    Args:
+        payload: The target data structure (dict, list, or Pydantic BaseModel instance) to mask.
+        principal: The authenticated Principal whose roles and unblinded_access status govern field masking.
+
+    Returns:
+        The recursively masked data structure or dictionary.
+
+    Raises:
+        ValueError: If payload structure cannot be processed.
     """
     if principal.unblinded_access:
         return payload
 
+    # Find if any RTSM role-specific policies apply
+    rtsm_roles = [r for r in principal.roles if r in ROLE_UNMASKED_FIELDS]
+    if rtsm_roles:
+        # Union of all unmasked fields for their active RTSM roles
+        unmasked_fields: Set[str] = set()
+        for r in rtsm_roles:
+            unmasked_fields.update(ROLE_UNMASKED_FIELDS[r])
+        return _recursive_mask(payload, unmasked_fields=unmasked_fields)
+
     return _recursive_mask(payload)
 
 
-def _recursive_mask(data: Any) -> Any:
+def _recursive_mask(data: Any, unmasked_fields: Optional[Set[str]] = None) -> Any:
     if data is None:
         return None
 
     if isinstance(data, pydantic.BaseModel):
         dumped = data.model_dump()
-        masked = _recursive_mask(dumped)
-        # Reconstruct the model safely
-        return data.__class__.model_validate(masked)
+        masked = _recursive_mask(dumped, unmasked_fields)
+        try:
+            return data.__class__.model_validate(masked)
+        except Exception:
+            return masked
 
     if isinstance(data, dict):
         new_dict = {}
         for k, v in data.items():
             k_lower = k.lower()
-            if k_lower in MASKING_RULES:
+            if k_lower in MASKING_RULES and (
+                unmasked_fields is None or k_lower not in unmasked_fields
+            ):
                 new_dict[k] = MASKING_RULES[k_lower](v)
             else:
-                new_dict[k] = _recursive_mask(v)
+                new_dict[k] = _recursive_mask(v, unmasked_fields)
         return new_dict
 
     if isinstance(data, list):
-        return [_recursive_mask(item) for item in data]
+        return [_recursive_mask(item, unmasked_fields) for item in data]
 
     if isinstance(data, tuple):
-        return tuple(_recursive_mask(item) for item in data)
+        return tuple(_recursive_mask(item, unmasked_fields) for item in data)
 
     if isinstance(data, set):
-        return {_recursive_mask(item) for item in data}
+        return {_recursive_mask(item, unmasked_fields) for item in data}
 
     return data
 
@@ -1038,6 +1333,29 @@ ROLE_EXPANSIONS = {
         "site-investigator",
         "site_investigator",
         "investigator_user",
+        "principal_investigator",
+        "principal investigator",
+        "pi",
+        "authorized_er_physician",
+        "authorized er physician",
+        "lead_investigator",
+        "lead investigator",
+    },
+    "principal_investigator": {
+        "principal_investigator",
+        "principal investigator",
+        "pi",
+        "principalinvestigator",
+    },
+    "authorized_er_physician": {
+        "authorized_er_physician",
+        "authorized er physician",
+        "authorized-er-physician",
+    },
+    "lead_investigator": {
+        "lead_investigator",
+        "lead investigator",
+        "lead-investigator",
     },
     "data manager": {
         "data manager",
@@ -1063,6 +1381,24 @@ ROLE_EXPANSIONS = {
         "protocol reviewer",
         "protocol-reviewer",
         "reviewer",
+    },
+    "unblinded_statistician": {
+        "unblinded_statistician",
+        "unblinded statistician",
+        "lead unblinded statistician",
+    },
+    "idmc": {
+        "idmc",
+        "dsmb",
+    },
+    "pharmacist": {
+        "pharmacist",
+        "unblinded pharmacist",
+        "unblinded_pharmacist",
+    },
+    "emergency_unblinder": {
+        "emergency_unblinder",
+        "emergency unblinder",
     },
 }
 
@@ -1105,3 +1441,50 @@ def require_roles(*allowed_roles: str, detail: Optional[str] = None):
         return roles
 
     return dependency
+
+
+def require_role(
+    required_role: str, detail: Optional[str] = None
+) -> Callable[[Request], list[str]]:
+    """
+    FastAPI dependency factory to enforce that the caller has the required role.
+    Reads request.state.roles, normalizes the comma-separated string, and raises 403 when the required role is absent.
+    """
+
+    def dependency(request: Request) -> list[str]:
+        roles = get_normalized_roles(request)
+        norm_required = normalize_role(required_role.strip().lower())
+
+        expanded_allowed = {norm_required}
+        if norm_required in ROLE_EXPANSIONS:
+            expanded_allowed.update(ROLE_EXPANSIONS[norm_required])
+
+        normalized_req_roles = [normalize_role(r) for r in roles]
+
+        if not any(r in expanded_allowed for r in normalized_req_roles):
+            raise HTTPException(
+                status_code=403,
+                detail=detail
+                or f"User role is not authorized for this action. Required: {required_role}.",
+            )
+        return roles
+
+    return dependency
+
+
+def require_any_role(
+    *allowed_roles: str, detail: Optional[str] = None
+) -> Callable[[Request], list[str]]:
+    """
+    FastAPI dependency factory to enforce that the caller has at least one of the allowed roles.
+    Reads request.state.roles, normalizes the comma-separated string, and raises 403 when required roles are absent.
+    """
+    return require_roles(*allowed_roles, detail=detail)
+
+
+def is_auditor(request: Request) -> bool:
+    """
+    Read-only helper to check if the request is associated with any read-only auditor persona.
+    """
+    roles = get_normalized_roles(request)
+    return any(role in AUDITOR_ROLES for role in roles)

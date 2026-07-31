@@ -1,3 +1,4 @@
+// Verified Subject Portal core workflow tests
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
@@ -957,14 +958,12 @@ describe("eCOA Companion Patient Portal - Workflow Tests", () => {
         created_by: "system",
         reason_for_change: "Initial",
       };
-      globalThis.fetch = vi
-        .fn()
-        .mockImplementation(() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(ackResponse),
-          })
-        );
+      globalThis.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(ackResponse),
+        })
+      );
 
       await portal.acknowledgeNotification("serv_notif_01");
 

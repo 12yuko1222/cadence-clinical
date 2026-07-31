@@ -17,6 +17,10 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 
+import packages  # noqa: F401
+from apps.gateway.routers.cdisc import router as cdisc_router
+from apps.gateway.routers.usdm import router as usdm_router
+
 
 def validate_environment() -> None:
     """
@@ -59,6 +63,9 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
 )
+
+app.include_router(cdisc_router, prefix="/api/v1/cdisc", tags=["CDISC Standards"])
+app.include_router(usdm_router, prefix="/api/v1/usdm", tags=["USDM Data Flow"])
 
 # CORS configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
@@ -163,6 +170,9 @@ SERVICES = {
     "quality": os.getenv("QUALITY_URL", "http://localhost:8005"),
     "safety": os.getenv("SAFETY_URL", "http://localhost:8008"),
     "tickets": os.getenv("TICKETS_URL", "http://localhost:8009"),
+    "org": os.getenv("ORG_URL", "http://localhost:8012"),
+    "eisf": os.getenv("EISF_URL", "http://localhost:8010"),
+    "econsent": os.getenv("ECONSENT_URL", "http://localhost:8011"),
 }
 
 jwks_cache: Optional[Dict[str, Any]] = None
@@ -450,6 +460,8 @@ async def get_openapi_json() -> Response:
         quality_spec,
         safety_spec,
         tickets_spec,
+        org_spec,
+        eisf_spec,
     ) = await asyncio.gather(
         fetch_service_openapi(SERVICES["designer"]),
         fetch_service_openapi(SERVICES["execution"]),
@@ -460,7 +472,21 @@ async def get_openapi_json() -> Response:
         fetch_service_openapi(SERVICES["quality"]),
         fetch_service_openapi(SERVICES["safety"]),
         fetch_service_openapi(SERVICES["tickets"]),
+        fetch_service_openapi(SERVICES["org"]),
+        fetch_service_openapi(SERVICES["eisf"]),
     )
+
+    if eisf_spec and is_valid_openapi_spec(eisf_spec):
+        try:
+            eisf_spec = rewrite_references(eisf_spec, "Eisf_")
+            for path_str, path_item in eisf_spec.get("paths", {}).items():
+                merged["paths"][f"/eisf{path_str}"] = path_item
+            for schema_name, schema_val in (
+                eisf_spec.get("components", {}).get("schemas", {}).items()
+            ):
+                merged["components"]["schemas"][f"Eisf_{schema_name}"] = schema_val
+        except Exception:
+            pass
 
     if tickets_spec and is_valid_openapi_spec(tickets_spec):
         try:
@@ -471,6 +497,18 @@ async def get_openapi_json() -> Response:
                 tickets_spec.get("components", {}).get("schemas", {}).items()
             ):
                 merged["components"]["schemas"][f"Tickets_{schema_name}"] = schema_val
+        except Exception:
+            pass
+
+    if org_spec and is_valid_openapi_spec(org_spec):
+        try:
+            org_spec = rewrite_references(org_spec, "Org_")
+            for path_str, path_item in org_spec.get("paths", {}).items():
+                merged["paths"][f"/org{path_str}"] = path_item
+            for schema_name, schema_val in (
+                org_spec.get("components", {}).get("schemas", {}).items()
+            ):
+                merged["components"]["schemas"][f"Org_{schema_name}"] = schema_val
         except Exception:
             pass
 
@@ -1023,6 +1061,8 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['safety']}/{path[len('safety/') :]}"
     elif path.startswith("tickets/"):
         target_url = f"{SERVICES['tickets']}/{path[len('tickets/') :]}"
+    elif path.startswith("eisf/"):
+        target_url = f"{SERVICES['eisf']}/{path[len('eisf/') :]}"
     elif path.startswith("api/v1/terminology"):
         target_url = f"{SERVICES['designer']}/{path}"
     elif path.startswith("terminology/"):
@@ -1033,8 +1073,18 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['execution']}/{path}"
     elif path.startswith("dictionary/"):
         target_url = f"{SERVICES['execution']}/{path}"
+    elif path.startswith("econsent/"):
+        target_url = f"{SERVICES['econsent']}/{path[len('econsent/') :]}"
+    elif path.startswith("api/v1/econsent"):
+        target_url = f"{SERVICES['econsent']}/{path}"
+    elif path.startswith("api/v1/eisf"):
+        target_url = f"{SERVICES['eisf']}/{path}"
     elif path.startswith("api/v1/etmf"):
         target_url = f"{SERVICES['etmf']}/{path}"
+    elif path.startswith("api/v1/interop/subject"):
+        target_url = f"{SERVICES['interop']}/{path}"
+    elif path.startswith("api/v1/interop/subjects"):
+        target_url = f"{SERVICES['interop']}/{path}"
     elif path.startswith("api/v1/interop"):
         target_url = f"{SERVICES['interop']}/{path}"
     elif path.startswith("api/v1/ctms"):
@@ -1045,8 +1095,16 @@ async def proxy_requests(request: Request, path: str) -> Response:
         target_url = f"{SERVICES['quality']}/{path}"
     elif path.startswith("api/v1/safety"):
         target_url = f"{SERVICES['safety']}/{path}"
+    elif path.startswith("org/"):
+        target_url = f"{SERVICES['org']}/{path[len('org/') :]}"
+    elif path.startswith("api/v1/org"):
+        target_url = f"{SERVICES['org']}/{path}"
+    elif path.startswith("api/v1/compliance"):
+        target_url = f"{SERVICES['tickets']}/{path}"
     elif path.startswith("api/v1/tickets"):
         target_url = f"{SERVICES['tickets']}/{path}"
+    elif path == "events/publish":
+        target_url = f"{SERVICES['eisf']}/events/publish"
     else:
         target_url = f"{SERVICES['designer']}/{path}"
 
@@ -1079,28 +1137,22 @@ async def proxy_requests(request: Request, path: str) -> Response:
             )
         headers["X-Change-Reason"] = change_reason
 
-    # Extract site lists, sponsor_id, and unblinded_access from the claims/JWT payload
-    site_id_val = payload.get("site_id", "")
-    # Check if list and convert to comma-separated string
-    if isinstance(site_id_val, list):
-        site_id_val = ",".join(str(s) for s in site_id_val)
-    elif site_id_val is None:
-        site_id_val = ""
-    else:
-        site_id_val = str(site_id_val)
-
     custom_attrs = payload.get("custom_attributes") or {}
-    sponsor_id_val = ""
+
+    raw_site_id = payload.get("site_id")
+    raw_sponsor_id = ""
     if isinstance(custom_attrs, dict):
-        sponsor_id_val = custom_attrs.get("sponsor_id") or ""
+        raw_sponsor_id = custom_attrs.get("sponsor_id") or ""
+    if not raw_sponsor_id:
+        raw_sponsor_id = payload.get("sponsor_id")
 
-    if not sponsor_id_val:
-        sponsor_id_val = payload.get("sponsor_id", "")
+    raw_unblinded_access = payload.get("unblinded_access", False)
 
-    if sponsor_id_val is None:
-        sponsor_id_val = ""
-    else:
-        sponsor_id_val = str(sponsor_id_val)
+    from packages.security.signing import normalize_scope_values
+
+    site_id_val, sponsor_id_val, unblinded_access_val = normalize_scope_values(
+        raw_site_id, raw_sponsor_id, raw_unblinded_access
+    )
 
     # Extract tenant identity and apply least-privilege migration policy (default to tenant_default)
     tenant_id_val = ""
@@ -1114,11 +1166,6 @@ async def proxy_requests(request: Request, path: str) -> Response:
         tenant_id_val = "tenant_default"
     else:
         tenant_id_val = str(tenant_id_val).strip()
-
-    unblinded_access_claim = payload.get("unblinded_access", False)
-    unblinded_access_val = False
-    if unblinded_access_claim in (True, "true", "True", 1, "1"):
-        unblinded_access_val = True
 
     timestamp = str(time.time())
     signature = generate_signature(

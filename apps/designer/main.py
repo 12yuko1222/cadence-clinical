@@ -147,6 +147,13 @@ from apps.designer.validator import (
 from apps.designer.xml_mapping import validate_mapping_csv
 from packages.security import ROLE_ALIASES, get_normalized_roles
 from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.rbac import (
+    Principal,
+    can_access_study,
+    get_principal,
+    has_permission,
+    require_permission,
+)
 
 
 class TerminologyConcept(BaseModel):
@@ -243,29 +250,107 @@ class ProblemDetails(BaseModel):
 
 app = FastAPI(title="Cadence Clinical - Designer (MDR/SDR)", version="0.1.0")
 
+from apps.designer.routers.cascade import router as cascade_router
+from apps.designer.routers.comments import router as comments_router
+from apps.designer.routers.protocol_export import router as export_router
+from apps.designer.routers.quality_sentinel import router as sentinel_router
+from apps.designer.routers.synopsis import router as synopsis_router
 
-def require_permission(permission: str):
-    def dependency(request: Request):
-        raw_roles = get_normalized_roles(request)
-        if not raw_roles:
-            raise HTTPException(status_code=403, detail="Missing role credentials.")
+app.include_router(synopsis_router)
+app.include_router(sentinel_router)
+app.include_router(cascade_router)
+app.include_router(export_router)
+app.include_router(comments_router)
 
-        from packages.security.rbac import Principal, has_permission, normalize_role
 
-        user_id = getattr(request.state, "user_id", "system")
-        normalized_roles = [normalize_role(r) for r in raw_roles]
-
-        principal = Principal(
-            user_id=user_id, roles=normalized_roles, raw_roles=raw_roles
+class StudyScopeChecker:
+    async def __call__(
+        self, request: Request, principal: Principal = Depends(get_principal)
+    ) -> Principal:
+        study_id = (
+            request.path_params.get("study_id")
+            or request.query_params.get("study_id")
+            or request.headers.get("X-Study-Id")
+            or request.headers.get("x-study-id")
         )
-        if not has_permission(principal, permission):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Forbidden: Insufficient permissions for {permission}.",
-            )
-        return True
+        if not study_id and "/protocols/" in request.url.path:
+            study_id = request.path_params.get("id")
+        sponsor_id = (
+            request.path_params.get("sponsor_id")
+            or request.query_params.get("sponsor_id")
+            or request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+        )
+        if hasattr(request, "state") and not sponsor_id:
+            sponsor_id = getattr(request.state, "sponsor_id", None)
 
-    return dependency
+        if not study_id or not sponsor_id:
+            try:
+                content_type = request.headers.get("content-type", "")
+                if "application/json" in content_type:
+                    body = await request.json()
+                    if isinstance(body, dict):
+                        if not study_id:
+                            study_id = body.get("study_id") or body.get("id")
+                        if not sponsor_id:
+                            sponsor_id = body.get("sponsor_id")
+                    import json
+
+                    body_bytes = json.dumps(body).encode()
+
+                    async def receive():
+                        return {
+                            "type": "http.request",
+                            "body": body_bytes,
+                            "more_body": False,
+                        }
+
+                    request._receive = receive
+            except Exception:
+                pass
+
+        if study_id:
+            study_id = str(study_id).strip()
+        if sponsor_id:
+            sponsor_id = str(sponsor_id).strip()
+
+        if study_id:
+            if not can_access_study(principal, study_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Insufficient scope access for this study.",
+                )
+
+        is_library_or_instance = (
+            "/library" in request.url.path
+            or "/instance" in request.url.path
+            or "/mdr" in request.url.path
+        )
+        if is_library_or_instance:
+            if not sponsor_id or not sponsor_id.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Missing authenticated sponsor scope",
+                )
+
+        return principal
+
+
+def require_study_scope() -> StudyScopeChecker:
+    return StudyScopeChecker()
+
+
+@app.exception_handler(HTTPException)
+async def designer_http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 403 and exc.detail == "Missing change justification reason":
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": "Missing change justification reason"},
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 
 @app.exception_handler(RequestValidationError)
@@ -439,7 +524,11 @@ async def get_usdm_study(study_id: str) -> Dict[str, Any]:
     return usdm_study
 
 
-@app.post("/api/admin/cache/clear", status_code=status.HTTP_200_OK)
+@app.post(
+    "/api/admin/cache/clear",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("designer_cache:admin"))],
+)
 async def clear_cache() -> Dict[str, str]:
     """Flushes the controlled terminology cache.
 
@@ -725,6 +814,351 @@ async def study_differences(
             )
 
     return differences
+
+
+# =====================================================================
+# Collaborative Review, Comments, Suggestions & Section Review Locking
+# =====================================================================
+
+from protocol_authoring.models import (
+    CommentThread,
+    SectionReviewStatus,
+    SectionReviewTransition,
+    Suggestion,
+)
+
+from apps.designer.delta import (
+    add_comment_to_thread,
+    create_comment_thread,
+    create_suggestion,
+    decide_suggestion,
+    get_comment_threads,
+    get_section_status,
+    get_section_transitions,
+    get_suggestions,
+    resolve_comment_thread,
+    transition_section_status,
+)
+
+
+class SectionTransitionRequest(BaseModel):
+    to_status: SectionReviewStatus
+    reason_for_change: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+    signing_reason: Optional[SigningReason] = None
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/sections/{section_id}/transition",
+    response_model=SectionReviewTransition,
+    status_code=200,
+)
+async def transition_section(
+    study_id: str,
+    section_id: str,
+    payload: SectionTransitionRequest,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> SectionReviewTransition:
+    driver = await get_neo4j_driver(request)
+
+    target_status = payload.to_status
+
+    # Check permission based on transition
+    permission_required = "protocol_section:read"
+    if target_status == SectionReviewStatus.IN_REVIEW:
+        permission_required = "protocol_section:review"
+    elif target_status == SectionReviewStatus.LOCKED:
+        permission_required = "protocol_section:lock"
+    elif target_status == SectionReviewStatus.APPROVED:
+        permission_required = "protocol_section:approve"
+    elif target_status == SectionReviewStatus.DRAFT:
+        permission_required = "protocol_section:unlock"
+
+    if not has_permission(principal, permission_required):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: Insufficient permissions for {permission_required}.",
+        )
+
+    if not payload.reason_for_change or len(payload.reason_for_change.strip()) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reason for change is mandatory and must be at least 10 characters long.",
+        )
+
+    signature_manifestation = None
+    if target_status == SectionReviewStatus.APPROVED:
+        signer_id = principal.user_id
+        from datetime import datetime, timezone
+
+        signature_manifestation = {
+            "signer_id": signer_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "signing_reason": payload.signing_reason.value
+            if payload.signing_reason
+            else "Section Approval",
+            "ip_address": request.client.host if request.client else "127.0.0.1",
+            "user_agent": request.headers.get("user-agent", "Metadata Designer"),
+        }
+
+    try:
+        actor_role = (
+            ",".join(principal.roles) if principal.roles else "sponsor_designer"
+        )
+        transition = await transition_section_status(
+            driver=driver,
+            study_version_id=study_id,
+            section_id=section_id,
+            to_status=target_status,
+            actor_id=principal.user_id,
+            actor_role=actor_role,
+            reason_for_change=payload.reason_for_change,
+            signature_manifestation=signature_manifestation,
+        )
+        return transition
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/sections/{section_id}/status",
+    status_code=200,
+)
+async def get_section_review_status(
+    study_id: str,
+    section_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+):
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    status_val = await get_section_status(driver, study_id, section_id)
+    history = await get_section_transitions(driver, study_id, section_id)
+
+    return {
+        "section_id": section_id,
+        "study_id": study_id,
+        "status": status_val,
+        "history": history,
+    }
+
+
+class CommentThreadCreate(BaseModel):
+    block_id: str
+    text: str
+
+
+class CommentCreate(BaseModel):
+    text: str
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/sections/{section_id}/threads",
+    response_model=CommentThread,
+    status_code=201,
+)
+async def create_thread_endpoint(
+    study_id: str,
+    section_id: str,
+    payload: CommentThreadCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await create_comment_thread(
+            driver=driver,
+            study_version_id=study_id,
+            section_id=section_id,
+            block_id=payload.block_id,
+            text=payload.text,
+            created_by=principal.user_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/sections/{section_id}/threads",
+    response_model=List[CommentThread],
+    status_code=200,
+)
+async def get_threads_endpoint(
+    study_id: str,
+    section_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> List[CommentThread]:
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    threads = await get_comment_threads(driver, study_id, section_id)
+    return threads
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/threads/{thread_id}/comments",
+    response_model=CommentThread,
+    status_code=201,
+)
+async def add_comment_endpoint(
+    study_id: str,
+    thread_id: str,
+    payload: CommentCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await add_comment_to_thread(
+            driver=driver,
+            study_version_id=study_id,
+            thread_id=thread_id,
+            text=payload.text,
+            created_by=principal.user_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/threads/{thread_id}/resolve",
+    response_model=CommentThread,
+    status_code=200,
+)
+async def resolve_thread_endpoint(
+    study_id: str,
+    thread_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await resolve_comment_thread(
+            driver=driver,
+            study_version_id=study_id,
+            thread_id=thread_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+class SuggestionCreate(BaseModel):
+    suggested_text: str
+    reason: str
+
+
+class SuggestionDecisionRequest(BaseModel):
+    decision: Literal["accept", "reject"]
+    decision_reason: str
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions",
+    response_model=Suggestion,
+    status_code=201,
+)
+async def create_suggestion_endpoint(
+    study_id: str,
+    block_id: str,
+    payload: SuggestionCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> Suggestion:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        suggestion = await create_suggestion(
+            driver=driver,
+            study_version_id=study_id,
+            block_id=block_id,
+            suggested_text=payload.suggested_text,
+            reason=payload.reason,
+            created_by=principal.user_id,
+        )
+        return suggestion
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions",
+    response_model=List[Suggestion],
+    status_code=200,
+)
+async def get_suggestions_endpoint(
+    study_id: str,
+    block_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> List[Suggestion]:
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    suggestions = await get_suggestions(driver, study_id, block_id)
+    return suggestions
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/suggestions/{suggestion_id}/decision",
+    response_model=Suggestion,
+    status_code=200,
+)
+async def decide_suggestion_endpoint(
+    study_id: str,
+    suggestion_id: str,
+    payload: SuggestionDecisionRequest,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> Suggestion:
+    if not has_permission(principal, "study_design:update"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        suggestion = await decide_suggestion(
+            driver=driver,
+            study_version_id=study_id,
+            suggestion_id=suggestion_id,
+            decision=payload.decision,
+            decided_by=principal.user_id,
+            decision_reason=payload.decision_reason,
+        )
+        return suggestion
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConcurrentLockingError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 
 # =====================================================================
@@ -1067,6 +1501,10 @@ async def promote_ingestion_candidate(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_arm_endpoint(
     study_id: str,
@@ -1095,6 +1533,10 @@ async def retire_arm_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_epoch_endpoint(
     study_id: str,
@@ -1123,6 +1565,10 @@ async def retire_epoch_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_visit_endpoint(
     study_id: str,
@@ -1151,6 +1597,10 @@ async def retire_visit_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_procedure_endpoint(
     study_id: str,
@@ -1179,6 +1629,10 @@ async def retire_procedure_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_timing_window_endpoint(
     study_id: str,
@@ -1207,6 +1661,10 @@ async def retire_timing_window_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
     response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_epoch_visit_endpoint(
     study_id: str,
@@ -1234,6 +1692,10 @@ async def retire_epoch_visit_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
     response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_visit_procedure_endpoint(
     study_id: str,
@@ -1263,6 +1725,10 @@ async def retire_visit_procedure_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
     response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_timing_endpoint(
     study_id: str,
@@ -1293,6 +1759,10 @@ async def retire_timing_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
     response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_arm_applicability_endpoint(
     study_id: str,
@@ -1394,7 +1864,13 @@ async def forward_to_etmf(
         resp.raise_for_status()
 
 
-@app.get("/api/v1/studies/{study_id}/export")
+@app.get(
+    "/api/v1/studies/{study_id}/export",
+    dependencies=[
+        Depends(require_permission("protocol_export:generate")),
+        Depends(require_study_scope()),
+    ],
+)
 async def export_protocol(
     study_id: str,
     format: str = Query("pdf"),
@@ -1694,10 +2170,18 @@ async def archive_approved_protocol_background_task(
 @app.post(
     "/api/v1/studies/{study_id}/versions/{version_id}/approve",
     status_code=200,
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
 )
 @app.post(
     "/api/v1/studies/{study_id}/versions/{version_id}/sign-off",
     status_code=200,
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
 )
 async def approve_study_version_endpoint(
     study_id: str,
@@ -1718,29 +2202,6 @@ async def approve_study_version_endpoint(
     # 1. Extract identity and scope
     user_id = getattr(request.state, "user_id", "system")
     change_reason = resolve_change_reason(request, None)
-
-    # 2. Check roles/permissions
-    raw_roles = get_normalized_roles(request)
-    roles_list = []
-    for r in raw_roles:
-        norm_r = r.strip().lower()
-        if norm_r in ("sponsor admin", "sponsor_admin"):
-            roles_list.append("sponsor_admin")
-        else:
-            roles_list.append(ROLE_ALIASES.get(norm_r, norm_r))
-
-    allowed_roles = {
-        "sponsor_designer",
-        "sponsor_dm",
-        "sponsor_admin",
-        "sysadmin",
-        "study_designer",
-    }
-    if not any(role in allowed_roles for role in roles_list):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Forbidden: User is not authorized to approve study protocols.",
-        )
 
     # 3. Check if study version exists
     if driver is None:
@@ -1901,7 +2362,10 @@ async def approve_study_version_endpoint(
         )
 
     # 9. Register background task for asynchronous archival forwarding to eTMF
-    roles_str = ",".join(roles_list) if roles_list else "sponsor_designer"
+    raw_roles = getattr(request.state, "roles", "") or request.headers.get(
+        "X-User-Roles", ""
+    )
+    roles_str = str(raw_roles).strip() or "sponsor_designer"
     background_tasks.add_task(
         archive_approved_protocol_background_task,
         study_id,
@@ -1977,21 +2441,26 @@ def map_db_to_criterion(db_crit: Dict[str, Any]) -> EligibilityCriterion:
         created_at = datetime.datetime.now(datetime.timezone.utc)
     elif isinstance(created_at, str):
         try:
-            created_at = datetime.datetime.fromisoformat(
-                created_at.replace("Z", "+00:00")
-            )
+            val = created_at
+            if "Z" not in val and "+" not in val and "-" not in val[10:]:
+                val += "+00:00"
+            created_at = datetime.datetime.fromisoformat(val.replace("Z", "+00:00"))
         except Exception:
             created_at = datetime.datetime.now(datetime.timezone.utc)
     else:
         try:
             if hasattr(created_at, "isoformat"):
-                created_at = datetime.datetime.fromisoformat(
-                    created_at.isoformat().replace("Z", "+00:00")
-                )
+                val = created_at.isoformat()
+                if "Z" not in val and "+" not in val and "-" not in val[10:]:
+                    val += "+00:00"
+                created_at = datetime.datetime.fromisoformat(val.replace("Z", "+00:00"))
             else:
                 created_at = datetime.datetime.now(datetime.timezone.utc)
         except Exception:
             created_at = datetime.datetime.now(datetime.timezone.utc)
+
+    if isinstance(created_at, datetime.datetime) and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=datetime.timezone.utc)
 
     return EligibilityCriterion(
         criterion_id=db_crit["id"] if "id" in db_crit else db_crit["criterion_id"],
@@ -2059,6 +2528,10 @@ async def get_eligibility_criterion_detail(
     "/api/v1/studies/{study_id}/eligibility-criteria",
     response_model=EligibilityCriterion,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_eligibility_criterion_endpoint(
     study_id: str, payload: CreateEligibilityCriterionRequest, request: Request
@@ -2134,6 +2607,10 @@ async def create_eligibility_criterion_endpoint(
     "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}",
     response_model=EligibilityCriterion,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_eligibility_criterion_endpoint(
     study_id: str,
@@ -2199,7 +2676,11 @@ async def update_eligibility_criterion_endpoint(
     )
 
 
-@app.post("/api/v1/mappings/upload", status_code=status.HTTP_200_OK)
+@app.post(
+    "/api/v1/mappings/upload",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:upload"))],
+)
 async def upload_mapping_csv(file: UploadFile = File(...)):
     """
     Validates a CSV mapping configuration to ensure target names meet standard W3C XML naming specifications.
@@ -2220,6 +2701,7 @@ async def upload_mapping_csv(file: UploadFile = File(...)):
 @app.post(
     "/api/v1/designer/usdm/validate",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
 )
 async def validate_usdm_endpoint(
     request: Request,
@@ -2264,6 +2746,7 @@ async def validate_usdm_endpoint(
 @app.post(
     "/api/v1/designer/round-trip",
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
 )
 async def run_round_trip_endpoint(
     payload: Dict[str, Any],
@@ -2456,6 +2939,7 @@ async def get_concepts(
     response_model=ConceptDetail,
     status_code=201,
     responses={400: {"model": ProblemDetails}},
+    dependencies=[Depends(require_permission("mdr_concept:create"))],
 )
 async def create_concept(payload: CreateConceptRequest) -> ConceptDetail:
     """Creates a new Biomedical Concept inside the MDR graph repository."""
@@ -2478,6 +2962,7 @@ async def create_concept(payload: CreateConceptRequest) -> ConceptDetail:
     "/api/v1/mdr/concepts/{id}",
     response_model=ConceptDetail,
     responses={400: {"model": ProblemDetails}},
+    dependencies=[Depends(require_permission("mdr_concept:update"))],
 )
 async def update_concept(
     id: str, payload: UpdateConceptRequest, request: Request
@@ -2505,7 +2990,11 @@ async def update_concept(
     )
 
 
-@app.post("/api/v1/mdr/concepts/{id}/rename", response_model=ConceptDetail)
+@app.post(
+    "/api/v1/mdr/concepts/{id}/rename",
+    response_model=ConceptDetail,
+    dependencies=[Depends(require_permission("mdr_concept:rename"))],
+)
 async def rename_concept(
     id: str, payload: RenameConceptRequest, request: Request
 ) -> ConceptDetail:
@@ -2530,7 +3019,11 @@ async def rename_concept(
     )
 
 
-@app.delete("/api/v1/mdr/concepts/{id}", status_code=status.HTTP_200_OK)
+@app.delete(
+    "/api/v1/mdr/concepts/{id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("mdr_concept:delete"))],
+)
 async def delete_concept(id: str, request: Request) -> Dict[str, str]:
     """Deletes an existing Biomedical Concept if it is not referenced by an Active-Recruiting study."""
     driver = await get_neo4j_driver(request)
@@ -2549,6 +3042,10 @@ async def delete_concept(id: str, request: Request) -> Dict[str, str]:
     "/api/v1/mdr/library",
     response_model=LibraryObjectDetail,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_library_object_endpoint(
     payload: CreateLibraryObjectRequest,
@@ -2715,6 +3212,10 @@ async def get_library_object_endpoint(
 @app.put(
     "/api/v1/mdr/library/{id}",
     response_model=LibraryObjectDetail,
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_library_object_endpoint(
     id: str,
@@ -2810,6 +3311,10 @@ class LibraryObjectAmendRequest(BaseModel):
     "/api/v1/mdr/library/{id}/amend",
     response_model=LibraryObjectDetail,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:amend")),
+        Depends(require_study_scope()),
+    ],
 )
 async def amend_library_object_endpoint(
     id: str,
@@ -2920,6 +3425,10 @@ async def get_library_object_history_endpoint(
 @app.post(
     "/api/v1/mdr/library/{id}/transition",
     response_model=LibraryObjectDetail,
+    dependencies=[
+        Depends(require_permission("global_library:transition")),
+        Depends(require_study_scope()),
+    ],
 )
 async def transition_library_object_endpoint(
     id: str,
@@ -3072,7 +3581,14 @@ class CreateStudyVersionRequest(BaseModel):
     version_index: int
 
 
-@app.post("/api/v1/studies/{study_id}/versions", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/studies/{study_id}/versions",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
+)
 async def post_study_version(
     study_id: str, payload: CreateStudyVersionRequest, request: Request
 ) -> Dict[str, Any]:
@@ -3128,7 +3644,14 @@ async def get_study_rules(study_id: str, request: Request) -> List[Dict[str, Any
         return get_mock_rules(study_id)
 
 
-@app.post("/api/v1/studies/{study_id}/rules", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/studies/{study_id}/rules",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
+)
 async def create_study_rule(
     study_id: str, payload: CreateRuleRequest, request: Request
 ) -> Dict[str, Any]:
@@ -3191,7 +3714,14 @@ async def get_study_rule_by_id(
         return rule
 
 
-@app.put("/api/v1/studies/{study_id}/rules/{rule_id}", status_code=status.HTTP_200_OK)
+@app.put(
+    "/api/v1/studies/{study_id}/rules/{rule_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
+)
 async def update_study_rule_by_id(
     study_id: str, rule_id: str, payload: CreateRuleRequest, request: Request
 ) -> Dict[str, Any]:
@@ -3234,7 +3764,12 @@ async def update_study_rule_by_id(
 
 
 @app.delete(
-    "/api/v1/studies/{study_id}/rules/{rule_id}", status_code=status.HTTP_200_OK
+    "/api/v1/studies/{study_id}/rules/{rule_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def delete_study_rule_by_id(
     study_id: str, rule_id: str, request: Request
@@ -3646,6 +4181,10 @@ async def reorder_blocks_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_arm_endpoint(
     study_id: str,
@@ -3702,6 +4241,10 @@ async def list_arms_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_arm_endpoint(
     study_id: str,
@@ -3735,6 +4278,10 @@ async def update_arm_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_epoch_endpoint(
     study_id: str,
@@ -3791,6 +4338,10 @@ async def list_epochs_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_epoch_endpoint(
     study_id: str,
@@ -3824,6 +4375,10 @@ async def update_epoch_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_visit_endpoint(
     study_id: str,
@@ -3880,6 +4435,10 @@ async def list_visits_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_visit_endpoint(
     study_id: str,
@@ -3913,6 +4472,10 @@ async def update_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_procedure_endpoint(
     study_id: str,
@@ -3969,6 +4532,10 @@ async def list_procedures_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_procedure_endpoint(
     study_id: str,
@@ -4002,6 +4569,10 @@ async def update_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_timing_window_endpoint(
     study_id: str,
@@ -4058,6 +4629,10 @@ async def list_timing_windows_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_timing_window_endpoint(
     study_id: str,
@@ -4091,6 +4666,10 @@ async def update_timing_window_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_epoch_visit_endpoint(
     study_id: str,
@@ -4119,6 +4698,10 @@ async def link_epoch_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_visit_procedure_endpoint(
     study_id: str,
@@ -4149,6 +4732,10 @@ async def link_visit_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_timing_endpoint(
     study_id: str,
@@ -4178,6 +4765,10 @@ async def link_timing_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_arm_applicability_endpoint(
     study_id: str,
@@ -4313,6 +4904,10 @@ class LibraryInstanceResponse(BaseModel):
     "/api/v1/studies/{study_id}/library-instances",
     response_model=LibraryInstanceResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:instantiate")),
+        Depends(require_study_scope()),
+    ],
 )
 async def instantiate_library_object_endpoint(
     study_id: str,
@@ -4378,6 +4973,10 @@ class UpdateLibraryInstanceRequest(BaseModel):
     "/api/v1/studies/{study_id}/library-instances/{instance_id}",
     response_model=LibraryInstanceResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_library_instance_endpoint(
     study_id: str,

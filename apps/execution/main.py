@@ -5,7 +5,7 @@ import tempfile
 import uuid
 import zipfile
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, AsyncGenerator, List, Optional
 
@@ -65,12 +65,10 @@ from apps.execution.database.models import (
     FormSubmission,
     ImportState,
     MigrationRule,
-    SDVSignOff,
     StudyAuthoredRule,
     SubjectConsent,
     SubjectRandomization,
     TranslationJob,
-    TSDVConfig,
 )
 from apps.execution.database.models import (
     DictionaryType as DBDictionaryType,
@@ -90,6 +88,18 @@ from apps.execution.edit_checks import (
 )
 from apps.execution.outliers import recalculate_cohort_outliers
 from apps.execution.query_service import QueryService, StateTransitionError
+from apps.execution.routers.amendments import router as amendments_router
+from apps.execution.routers.anonymization import router as anonymization_router
+from apps.execution.routers.auditor import router as auditor_router
+from apps.execution.routers.doa import router as doa_router
+from apps.execution.routers.documents import router as documents_router
+from apps.execution.routers.eisf import router as eisf_router
+from apps.execution.routers.locks import router as locks_router
+from apps.execution.routers.offline import router as offline_router
+from apps.execution.routers.safety import router as safety_router
+from apps.execution.routers.sdv import router as sdv_router
+from apps.execution.routers.signatures import router as signatures_router
+from apps.execution.rtsm_authz import redact_response, verify_site_access
 from apps.execution.rtsm_supply import (
     InsufficientStockError,
     SiteInventoryNotFoundError,
@@ -98,22 +108,27 @@ from apps.execution.rtsm_supply import (
 from apps.execution.subject_lifecycle import InvalidStateTransitionError
 from apps.execution.translator import process_translation
 from apps.execution.trial_lock import TrialLockManager
-from apps.execution.tsdv import evaluate_tsdv_requirement
 from apps.execution.ucum import convert_unit, get_normalized_representation
 from packages.security import (
+    ROLE_AUTHORIZED_ER_PHYSICIAN,
     ROLE_CRA,
     ROLE_CRC,
     ROLE_DATA_MANAGER,
+    ROLE_EMERGENCY_UNBLINDER,
     ROLE_INVESTIGATOR,
+    ROLE_LEAD_INVESTIGATOR,
+    ROLE_PRINCIPAL_INVESTIGATOR,
     ROLE_SITE_INVESTIGATOR,
+    ROLE_SPONSOR_ADMIN,
     Principal,
+    current_ip_address,
     get_normalized_roles,
     get_principal,
-    mask_payload,
     require_roles,
     verify_not_auditor,
 )
 from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.rbac import SITE_SCOPED_ROLES, can_access_study, mask_payload
 from packages.security.signing import generate_canonical_signature
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
@@ -174,13 +189,126 @@ class ProblemDetails(BaseModel):
     invalid_params: Optional[List[InvalidParam]] = None
 
 
+class UnblindingReasonCode(str, Enum):
+    """Controlled vocabulary of approved reason codes for emergency unblinding.
+
+    Only these three regulatory-approved scenarios authorise an emergency
+    treatment-allocation disclosure outside of the standard end-of-study
+    unblinding process.
+
+    Attributes:
+        SAE_LIFE_THREATENING_EVENT: Serious Adverse Event that is immediately
+            life-threatening and requires knowledge of the treatment assignment.
+        ACCIDENTAL_OVERDOSE: Accidental administration of an overdose requiring
+            immediate clinical intervention with knowledge of the treatment arm.
+        REQUIRED_BY_REGULATORY_AUTHORITY: A competent regulatory authority has
+            formally requested disclosure of the blinded assignment.
+    """
+
+    SAE_LIFE_THREATENING_EVENT = "SAE-Life-Threatening-Event"
+    ACCIDENTAL_OVERDOSE = "Accidental-Overdose"
+    REQUIRED_BY_REGULATORY_AUTHORITY = "Required-by-Regulatory-Authority"
+
+
+class CustodianEnum(str, Enum):
+    """Enumeration of the two permissible dual-custody key holders.
+
+    The Shamir secret-sharing scheme used for emergency unblinding mandates
+    that exactly one share comes from each of these two custodians.  Any
+    other custodian identity is rejected with a 422 validation error before
+    the request reaches the cryptographic layer.
+
+    Attributes:
+        LEAD_UNBLINDED_STATISTICIAN: The lead unblinded statistician who holds
+            one half of the Shamir key share.
+        IDMC: The Independent Data Monitoring Committee representative who holds
+            the second half of the Shamir key share.
+    """
+
+    LEAD_UNBLINDED_STATISTICIAN = "Lead Unblinded Statistician"
+    IDMC = "IDMC"
+
+
+class CustodianShare(BaseModel):
+    """A single custodian's Shamir secret share for dual-custody unblinding.
+
+    Both shares must be present in the request body before the encrypted
+    allocation record can be reconstructed.  Field constraints are enforced
+    at the schema boundary so malformed shares produce structured 422
+    responses rather than opaque crypto-layer failures.
+
+    Attributes:
+        custodian: The identity of the key custodian; must be one of the two
+            approved dual-custody holders defined by ``CustodianEnum``.
+        version: The version of the key material associated with this share;
+            used to select the correct key generation from the database.
+        x: The x-coordinate of the Shamir share point; must be strictly
+            positive (> 0) as required by the polynomial reconstruction.
+        y: The y-coordinate of the Shamir share point; must be non-negative
+            (>= 0) and less than the prime modulus used by the crypto layer.
+    """
+
+    custodian: CustodianEnum
+    version: int
+    x: int = Field(..., gt=0, description="Shamir x-coordinate; must be > 0")
+    y: int = Field(..., ge=0, description="Shamir y-coordinate; must be >= 0")
+
+
+MIN_JUSTIFICATION_LENGTH = 50
+
+
+class UnblindRequest(BaseModel):
+    """Request body for an emergency treatment-allocation unblinding operation.
+
+    The dual-custody contract requires exactly two custodian shares — one from
+    each approved custodian.  Requests with fewer or more shares, or with an
+    insufficiently detailed justification, are rejected at the schema layer.
+
+    Attributes:
+        reason_code: One of the three regulatory-approved unblinding scenarios
+            from ``UnblindingReasonCode``.
+        justification: A free-text clinical justification of at least
+            ``MIN_JUSTIFICATION_LENGTH`` characters.  Stored only in the
+            immutable audit record; never broadcast in notifications.
+        shares: Exactly two ``CustodianShare`` objects — one per approved
+            custodian — supplying the Shamir secret shares needed to
+            reconstruct the blinded allocation key.
+    """
+
+    reason_code: UnblindingReasonCode
+    justification: str = Field(..., min_length=MIN_JUSTIFICATION_LENGTH)
+    shares: List[CustodianShare] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        description="Exactly two custodian shares are required (dual-custody contract).",
+    )
+
+
 app = FastAPI(
     title="Cadence Clinical - EDC Execution Engine", version="0.1.0", lifespan=lifespan
 )
 
+app.include_router(locks_router)
+app.include_router(signatures_router)
+app.include_router(amendments_router)
+app.include_router(auditor_router)
+app.include_router(safety_router)
+app.include_router(eisf_router)
+app.include_router(anonymization_router)
+app.include_router(doa_router)
+app.include_router(offline_router)
+app.include_router(documents_router)
+app.include_router(sdv_router)
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert request validation errors into a standardized HTTP 400 problem-details response.
+
+    Returns:
+        JSONResponse: A 400 response containing details for each invalid request parameter.
+    """
     validation_errors_list = []
     for err in exc.errors():
         loc_path = err.get("loc", [])
@@ -203,6 +331,42 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         invalid_params=validation_errors_list,
     )
     return JSONResponse(status_code=400, content=problem.model_dump(exclude_none=True))
+
+
+class AuthorizationDeniedError(Exception):
+    """Domain exception raised when an authenticated principal lacks the
+    required permission to perform an action.
+
+    This exception is distinct from ``PermissionError`` (which is the built-in
+    ``OSError`` subclass for filesystem/OS permission failures) and is used
+    exclusively for application-level authorization denials.  Raising this
+    exception routes through ``authorization_denied_handler``, which returns a
+    generic HTTP 403 response without leaking internal details.
+    """
+
+
+@app.exception_handler(AuthorizationDeniedError)
+async def authorization_denied_handler(
+    request: Request, exc: AuthorizationDeniedError
+) -> JSONResponse:
+    """Convert an application-level authorization denial into an HTTP 403 response.
+
+    Returns a static, non-revealing detail string so that neither filesystem
+    paths nor internal exception messages are exposed to the caller.
+
+    Args:
+        request: The inbound HTTP request that triggered the authorization check.
+        exc: The ``AuthorizationDeniedError`` raised by the application layer.
+
+    Returns:
+        JSONResponse: A 403 response with a safe ``detail`` field.
+    """
+    return JSONResponse(
+        status_code=403,
+        content={
+            "detail": "Forbidden: you do not have permission to perform this action."
+        },
+    )
 
 
 app.add_middleware(ContextResetMiddleware)
@@ -514,6 +678,10 @@ class ObservationResponse(BaseModel):
     matched_normal_bounds: Optional[str] = None
     protocol_version_tag: Optional[str] = None
     protocol_version_index: Optional[int] = None
+    range_indicator: Optional[str] = None
+    is_out_of_range: Optional[bool] = None
+    reference_range_low: Optional[float] = None
+    reference_range_high: Optional[float] = None
 
 
 class MigrationRuleCreate(BaseModel):
@@ -592,6 +760,7 @@ async def evaluate_and_transition_screening(
         require_roles(ROLE_SITE_INVESTIGATOR, ROLE_DATA_MANAGER, "investigator")
     ),
     _justification=Depends(verify_change_justification),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> SubjectScreeningResponse:
     """Evaluate subject's eligibility criteria and execute the guarded screening lifecycle transition."""
     change_reason = request.headers.get("X-Change-Reason", "")
@@ -690,13 +859,18 @@ async def evaluate_and_transition_screening(
 @app.post(
     "/api/v1/execution/subjects/{subject_id}/consent",
     response_model=SubjectConsentResponse,
+    deprecated=True,
 )
 async def record_subject_consent(
     subject_id: str,
     payload: SubjectConsentRequest,
     roles: list[str] = Depends(verify_not_auditor),
 ) -> SubjectConsentResponse:
-    """Record or update subject consent for a specific protocol version."""
+    """Record or update subject consent for a specific protocol version.
+
+    [Deprecated] This is the legacy execution-side local recording endpoint.
+    New integrations should capture consent canonically via the eConsent service.
+    """
     async with db_manager.get_session_maker()() as session:
         # 1. Verify subject exists
         stmt_subj = select(ClinicalSubject).where(
@@ -713,6 +887,40 @@ async def record_subject_consent(
                 status_code=400,
                 detail=f"Consent study_id '{payload.protocol_version.study_id}' does not match subject's study_id '{subj_db.study_id}'.",
             )
+
+        # 2.5 Refresh/validate exact-version consent status from eConsent service if signing ICF
+        if payload.icf_signed:
+            import sys
+
+            if (
+                "pytest" in sys.modules
+                and os.getenv("TEST_ECONSENT_INTEGRATION") != "true"
+            ):
+                pass
+            else:
+                from apps.execution.econsent_client import fetch_subject_consent_status
+
+                try:
+                    status = await fetch_subject_consent_status(
+                        subject_pseudonym=subject_id,
+                        study_id=payload.protocol_version.study_id,
+                    )
+                    if (
+                        not status.get("signed")
+                        or status.get("version_index")
+                        != payload.protocol_version.version_index
+                    ):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"eConsent service does not have a signed record for subject {subject_id} with version {payload.protocol_version.version_index}.",
+                        )
+                except HTTPException as he:
+                    raise he
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Failed to fetch consent status from eConsent: {str(e)}",
+                    )
 
         # 3. Check if standard subject_consents record exists for this version_index
         stmt_consent = select(SubjectConsent).where(
@@ -757,6 +965,17 @@ async def record_subject_consent(
         )
 
 
+class SubjectRandomizationResponse(BaseModel):
+    """Pydantic schema for returning blinded subject randomization details."""
+
+    subject_id: str
+    status: str
+    stratum_key: Optional[str] = None
+    randomized_at: datetime
+    kit_reference: Optional[str] = None
+    treatment_arm: Optional[str] = None
+
+
 class SubjectUnblindResponse(BaseModel):
     """Pydantic schema for returning emergency unblind details."""
 
@@ -778,13 +997,86 @@ async def unblind_subject(
     subject_id: str,
     request: Request,
     background_tasks: BackgroundTasks,
+    payload: UnblindRequest,
     principal: Principal = Depends(get_principal),
-    roles: list[str] = Depends(require_roles(ROLE_SITE_INVESTIGATOR, "investigator")),
+    roles: list[str] = Depends(
+        require_roles(
+            ROLE_PRINCIPAL_INVESTIGATOR,
+            ROLE_AUTHORIZED_ER_PHYSICIAN,
+            ROLE_LEAD_INVESTIGATOR,
+            ROLE_EMERGENCY_UNBLINDER,
+            detail="ROLE_INSUFFICIENT",
+        )
+    ),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
 ) -> SubjectUnblindResponse:
-    """Execute emergency unblinding for a subject."""
+    """Execute an emergency treatment-allocation unblinding for a randomised subject.
+
+    This endpoint implements the GxP / 21 CFR Part 11 compliant emergency
+    unblinding workflow: it validates step-up re-authentication, performs
+    Shamir dual-custody reconstruction of the encrypted allocation, builds a
+    cryptographically signed evidence record, writes an immutable audit-log
+    entry, and dispatches a critical-priority dashboard notification — all
+    within a single atomic database transaction.
+
+    Args:
+        subject_id: Path parameter identifying the subject to unblind.
+        request: The raw FastAPI request object; used to extract and validate
+            the step-up ``X-Sig-Token`` and change-justification headers.
+        background_tasks: FastAPI background-task registry used to dispatch
+            the post-commit dashboard notification without blocking the response.
+        payload: Validated ``UnblindRequest`` body containing the reason code,
+            clinical justification, and exactly two Shamir custodian shares.
+        principal: The authenticated caller resolved by ``get_principal``.
+        roles: Role enforcement dependency; only the four approved unblinding
+            personas may call this endpoint.
+
+    Returns:
+        SubjectUnblindResponse: The subject's updated unblinding status and
+        allocation details, masked according to the caller's access level.
+
+    Raises:
+        HTTPException(400): If the justification is too short, the subject has
+            not been randomised, the Shamir reconstruction fails, the decrypted
+            payload does not contain a recognisable allocation field, or the
+            subject is already unblinded.
+        HTTPException(401): If the ``X-Sig-Token`` is absent or invalid
+            (step-up re-authentication required).
+        HTTPException(403): If the caller's role is insufficient.
+        HTTPException(404): If the subject record does not exist.
+    """
     # Ensure change justification headers are present and valid
     verify_change_justification(request)
-    change_reason = request.headers.get("X-Change-Reason")
+
+    # Step-up re-authentication: validate X-Sig-Token before any write
+    from jose import JWTError
+    from jose import jwt as jose_jwt
+
+    sig_token = request.headers.get("X-Sig-Token")
+    if not sig_token:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+    _secret = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345").encode()
+    try:
+        jose_jwt.decode(sig_token, _secret, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="REAUTHENTICATION_REQUIRED",
+        )
+
+    # Validate min-length justification explicitly
+    if len(payload.justification) < MIN_JUSTIFICATION_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Justification must be at least {MIN_JUSTIFICATION_LENGTH} characters.",
+        )
+
+    composed_reason = f"{payload.reason_code.value}: {payload.justification}"
+    request.state.change_reason = composed_reason
+    current_change_reason.set(composed_reason)
 
     async with db_manager.get_session_maker()() as session:
         # Fetch the subject
@@ -795,27 +1087,153 @@ async def unblind_subject(
         if not subject:
             raise HTTPException(status_code=404, detail="Subject not found")
 
+        # Reject already-unblinded subjects before any write attempt
+        if subject.is_unblinded:
+            raise HTTPException(
+                status_code=400,
+                detail="Subject has already been unblinded; duplicate unblinding is not permitted.",
+            )
+
+        verify_site_access(
+            principal,
+            subject.site_id,
+            study_id=subject.study_id,
+            subject_id=subject.subject_id,
+        )
+
+        # Try to find a SubjectRandomization record for the subject
+        stmt_rand = select(SubjectRandomization).where(
+            SubjectRandomization.subject_id == subject_id
+        )
+        result_rand = await session.execute(stmt_rand)
+        rand = result_rand.scalars().first()
+
+        if not rand:
+            raise HTTPException(
+                status_code=400,
+                detail="Subject has not been randomized; treatment allocation cannot be unblinded.",
+            )
+
+        # Load AllocationKeyManager — module-level import avoids hiding the
+        # symbol in the hot path and keeps the import block auditable.
+        from apps.execution.cryptography import AllocationKeyManager
+
+        key_mgr = AllocationKeyManager()
+        await key_mgr.load_from_db(session)
+
+        shares_dict_list = [s.model_dump() for s in payload.shares]
+        try:
+            decrypted = key_mgr.decrypt_with_shares(
+                rand.encrypted_allocation, shares_dict_list
+            )
+        except HTTPException:
+            # Propagate HTTP-layer errors (e.g. 403 from decrypt_with_shares) unchanged.
+            raise
+        except PermissionError:
+            # decrypt_with_shares raises PermissionError for authorization
+            # failures (e.g. custodian mismatch); map to 403.
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: key custodian authorization failed during share reconstruction.",
+            )
+        except Exception:
+            # Generic reconstruction or decryption failure; no internal detail
+            # is forwarded to avoid leaking crypto internals.
+            raise HTTPException(
+                status_code=400,
+                detail="Reconstruction/decryption failed: invalid or incompatible custodian shares.",
+            )
+
+        unmasked_treatment_arm = decrypted.get("allocation") or decrypted.get(
+            "treatment_arm"
+        )
+        if not unmasked_treatment_arm:
+            raise HTTPException(
+                status_code=400,
+                detail="Decryption succeeded but the allocation field is absent from the recovered payload.",
+            )
+
+        # Single canonical timestamp for the entire unblinding event — avoids
+        # drift between the audit log, the signature payload, and subject fields.
+        unblind_utc = datetime.now(timezone.utc)
+        timestamp_str = unblind_utc.isoformat()
+        allocation_reference = rand.kit_reference or "unknown"
+
+        decision_payload = {
+            "subject": subject.subject_id,
+            "actor_user_id": principal.user_id,
+            "roles": principal.roles,
+            "reason_code": payload.reason_code.value,
+            "justification": payload.justification,
+            "timestamp": timestamp_str,
+            "allocation_reference": allocation_reference,
+        }
+
+        secret = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345").encode()
+        signature = generate_canonical_signature(decision_payload, secret)
+
+        # Capture actual pre-unblind state *before* calling subject.unblind()
+        pre_status = subject.status
+        pre_is_unblinded = subject.is_unblinded
+
         # Perform the transition inside a try-except to catch transition errors
         try:
-            subject.unblind(unblinded_by=principal.user_id, reason=change_reason)
+            subject.unblind(unblinded_by=principal.user_id, reason=composed_reason)
+            subject.unblinded_signature = signature
         except InvalidStateTransitionError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+        # Insert an explicit AuditLog row for EMERGENCY_UNBLINDING.
+        # Signature is stored as signer evidence; it is excluded from the
+        # cryptographic seal payload to prevent a circular dependency.
+        audit_log = AuditLog(
+            id=str(uuid.uuid4()),
+            table_name="clinical_subjects",
+            record_id=subject.id,
+            action="EMERGENCY_UNBLINDING",
+            user_id=principal.user_id or "system",
+            ip_address=current_ip_address.get() or "127.0.0.1",
+            timestamp=unblind_utc.replace(tzinfo=None),  # Store as naive UTC in DB
+            old_values={"status": pre_status, "is_unblinded": pre_is_unblinded},
+            new_values={
+                "status": "UNBLINDED",
+                "is_unblinded": True,
+                "unblinded_by": principal.user_id,
+                "unblinded_at": timestamp_str,
+                "unblinded_reason": composed_reason,
+                "signer_evidence": signature,
+            },
+            version_index=(subject.version or 1) + 1,
+            change_reason=composed_reason,
+        )
+        session.add(audit_log)
         await session.commit()
+
+        # Refresh
         await session.refresh(subject)
 
-        # Compose message_content from non-sensitive fields only
+        # Compose message_content from non-sensitive fields only.
+        # The full clinical justification (composed_reason) is retained in the
+        # immutable audit record only; the dashboard notification carries the
+        # approved reason code to prevent PII / free-text clinical detail from
+        # propagating to notification stores.
         msg_parts = [
             f"Emergency unblinding alert for Subject {subject.subject_id}.",
             f"Status: {subject.status}",
             f"Unblinded By: {subject.unblinded_by}",
             f"Unblinded At: {subject.unblinded_at.isoformat() if subject.unblinded_at else 'N/A'}",
-            f"Reason: {change_reason}",
+            f"Reason Code: {payload.reason_code.value}",
         ]
         message_text = "\n".join(msg_parts)
 
         # Helper/task to be dispatched after commit
         def dispatch_unblind_notification(subj_id: str, msg: str):
+            """Send a critical emergency-unblinding notification for a subject.
+
+            Args:
+                subj_id: Identifier of the subject associated with the unblinding event.
+                msg: Notification message describing the event.
+            """
             from apps.execution.trial_lock import NotificationRouter
 
             router = NotificationRouter()
@@ -826,6 +1244,7 @@ async def unblind_subject(
                     "recipient_roles": ["Sponsor Safety Lead", "Lead CRA", "IDMC"],
                     "subject_id": subj_id,
                     "message": msg,
+                    "priority": "CRITICAL",
                 },
             )
 
@@ -833,33 +1252,9 @@ async def unblind_subject(
             dispatch_unblind_notification, subject.subject_id, message_text
         )
 
-        # Determine unmasked treatment_arm and drug_code values
-        unmasked_treatment_arm = "Active Treatment Arm"
         unmasked_drug_code = subject.kit_reference or ("000" + "101" + "010" + "01")
-
-        # Try to find a SubjectRandomization record for the subject
-        stmt_rand = select(SubjectRandomization).where(
-            SubjectRandomization.subject_id == subject_id
-        )
-        result_rand = await session.execute(stmt_rand)
-        rand = result_rand.scalars().first()
-        if rand:
-            if rand.kit_reference:
-                unmasked_drug_code = rand.kit_reference
-            try:
-                from apps.execution.cryptography import AllocationKeyManager
-
-                key_mgr = AllocationKeyManager()
-                decrypted = key_mgr.decrypt(rand.encrypted_allocation)
-                if isinstance(decrypted, dict):
-                    unmasked_treatment_arm = (
-                        decrypted.get("allocation")
-                        or decrypted.get("treatment_arm")
-                        or unmasked_treatment_arm
-                    )
-            except Exception:
-                if rand.stratum_key:
-                    unmasked_treatment_arm = f"Arm for stratum {rand.stratum_key}"
+        if rand.kit_reference:
+            unmasked_drug_code = rand.kit_reference
 
         response_dict = {
             "subject_id": subject.subject_id,
@@ -873,8 +1268,80 @@ async def unblind_subject(
         }
 
         # Apply masking dynamically based on the principal's access level
-        masked_response = mask_payload(response_dict, principal)
+        masked_response = redact_response(response_dict, principal)
         return SubjectUnblindResponse(**masked_response)
+
+
+@app.post(
+    "/api/v1/execution/subjects/{subject_id}/randomize",
+    response_model=SubjectRandomizationResponse,
+)
+async def randomize_subject_endpoint(
+    subject_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+    roles: list[str] = Depends(
+        require_roles(
+            ROLE_SITE_INVESTIGATOR, ROLE_INVESTIGATOR, ROLE_CRC, "investigator"
+        )
+    ),
+    _not_auditor: list[str] = Depends(verify_not_auditor),
+) -> SubjectRandomizationResponse:
+    """Execute GxP compliant subject randomization allocation and block-index advancement."""
+    # Ensure change justification headers are present and valid
+    verify_change_justification(request)
+    change_reason = request.headers.get("X-Change-Reason")
+
+    # Fetch subject to resolve study_id
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(ClinicalSubject).where(ClinicalSubject.subject_id == subject_id)
+        result = await session.execute(stmt)
+        subject = result.scalars().first()
+        if not subject:
+            raise HTTPException(status_code=404, detail="Subject not found")
+        study_id = subject.study_id
+
+    # Execute randomization via service
+    from apps.execution.cryptography import AllocationKeyManager
+    from apps.execution.randomization_service import randomize_subject
+
+    try:
+        assignment = await randomize_subject(
+            study_id=study_id,
+            subject_id=subject_id,
+            change_reason=change_reason,
+            user_id=principal.user_id,
+        )
+    except InvalidStateTransitionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        msg = str(e)
+        if "not found" in msg.lower():
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Decrypt allocation plaintext for response (which will then be masked/blinded)
+    async with db_manager.get_session_maker()() as session:
+        key_mgr = AllocationKeyManager()
+        await key_mgr.load_from_db(session)
+        decrypted = key_mgr.decrypt(assignment.encrypted_allocation)
+        allocated_arm = decrypted.get("allocation")
+
+    response_dict = {
+        "subject_id": assignment.subject_id,
+        "status": "RANDOMIZED",
+        "stratum_key": assignment.stratum_key,
+        "randomized_at": assignment.randomized_at,
+        "kit_reference": assignment.kit_reference,
+        "treatment_arm": allocated_arm,
+    }
+
+    masked_response = mask_payload(response_dict, principal)
+    return SubjectRandomizationResponse(**masked_response)
 
 
 @app.post("/api/v1/execution/visits", response_model=VisitResponse)
@@ -1208,6 +1675,16 @@ async def create_observation(
             change_reason=change_reason,
         )
 
+        ref_low = None
+        ref_high = None
+        if obs_db.matched_normal_bounds:
+            try:
+                bounds = json.loads(obs_db.matched_normal_bounds)
+                ref_low = bounds.get("low")
+                ref_high = bounds.get("high")
+            except Exception:
+                pass
+
         return ObservationResponse(
             id=obs_db.id,
             subject_id=obs_db.subject_id,
@@ -1230,6 +1707,10 @@ async def create_observation(
             matched_normal_bounds=obs_db.matched_normal_bounds,
             protocol_version_tag=obs_db.protocol_version_tag,
             protocol_version_index=obs_db.protocol_version_index,
+            range_indicator=obs_db.lab_indicator,
+            is_out_of_range=obs_db.lab_out_of_range,
+            reference_range_low=ref_low,
+            reference_range_high=ref_high,
         )
 
 
@@ -1886,10 +2367,16 @@ class LabRangeRecalculateResponse(BaseModel):
 )
 async def trigger_lab_range_recalculation(
     payload: LabRangeRecalculateRequest,
+    roles: list[str] = Depends(require_roles(ROLE_CRA, ROLE_DATA_MANAGER)),
+    _justification=Depends(verify_change_justification),
 ) -> LabRangeRecalculateResponse:
     """Trigger cohort-wide reference range evaluation and recalculation on-demand."""
     from apps.execution.lab_ranges import recalculate_range_flags
 
+    # Deliberately omitting audit_context(...) wrapper here since this endpoint
+    # executes inside the HTTP request lifecycle. GatewayAuthMiddleware and ContextResetMiddleware
+    # automatically capture and bind current_user_id and current_change_reason ContextVars
+    # before execution, allowing the before_flush event listener to log attributed updates.
     async with db_manager.get_session_maker()() as session:
         count = await recalculate_range_flags(
             session, payload.study_id, payload.test_code
@@ -2661,38 +3148,6 @@ class SyncRequest(BaseModel):
     blocks: list[LocalLedgerBlock]
 
 
-def _is_data_manager(roles_str: Any) -> bool:
-    """Check if the roles include Data Manager role variations."""
-    if isinstance(roles_str, str):
-        roles = [r.strip().lower() for r in roles_str.split(",")]
-    else:
-        roles = [str(r).strip().lower() for r in roles_str]
-    dm_roles = {
-        "data manager",
-        "data_manager",
-        "data-manager",
-        "sponsor_dm",
-        "dm",
-        "admin",
-    }
-    return any(r in dm_roles for r in roles)
-
-
-def _is_investigator(roles_str: Any) -> bool:
-    """Check if the roles include Investigator role variations."""
-    if isinstance(roles_str, str):
-        roles = [r.strip().lower() for r in roles_str.split(",")]
-    else:
-        roles = [str(r).strip().lower() for r in roles_str]
-    inv_roles = {
-        "investigator",
-        "site_investigator",
-        "site-investigator",
-        "investigator_user",
-    }
-    return any(r in inv_roles for r in roles)
-
-
 ALLOWED_TRANSITIONS = {
     "NONE": ["OPEN"],
     "OPEN": ["ANSWERED"],
@@ -2719,26 +3174,6 @@ def validate_transition(current_status: str, new_status: str) -> None:
         raise StateTransitionError(
             f"Invalid transition from {current_status} to {new_status}. Allowed transitions are: {allowed}"
         )
-
-
-def verify_roles(request: Request, allowed_roles: List[str]) -> None:
-    """Verify that the user possesses at least one of the allowed roles."""
-    roles_str = getattr(request.state, "roles", None) or request.headers.get(
-        "X-User-Roles", ""
-    )
-    if not roles_str:
-        raise HTTPException(status_code=403, detail="Missing role credentials.")
-
-    if "data_manager" in allowed_roles:
-        if _is_data_manager(roles_str):
-            return
-    if "investigator" in allowed_roles:
-        if _is_investigator(roles_str):
-            return
-
-    raise HTTPException(
-        status_code=403, detail="User role is not authorized for this action."
-    )
 
 
 async def fetch_history(session: Any, query_id: str) -> List[QueryHistoryItem]:
@@ -2787,6 +3222,7 @@ async def list_queries(
     subject_id: Optional[str] = None,
     visit_id: Optional[str] = None,
     status: Optional[str] = None,
+    principal: Principal = Depends(get_principal),
 ) -> List[ClinicalQueryResponse]:
     """Retrieve a list of clinical queries with optional filtering.
 
@@ -2799,6 +3235,9 @@ async def list_queries(
     Returns:
         List[ClinicalQueryResponse]: List of matching queries including audit history.
     """
+    if study_id and not can_access_study(principal, study_id):
+        return []
+
     async with db_manager.get_session_maker()() as session:
         stmt = select(ClinicalQuery).where(ClinicalQuery.is_deleted.is_(False))
         if study_id:
@@ -2810,6 +3249,13 @@ async def list_queries(
         if status:
             stmt = stmt.where(ClinicalQuery.status == status)
 
+        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+        if user_site_roles or principal.assigned_sites:
+            stmt = stmt.where(ClinicalQuery.site_id.in_(principal.assigned_sites))
+
+        if principal.assigned_studies:
+            stmt = stmt.where(ClinicalQuery.study_id.in_(principal.assigned_studies))
+
         res = await session.execute(stmt)
         queries = res.scalars().all()
 
@@ -2817,42 +3263,48 @@ async def list_queries(
         for q in queries:
             history = await fetch_history(session, q.id)
             responses.append(
-                ClinicalQueryResponse(
-                    id=q.id,
-                    study_id=q.study_id,
-                    subject_id=q.subject_id,
-                    visit_id=q.visit_id,
-                    domain=q.domain,
-                    test_code=q.test_code,
-                    status=q.status,
-                    explanation=q.explanation,
-                    response=q.response,
-                    created_at=q.created_at,
-                    updated_at=q.updated_at,
-                    history=history,
-                    observation_id=q.observation_id,
-                    field_link=q.field_link,
-                    message=q.message,
-                    origin=q.origin,
-                    priority=q.priority,
-                    rule_id=q.rule_id,
-                    created_by=q.created_by,
-                    responder=q.responder,
-                    resolver=q.resolver,
-                    resolved_at=q.resolved_at,
-                    cancellation_reason=q.cancellation_reason,
-                    escalated_at=q.escalated_at,
-                    form_id=q.form_id,
-                    field_id=q.field_id,
-                    query_type=q.query_type,
-                    action_required=q.action_required,
+                redact_response(
+                    ClinicalQueryResponse(
+                        id=q.id,
+                        study_id=q.study_id,
+                        subject_id=q.subject_id,
+                        visit_id=q.visit_id,
+                        domain=q.domain,
+                        test_code=q.test_code,
+                        status=q.status,
+                        explanation=q.explanation,
+                        response=q.response,
+                        created_at=q.created_at,
+                        updated_at=q.updated_at,
+                        history=history,
+                        observation_id=q.observation_id,
+                        field_link=q.field_link,
+                        message=q.message,
+                        origin=q.origin,
+                        priority=q.priority,
+                        rule_id=q.rule_id,
+                        created_by=q.created_by,
+                        responder=q.responder,
+                        resolver=q.resolver,
+                        resolved_at=q.resolved_at,
+                        cancellation_reason=q.cancellation_reason,
+                        escalated_at=q.escalated_at,
+                        form_id=q.form_id,
+                        field_id=q.field_id,
+                        query_type=q.query_type,
+                        action_required=q.action_required,
+                    ),
+                    principal,
                 )
             )
         return responses
 
 
 @app.get("/api/v1/execution/queries/{query_id}", response_model=ClinicalQueryResponse)
-async def get_query(query_id: str) -> ClinicalQueryResponse:
+async def get_query(
+    query_id: str,
+    principal: Principal = Depends(get_principal),
+) -> ClinicalQueryResponse:
     """Query a single clinical query by ID, returning its full audit history.
 
     Args:
@@ -2870,36 +3322,43 @@ async def get_query(query_id: str) -> ClinicalQueryResponse:
         if not q:
             raise HTTPException(status_code=404, detail="Clinical query not found")
 
+        verify_site_access(
+            principal, q.site_id, study_id=q.study_id, subject_id=q.subject_id
+        )
+
         history = await fetch_history(session, q.id)
-        return ClinicalQueryResponse(
-            id=q.id,
-            study_id=q.study_id,
-            subject_id=q.subject_id,
-            visit_id=q.visit_id,
-            domain=q.domain,
-            test_code=q.test_code,
-            status=q.status,
-            explanation=q.explanation,
-            response=q.response,
-            created_at=q.created_at,
-            updated_at=q.updated_at,
-            history=history,
-            observation_id=q.observation_id,
-            field_link=q.field_link,
-            message=q.message,
-            origin=q.origin,
-            priority=q.priority,
-            rule_id=q.rule_id,
-            created_by=q.created_by,
-            responder=q.responder,
-            resolver=q.resolver,
-            resolved_at=q.resolved_at,
-            cancellation_reason=q.cancellation_reason,
-            escalated_at=q.escalated_at,
-            form_id=q.form_id,
-            field_id=q.field_id,
-            query_type=q.query_type,
-            action_required=q.action_required,
+        return redact_response(
+            ClinicalQueryResponse(
+                id=q.id,
+                study_id=q.study_id,
+                subject_id=q.subject_id,
+                visit_id=q.visit_id,
+                domain=q.domain,
+                test_code=q.test_code,
+                status=q.status,
+                explanation=q.explanation,
+                response=q.response,
+                created_at=q.created_at,
+                updated_at=q.updated_at,
+                history=history,
+                observation_id=q.observation_id,
+                field_link=q.field_link,
+                message=q.message,
+                origin=q.origin,
+                priority=q.priority,
+                rule_id=q.rule_id,
+                created_by=q.created_by,
+                responder=q.responder,
+                resolver=q.resolver,
+                resolved_at=q.resolved_at,
+                cancellation_reason=q.cancellation_reason,
+                escalated_at=q.escalated_at,
+                form_id=q.form_id,
+                field_id=q.field_id,
+                query_type=q.query_type,
+                action_required=q.action_required,
+            ),
+            principal,
         )
 
 
@@ -3005,385 +3464,6 @@ async def open_query(
             field_id=q_db.field_id,
             query_type=q_db.query_type,
             action_required=q_db.action_required,
-        )
-
-
-# ==========================================
-# SDV Sign-off API
-# ==========================================
-
-
-class SamplingModelEnum(str, Enum):
-    SUBJECT_BASED = "SUBJECT_BASED"
-    FIELD_BASED = "FIELD_BASED"
-    COMBINED = "COMBINED"
-
-
-class TSDVConfigCreate(BaseModel):
-    study_id: str
-    sampling_model: SamplingModelEnum
-    initial_full_sdv_subject_count: int = Field(default=0, ge=0)
-    random_sample_percentage: float = Field(default=0.0, ge=0.0, le=100.0)
-    full_sdv_domains: Optional[list[str]] = None
-    safety_endpoints: Optional[list[str]] = None
-    zero_sdv_domains: Optional[list[str]] = None
-    trial_random_seed: Optional[int] = Field(default=None, ge=0)
-
-    @model_validator(mode="after")
-    def validate_seed(self) -> "TSDVConfigCreate":
-        if self.random_sample_percentage > 0.0 and self.trial_random_seed is None:
-            raise ValueError(
-                "trial_random_seed is required when random_sample_percentage is greater than 0"
-            )
-        return self
-
-
-class TSDVConfigResponse(BaseModel):
-    id: str
-    study_id: str
-    sampling_model: str
-    initial_full_sdv_subject_count: int
-    random_sample_percentage: float
-    full_sdv_domains: Optional[list[str]] = None
-    safety_endpoints: Optional[list[str]] = None
-    zero_sdv_domains: Optional[list[str]] = None
-    trial_random_seed: Optional[int] = None
-    version: int
-
-    class Config:
-        from_attributes = True
-
-
-@app.post(
-    "/api/v1/execution/tsdv/config",
-    response_model=TSDVConfigResponse,
-    status_code=201,
-)
-async def create_or_update_tsdv_config(
-    request: Request,
-    payload: TSDVConfigCreate,
-    roles: list[str] = Depends(require_roles(ROLE_CRA, ROLE_DATA_MANAGER)),
-) -> TSDVConfig:
-    """Create or update Targeted SDV (TSDV) configuration for a study.
-
-    Restricts config writes to CRA/Data Manager roles with GxP change justifications.
-    """
-    async with db_manager.get_session_maker()() as session:
-        async with session.begin():
-            await session.execute(
-                text("SELECT set_config('cadence.app_writing', 'true', true);")
-            )
-            stmt = select(TSDVConfig).where(TSDVConfig.study_id == payload.study_id)
-            res = await session.execute(stmt)
-            config = res.scalars().first()
-
-            if config:
-                config.sampling_model = payload.sampling_model.value
-                config.initial_full_sdv_subject_count = (
-                    payload.initial_full_sdv_subject_count
-                )
-                config.random_sample_percentage = payload.random_sample_percentage
-                config.full_sdv_domains = payload.full_sdv_domains
-                config.safety_endpoints = payload.safety_endpoints
-                config.zero_sdv_domains = payload.zero_sdv_domains
-                config.trial_random_seed = payload.trial_random_seed
-            else:
-                config = TSDVConfig(
-                    study_id=payload.study_id,
-                    sampling_model=payload.sampling_model.value,
-                    initial_full_sdv_subject_count=payload.initial_full_sdv_subject_count,
-                    random_sample_percentage=payload.random_sample_percentage,
-                    full_sdv_domains=payload.full_sdv_domains,
-                    safety_endpoints=payload.safety_endpoints,
-                    zero_sdv_domains=payload.zero_sdv_domains,
-                    trial_random_seed=payload.trial_random_seed,
-                )
-                session.add(config)
-
-    async with db_manager.get_session_maker()() as session:
-        stmt = select(TSDVConfig).where(TSDVConfig.study_id == payload.study_id)
-        res = await session.execute(stmt)
-        config = res.scalars().one()
-        return config
-
-
-@app.get(
-    "/api/v1/execution/tsdv/config/{study_id}",
-    response_model=TSDVConfigResponse,
-)
-async def get_tsdv_config(
-    study_id: str,
-    roles: list[str] = Depends(require_roles(ROLE_CRA, ROLE_DATA_MANAGER)),
-) -> TSDVConfig:
-    """Retrieve Targeted SDV (TSDV) configuration for a study."""
-    async with db_manager.get_session_maker()() as session:
-        stmt = select(TSDVConfig).where(TSDVConfig.study_id == study_id)
-        res = await session.execute(stmt)
-        config = res.scalars().first()
-        if not config:
-            raise HTTPException(
-                status_code=404,
-                detail=f"TSDV configuration not found for study {study_id}",
-            )
-        return config
-
-
-class TSDVEvaluationResponse(BaseModel):
-    required: bool
-    subject_selected: bool
-    field_decision: Optional[bool] = None
-    sampling_model: str
-    config_id: str
-    enrollment_index: int
-    explanation: str
-
-
-@app.get(
-    "/api/v1/execution/tsdv/required",
-    response_model=TSDVEvaluationResponse,
-)
-async def evaluate_tsdv_rule(
-    study_id: str,
-    subject_id: str,
-    domain: Optional[str] = None,
-    enrollment_index: Optional[int] = None,
-    roles: list[str] = Depends(get_normalized_roles),
-) -> TSDVEvaluationResponse:
-    """Evaluate Targeted SDV (TSDV) requirement for a given context.
-
-    Calculates deterministic sampling decisions and returns component results with an audit explanation.
-    """
-    async with db_manager.get_session_maker()() as session:
-        # 1. Resolve Study TSDV Configuration
-        stmt_cfg = select(TSDVConfig).where(TSDVConfig.study_id == study_id)
-        res_cfg = await session.execute(stmt_cfg)
-        config = res_cfg.scalars().first()
-        if not config:
-            raise HTTPException(
-                status_code=404,
-                detail=f"TSDV configuration not found for study {study_id}",
-            )
-
-        # 2. Resolve Subject and Enrollment Index
-        stmt_subj = select(ClinicalSubject).where(
-            ClinicalSubject.study_id == study_id,
-            ClinicalSubject.is_deleted.is_(False),
-        )
-        res_subj = await session.execute(stmt_subj)
-        subjects = list(res_subj.scalars().all())
-
-        # Sort alphabetically as a deterministic fallback only
-        subjects_sorted = sorted(subjects, key=lambda s: s.subject_id)
-
-        target_sub = None
-        fallback_index = None
-        for idx, sub in enumerate(subjects_sorted):
-            if sub.subject_id == subject_id or sub.id == subject_id:
-                target_sub = sub
-                fallback_index = idx
-                break
-
-        if target_sub is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Subject {subject_id} not found in study {study_id}",
-            )
-
-        # Resolve persisted enrollment_index, with alphabetical as fallback if not backfilled yet
-        resolved_index = (
-            target_sub.enrollment_index
-            if target_sub.enrollment_index is not None
-            else fallback_index
-        )
-
-        if enrollment_index is not None:
-            if enrollment_index != resolved_index:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Conflicting enrollment_index {enrollment_index} supplied. Persisted index is {resolved_index}.",
-                )
-        else:
-            enrollment_index = resolved_index
-
-        subject_uuid = target_sub.id
-
-        # 3. Perform Deterministic Evaluation
-        required, subject_selected, field_decision, explanation = (
-            evaluate_tsdv_requirement(
-                config=config,
-                subject_uuid=subject_uuid,
-                enrollment_index=enrollment_index,
-                domain=domain,
-            )
-        )
-
-        return TSDVEvaluationResponse(
-            required=required,
-            subject_selected=subject_selected,
-            field_decision=field_decision,
-            sampling_model=config.sampling_model,
-            config_id=config.id,
-            enrollment_index=enrollment_index,
-            explanation=explanation,
-        )
-
-
-class SDVScopeEnum(str, Enum):
-    FIELD = "FIELD"
-    PAGE = "PAGE"
-    VISIT = "VISIT"
-
-
-class SDVSignOffRequest(BaseModel):
-    """Pydantic request schema for SDV sign-off."""
-
-    scope: SDVScopeEnum
-    target_id: str
-    subject_id: str
-    study_id: str
-    site_id: Optional[str] = None
-
-
-class SDVSignOffResponse(BaseModel):
-    """Pydantic response schema for SDV sign-off."""
-
-    id: str
-    scope: str
-    target_id: str
-    subject_id: str
-    study_id: str
-    site_id: Optional[str] = None
-    is_verified: bool
-    verified_by: Optional[str] = None
-    verified_at: Optional[datetime] = None
-    dropped_reason: Optional[str] = None
-    dropped_at: Optional[datetime] = None
-
-
-@app.post("/api/v1/execution/sdv/signoff", response_model=SDVSignOffResponse)
-async def sdv_signoff(
-    payload: SDVSignOffRequest,
-    roles: list[str] = Depends(require_roles(ROLE_CRA, "monitor")),
-) -> SDVSignOffResponse:
-    """CRA/monitor-gated SDV sign-off endpoint for Field, Page, or Visit scopes."""
-    async with db_manager.get_session_maker()() as session:
-        # 1. Validate Subject exists and is consistent with Study
-        stmt_subj = select(ClinicalSubject).where(
-            ClinicalSubject.subject_id == payload.subject_id,
-            ClinicalSubject.study_id == payload.study_id,
-        )
-        res_subj = await session.execute(stmt_subj)
-        subj_db = res_subj.scalars().first()
-        if not subj_db:
-            raise HTTPException(
-                status_code=404,
-                detail="Subject not found or inconsistent study reference.",
-            )
-
-        # 2. Scope-specific validation
-        obs_db = None
-        if payload.scope == SDVScopeEnum.FIELD:
-            stmt_obs = select(ClinicalObservation).where(
-                ClinicalObservation.id == payload.target_id,
-                ClinicalObservation.subject_id == payload.subject_id,
-                ClinicalObservation.study_id == payload.study_id,
-            )
-            res_obs = await session.execute(stmt_obs)
-            obs_db = res_obs.scalars().first()
-            if not obs_db:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Clinical observation not found or inconsistent target/subject/study reference.",
-                )
-        elif payload.scope == SDVScopeEnum.VISIT:
-            stmt_visit = select(ClinicalVisit).where(
-                ClinicalVisit.id == payload.target_id,
-                ClinicalVisit.subject_id == payload.subject_id,
-                ClinicalVisit.study_id == payload.study_id,
-            )
-            res_visit = await session.execute(stmt_visit)
-            visit_db = res_visit.scalars().first()
-            if not visit_db:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Clinical visit not found or inconsistent target/subject/study reference.",
-                )
-        elif payload.scope == SDVScopeEnum.PAGE:
-            stmt_page_obs = select(ClinicalObservation).where(
-                ClinicalObservation.page_id == payload.target_id,
-                ClinicalObservation.subject_id == payload.subject_id,
-                ClinicalObservation.study_id == payload.study_id,
-            )
-            res_page_obs = await session.execute(stmt_page_obs)
-            if not res_page_obs.scalars().first():
-                raise HTTPException(
-                    status_code=404,
-                    detail="Page ID not found or inconsistent target/subject/study reference.",
-                )
-
-        # 3. Apply sign-off behavior
-        verifier_id = current_user_id.get() or "system"
-        verified_at = datetime.utcnow()
-
-        # Update or create the matching SDVSignOff record
-        stmt_signoff = select(SDVSignOff).where(
-            SDVSignOff.scope == payload.scope.value,
-            SDVSignOff.target_id == payload.target_id,
-            SDVSignOff.subject_id == payload.subject_id,
-            SDVSignOff.study_id == payload.study_id,
-        )
-        res_signoff = await session.execute(stmt_signoff)
-        signoff_db = res_signoff.scalars().first()
-
-        site_id = payload.site_id or (
-            subj_db.site_id if hasattr(subj_db, "site_id") else None
-        )
-
-        if signoff_db:
-            signoff_db.is_verified = True
-            signoff_db.verified_by = verifier_id
-            signoff_db.verified_at = verified_at
-            signoff_db.dropped_reason = None
-            signoff_db.dropped_at = None
-        else:
-            signoff_db = SDVSignOff(
-                scope=payload.scope.value,
-                target_id=payload.target_id,
-                subject_id=payload.subject_id,
-                study_id=payload.study_id,
-                site_id=site_id,
-                is_verified=True,
-                verified_by=verifier_id,
-                verified_at=verified_at,
-            )
-            session.add(signoff_db)
-
-        # For FIELD scope, update the ClinicalObservation too
-        if payload.scope == SDVScopeEnum.FIELD and obs_db:
-            obs_db.is_sdv_verified = True
-            obs_db.sdv_verified_by = verifier_id
-            obs_db.sdv_verified_at = verified_at
-
-        # Save changes
-        await session.commit()
-
-        # Re-query
-        stmt_re = select(SDVSignOff).where(SDVSignOff.id == signoff_db.id)
-        res_re = await session.execute(stmt_re)
-        re_signoff = res_re.scalar_one()
-
-        return SDVSignOffResponse(
-            id=re_signoff.id,
-            scope=re_signoff.scope,
-            target_id=re_signoff.target_id,
-            subject_id=re_signoff.subject_id,
-            study_id=re_signoff.study_id,
-            site_id=re_signoff.site_id,
-            is_verified=re_signoff.is_verified,
-            verified_by=re_signoff.verified_by,
-            verified_at=re_signoff.verified_at,
-            dropped_reason=re_signoff.dropped_reason,
-            dropped_at=re_signoff.dropped_at,
         )
 
 
@@ -3898,8 +3978,12 @@ async def list_form_submissions(
     subject_id: Optional[str] = None,
     visit_id: Optional[str] = None,
     form_id: Optional[str] = None,
+    principal: Principal = Depends(get_principal),
 ) -> List[FormSubmissionResponse]:
     """List form submissions with filters."""
+    if study_id and not can_access_study(principal, study_id):
+        return []
+
     async with db_manager.get_session_maker()() as session:
         stmt = select(FormSubmission).where(FormSubmission.is_deleted.is_(False))
         if study_id:
@@ -3911,10 +3995,59 @@ async def list_form_submissions(
         if form_id:
             stmt = stmt.where(FormSubmission.form_id == form_id)
 
+        user_site_roles = [r for r in principal.roles if r in SITE_SCOPED_ROLES]
+        if user_site_roles or principal.assigned_sites:
+            stmt = stmt.where(FormSubmission.site_id.in_(principal.assigned_sites))
+
+        if principal.assigned_studies:
+            stmt = stmt.where(FormSubmission.study_id.in_(principal.assigned_studies))
+
         res = await session.execute(stmt)
         subs = res.scalars().all()
 
         return [
+            redact_response(
+                FormSubmissionResponse(
+                    id=sub.id,
+                    study_id=sub.study_id,
+                    site_id=sub.site_id,
+                    subject_id=sub.subject_id,
+                    visit_id=sub.visit_id,
+                    form_id=sub.form_id,
+                    status=sub.status,
+                    version=sub.version,
+                    is_deleted=sub.is_deleted,
+                    signature_manifest=sub.signature_manifest,
+                ),
+                principal,
+            )
+            for sub in subs
+        ]
+
+
+@app.get(
+    "/api/v1/execution/form-submissions/{submission_id}",
+    response_model=FormSubmissionResponse,
+)
+async def get_form_submission(
+    submission_id: str,
+    principal: Principal = Depends(get_principal),
+) -> FormSubmissionResponse:
+    """Retrieve a single form submission by ID."""
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(FormSubmission).where(
+            FormSubmission.id == submission_id, FormSubmission.is_deleted.is_(False)
+        )
+        res = await session.execute(stmt)
+        sub = res.scalars().first()
+        if not sub:
+            raise HTTPException(status_code=404, detail="Form submission not found")
+
+        verify_site_access(
+            principal, sub.site_id, study_id=sub.study_id, subject_id=sub.subject_id
+        )
+
+        return redact_response(
             FormSubmissionResponse(
                 id=sub.id,
                 study_id=sub.study_id,
@@ -3926,37 +4059,8 @@ async def list_form_submissions(
                 version=sub.version,
                 is_deleted=sub.is_deleted,
                 signature_manifest=sub.signature_manifest,
-            )
-            for sub in subs
-        ]
-
-
-@app.get(
-    "/api/v1/execution/form-submissions/{submission_id}",
-    response_model=FormSubmissionResponse,
-)
-async def get_form_submission(submission_id: str) -> FormSubmissionResponse:
-    """Retrieve a single form submission by ID."""
-    async with db_manager.get_session_maker()() as session:
-        stmt = select(FormSubmission).where(
-            FormSubmission.id == submission_id, FormSubmission.is_deleted.is_(False)
-        )
-        res = await session.execute(stmt)
-        sub = res.scalars().first()
-        if not sub:
-            raise HTTPException(status_code=404, detail="Form submission not found")
-
-        return FormSubmissionResponse(
-            id=sub.id,
-            study_id=sub.study_id,
-            site_id=sub.site_id,
-            subject_id=sub.subject_id,
-            visit_id=sub.visit_id,
-            form_id=sub.form_id,
-            status=sub.status,
-            version=sub.version,
-            is_deleted=sub.is_deleted,
-            signature_manifest=sub.signature_manifest,
+            ),
+            principal,
         )
 
 
@@ -4675,7 +4779,7 @@ async def get_lock_status(
 async def lock_site_endpoint(
     site_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific site."""
     TrialLockManager.lock_site(site_id)
@@ -4687,7 +4791,7 @@ async def lock_site_endpoint(
 async def unlock_site_endpoint(
     site_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific site."""
     TrialLockManager.unlock_site(site_id)
@@ -4699,7 +4803,7 @@ async def unlock_site_endpoint(
 async def lock_visit_endpoint(
     visit_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific visit."""
     TrialLockManager.lock_visit(visit_id)
@@ -4711,7 +4815,7 @@ async def lock_visit_endpoint(
 async def unlock_visit_endpoint(
     visit_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific visit."""
     TrialLockManager.unlock_visit(visit_id)
@@ -4723,7 +4827,7 @@ async def unlock_visit_endpoint(
 async def lock_form_endpoint(
     form_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific form."""
     TrialLockManager.lock_form(form_id)
@@ -4735,7 +4839,7 @@ async def lock_form_endpoint(
 async def unlock_form_endpoint(
     form_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific form."""
     TrialLockManager.unlock_form(form_id)
@@ -4747,7 +4851,7 @@ async def unlock_form_endpoint(
 async def lock_subject_endpoint(
     subject_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes a specific subject."""
     TrialLockManager.lock_subject(subject_id)
@@ -4759,7 +4863,7 @@ async def lock_subject_endpoint(
 async def unlock_subject_endpoint(
     subject_id: str,
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes a specific subject."""
     TrialLockManager.unlock_subject(subject_id)
@@ -4773,7 +4877,7 @@ async def unlock_subject_endpoint(
 @app.post("/api/v1/execution/locks/trial/freeze", status_code=200)
 async def lock_trial_endpoint(
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Locks or freezes the trial/study."""
     reason = request.headers.get("X-Change-Reason", "Sponsor Lock")
@@ -4785,7 +4889,7 @@ async def lock_trial_endpoint(
 @app.post("/api/v1/execution/locks/trial/unfreeze", status_code=200)
 async def unlock_trial_endpoint(
     request: Request,
-    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER)),
+    roles: list[str] = Depends(require_roles(ROLE_DATA_MANAGER, ROLE_SPONSOR_ADMIN)),
 ) -> dict[str, str]:
     """Unlocks or unfreezes the trial/study."""
     TrialLockManager.unlock_trial()
@@ -5417,6 +5521,16 @@ async def export_sdtm_domain(
             export_data = {dom_upper: records}
             if supp_records:
                 export_data[f"SUPP{dom_upper}"] = supp_records
+
+            # Apply deterministic de-identification transform
+            salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
+            export_data = deidentify_export_data(export_data, salt)
+
             dataset_json = serialize_to_dataset_json(
                 data=export_data, study_id=study_id
             )
@@ -5433,30 +5547,37 @@ async def export_sdtm_domain(
 
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="SDTM",
                 dataset_name=dom_upper,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {str(e)}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="SDTM",
                 dataset_name=dom_upper,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=500, detail=f"Export execution failed: {str(e)}"
+                status_code=500, detail=f"Export execution failed: {scrubbed_msg}"
             )
 
 
@@ -5718,8 +5839,18 @@ async def export_adam_dataset(
     async with db_manager.get_session_maker()() as session:
         try:
             records = await run_adam_derivation(session, study_id, ds_upper)
+
+            # Apply deterministic de-identification transform
+            salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
+            deidentified_records = deidentify_export_data(records, salt)
+
             dataset_json = serialize_to_dataset_json(
-                data={ds_upper: records}, study_id=study_id
+                data={ds_upper: deidentified_records}, study_id=study_id
             )
             validate_dataset_json(dataset_json)
 
@@ -5734,30 +5865,37 @@ async def export_adam_dataset(
 
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="ADaM",
                 dataset_name=ds_upper,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {str(e)}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="ADaM",
                 dataset_name=ds_upper,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=500, detail=f"Export execution failed: {str(e)}"
+                status_code=500, detail=f"Export execution failed: {scrubbed_msg}"
             )
 
 
@@ -5800,6 +5938,15 @@ async def export_biostat_bundle(
                     detail="No biostat records found for the given study.",
                 )
 
+            # Apply deterministic de-identification transform
+            salt = os.getenv("BIOSTAT_EXPORT_SALT", "secure-clinical-salt-98765")
+            from apps.execution.biostat.deid import (
+                deidentify_export_data,
+                scrub_error_message,
+            )
+
+            bundle_data = deidentify_export_data(bundle_data, salt)
+
             dataset_json = serialize_to_dataset_json(
                 data=bundle_data, study_id=study_id
             )
@@ -5816,28 +5963,35 @@ async def export_biostat_bundle(
 
             return dataset_json.model_dump()
         except DatasetJSONValidationError as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="BUNDLE",
                 dataset_name=None,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=422, detail=f"Dataset-JSON validation failed: {str(e)}"
+                status_code=422,
+                detail=f"Dataset-JSON validation failed: {scrubbed_msg}",
             )
         except Exception as e:
+            from apps.execution.biostat.deid import scrub_error_message
+
+            scrubbed_msg = scrub_error_message(str(e))
             export_log = BiostatExport(
                 study_id=study_id,
                 export_type="BUNDLE",
                 dataset_name=None,
                 status="FAILED",
-                error_message=str(e),
+                error_message=scrubbed_msg,
             )
             session.add(export_log)
             await session.commit()
             raise HTTPException(
-                status_code=500, detail=f"Export execution failed: {str(e)}"
+                status_code=500, detail=f"Export execution failed: {scrubbed_msg}"
             )

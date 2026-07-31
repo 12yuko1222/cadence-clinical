@@ -121,6 +121,7 @@ def make_mock_criterion(
 @pytest.mark.asyncio
 async def test_designer_criteria_client_retrieval_and_parsing():
     """Verify that the DesignerCriteriaClient retrieves and correctly parses EligibilityCriterion models."""
+    # @req:PRD-MDR-007
     mock_response_data = [
         make_mock_criterion("INC_01", "inclusion", "eCRF.DM.AGE", ">=", 18, True),
         make_mock_criterion("EXC_01", "exclusion", "eCRF.LB.ALT", ">", 150, False),
@@ -156,6 +157,7 @@ async def test_designer_criteria_client_retrieval_and_parsing():
 @pytest.mark.asyncio
 async def test_ecrf_context_builder_demographics_and_precedence():
     """Verify demographics mapping, standard observation formatting, and repeated-observation precedence rules."""
+    # @req:PRD-MDR-007
     current_user_id.set("test_user")
     current_change_reason.set("Setup test context")
 
@@ -226,6 +228,7 @@ async def test_ecrf_context_builder_demographics_and_precedence():
 @pytest.mark.asyncio
 async def test_ecrf_context_builder_kleene_absent_semantics():
     """Verify that absent/null observations remain absent in context dictionary to support Kleene indeterminate semantics."""
+    # @req:PRD-MDR-007
     current_user_id.set("test_user")
     current_change_reason.set("Setup test context")
 
@@ -259,6 +262,7 @@ async def test_ecrf_context_builder_kleene_absent_semantics():
 @pytest.mark.asyncio
 async def test_screening_endpoint_eligible_and_transition():
     """Verify POST screening endpoint transitions eligible subjects to ENROLLED state and returns non-PHI payload."""
+    # @req:PRD-MDR-007
     current_user_id.set("investigator_1")
     current_change_reason.set("Test screening workflow")
 
@@ -322,6 +326,7 @@ async def test_screening_endpoint_eligible_and_transition():
 @pytest.mark.asyncio
 async def test_screening_endpoint_ineligible_transition_and_audit():
     """Verify POST screening transitions ineligible to SCREEN_FAILED and produces immutable, attributable audit evidence."""
+    # @req:PRD-MDR-007
     current_user_id.set("investigator_1")
     current_change_reason.set("Test screening failure")
 
@@ -406,6 +411,7 @@ async def test_screening_endpoint_ineligible_transition_and_audit():
 @pytest.mark.asyncio
 async def test_screening_endpoint_indeterminate_behavior():
     """Verify indeterminate results leave the subject status as SCREENING with no terminal transition."""
+    # @req:PRD-MDR-007
     current_user_id.set("investigator_1")
     current_change_reason.set("Test screening indeterminate")
 
@@ -457,6 +463,7 @@ async def test_screening_endpoint_indeterminate_behavior():
 @pytest.mark.asyncio
 async def test_randomization_allocation_rejection_gate():
     """Verify that allocation/randomization is strictly rejected for SCREENING and SCREEN_FAILED subjects."""
+    # @req:PRD-MDR-007
     # Test gate on different subject state states
     # Note: Subject initialization must start with "SCREENING" to obey transitions guard, then transition to SCREEN_FAILED or ENROLLED
     subj_screening = ClinicalSubject(

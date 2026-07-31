@@ -88,6 +88,15 @@ logs/
 .jules.local.json
 
 # ------------------------------------------
+# Playwright & End-to-End Test Artifacts
+# ------------------------------------------
+playwright-report/
+test-results/
+playwright/
+.auth/
+user.json
+
+# ------------------------------------------
 # Node.js / Frontend Packages (if applicable)
 # ------------------------------------------
 node_modules/
@@ -131,3 +140,4 @@ tmp_etmf/
 apps/designer/templates/*.docx
 *.docx
 scripts/sync_github_project.py
+scripts/live_hygiene_enforcement.py

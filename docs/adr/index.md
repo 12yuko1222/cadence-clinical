@@ -27,6 +27,7 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-07-30: ADR 2026-07-30: Rule Authoring, Validation, and DDF Delivery](2026-07-30-rule-authoring-validation-and-ddf-delivery.md)
 - [2026-08-02: Shared Eligibility Criteria Domain Contract, DSL Parser, and Deterministic Evaluator](2026-08-02-eligibility-criteria-evaluation-engine.md)
 - [2026-08-02: Protocol Document Rendering Architecture and Content Contract](2026-08-02-protocol-rendering-architecture.md)
+- [2026-08-28: Protocol Document Rendering Architecture](2026-08-28-protocol-document-rendering-architecture.md)
 - [2026-08-09: Global Library Object Instantiation in Clinical Studies](2026-08-09-global-library-object-instantiation.md)
 - [2026-08-11: Unified Parameterized Relational Database Lifespan Wrapper](2026-08-11-unified-parameterized-relational-database-lifespan-wrapper.md)
 - [2026-08-19: Global Library Architecture, Lifecycle, and Multi-Tenant Isolation](2026-08-19-global-library-architecture-lifecycle-tenancy.md)
@@ -57,8 +58,10 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-15: Bidirectional API Contract Enforcement and Legacy Whitelisting](2026-08-15-bidirectional-api-contract-enforcement.md)
 - [2026-08-17: Centralized Permission-Based Authorization and Dynamic Mappings](2026-08-17-centralized-permission-auth.md)
 - [2026-08-21: eTMF Inbound-Email Webhook and Binder Routing](2026-08-21-etmf-inbound-email-webhook-and-binder-routing.md)
+- [2026-08-24: Role Authorization for Granular Data-Lock Actions and Trust Boundary Verification](2026-08-24-role-authorization-for-granular-data-lock-actions.md)
 
 ### 3. Clinical Data Interoperability & Standards
+- [2026-08-26: SAE Reconciliation Architecture](2026-08-26-sae-reconciliation-architecture.md)
 
 - [2026-06-06: ADR 2026-06-06: USDM Pydantic Models](2026-06-06-usdm-pydantic-models.md)
 - [2026-07-22: ADR 2026-07-22: API-First Validation and USDM Integration](2026-07-22-api-first-validation-and-usdm-integration.md)
@@ -75,11 +78,16 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-08: Expose Authenticated SDTM/ADaM Dataset-JSON Export Endpoints](2026-08-08-expose-authenticated-sdtm-adam-dataset-json-export-endpoints.md)
 - [2026-08-09: Medical Coding Engine and Query Subsystem Integration](2026-08-09-medical-coding-engine-query-integration.md)
 - [2026-08-09: Signed NCI Thesaurus CT Web Client](2026-08-09-nci-thesaurus-signed-web-client.md)
+- [2026-08-26: Durable Dictionary-Import Worker and Recovery Contract](2026-08-26-durable-dictionary-import-worker.md)
 - [2026-08-09: E2B(R3) ICSR XML Export and Structural Validation](2026-08-09-safety-e2b-icsr-xml-export-pipeline.md)
 - [2026-08-11: Bidirectional Field Parity and RFC 7807 Validation Schemas](2026-08-11-bidirectional-field-parity-and-rfc7807-validation-schemas.md)
 - [2026-08-14: Biostatistical Export Pipeline Interoperability and Architecture](2026-08-14-biostatistical-export-pipeline-interoperability.md)
 
 ### 4. Clinical Operations & Business Modules
+- [2026-08-27: Add SQLModel Dependency for eISF Structured Section Taxonomy and Versioning](2026-08-27-add-sqlmodel-dependency-for-eisf-taxonomy-and-versioning.md)
+- [2026-08-26: ADR-111: eISF Gateway Integration, Docker-Compose Wiring, and eTMF Sync Topology](2026-08-26-eisf-gateway-compose-and-etmf-sync-topology.md)
+- [2026-08-25: CTMS Offline Sync Reconciliation and Structural Clinical Queries](2026-08-25-ctms-offline-sync-reconciliation-and-structural-clinical-queries.md)
+- [2026-08-23: Tickets-to-Notifications Integration Architecture](2026-08-23-tickets-notifications-integration.md)
 - [2026-07-30: Protocol Ingestion and CRF Draft Generation Workflow](2026-07-30-protocol-ingestion-and-crf-draft-generation-workflow.md)
 
 - [2026-07-25: ADR 2026-07-25: Data-Driven Expected Document Lists (EDLs) & Completeness Tracking](2026-07-25-data-driven-edl-model-and-completeness.md)
@@ -103,6 +111,8 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-09: eTMF Filterable and Paginated Audit Log API](2026-08-09-etmf-filterable-paginated-audit-log.md)
 
 ### 5. Compliance, Audit & Governance
+- [2026-08-28: Regulatory Inspection Portal & Auditor View Access Control Foundation](2026-08-28-auditor-access-control-foundation.md)
+- [2026-07-31: GxP 21 CFR Part 11 eConsent Audit Trails](2026-07-31-gxp-21-cfr-part-11-econsent-audit-trails.md)
 
 - [2026-07-22: ADR 2026-07-22: Audit Log Design](2026-07-22-audit-log-design.md)
 - [2026-07-22: 2026-07-22 Compliance Tracing and Automated Trial Locks](2026-07-22-compliance-tracing-and-automated-trial-locks.md)
@@ -118,6 +128,8 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-18: Document Redaction Architecture, Regulatory Data-Handling, and Compliance Profiles](2026-08-18-document-redaction-architecture.md)
 
 ### 6. Frontend & Design System
+- [2026-07-30: Deprecate legacy econsent helper in packages ui](2026-07-30-deprecate-legacy-econsent-helper-in-packages-ui.md)
+- [2026-07-30: eConsent Visual Editor and Subject Consent Portal UI Architecture](2026-07-30-econsent-visual-editor-and-subject-consent-portal-ui-architecture.md)
 
 - [2026-07-22: ADR 2026-07-22: Modular pnpm Workspace for Frontend Development](2026-07-22-pnpm-frontend-workspace.md)
 - [2026-07-28: Hybrid ESLint and In-Memory Accessibility Auditing](2026-07-28-hybrid-eslint-and-in-memory-accessibility-auditing.md)
@@ -142,3 +154,20 @@ This document tracks all Architectural Decision Records for the Cadence Clinical
 - [2026-08-22: Shared AES-GCM Offline At-Rest Encryption and Key Derivation Contract](2026-08-22-aes-gcm-offline-at-rest-encryption.md)
 - [2026-08-22: Shared Semantic Regulated-Action Contract for Step-Up Re-Authentication](2026-08-22-move-to-shared-semantic-regulated-action-contract.md)
 - [2026-08-19: Structured Expiration Metadata and Migration Runners for eTMF/eISF](2026-08-19-etmf-eisf-structured-expiration-metadata-and-migrations.md)
+- [2026-08-23: Ticket Read Audit Policy and Paginated Audit Log Retrieval](2026-08-23-ticket-read-audit-policy-and-pagination.md)
+- [2026-08-23: Delegation of Authority Log Archive Destination and Taxonomy Mapping Decisions](2026-08-23-doa-archive-destination-and-taxonomy.md)
+- [2026-08-24: Support Tickets SLA/Overdue Escalation and Notification De-Duplication](2026-08-24-tickets-escalation-and-deduplication.md)
+- [2026-08-26: SDTM/ADaM Export Privacy: Deterministic Pseudonymization and Date De-identification](2026-08-26-sdtm-adam-export-privacy.md)
+- [2026-08-26: Durable and Idempotent eTMF Expiration Scanning Service](2026-08-26-durable-idempotent-etmf-expiration-scanner.md)
+- [2026-08-26: ADR 112: Site-Aware Synchronized Document Deduplication](2026-08-26-site-aware-synchronized-document-deduplication.md)
+- [2026-08-26: GxP Compliance Change Request Workflow](2026-08-26-gxp-compliance-change-request-workflow.md)
+- [2026-08-27: eTMF Expiration Alert Notification Dispatch and Recipient Routing](2026-08-27-etmf-expiration-notifications-dispatch.md)
+- [2026-08-27: Exposing Document Storage and Study Archival REST Endpoints](2026-08-27-document-management-and-study-archival-endpoints.md)
+- [2026-08-27: CDASH-to-SDTM Domain Mapping & Mapped Record Database Persistence](2026-08-27-cdash-to-sdtm-domain-mapping-and-persistence.md)
+- [2026-08-26: eSignature-Backed Delegation of Authority (DOA) Log and Task Delegation Service](2026-08-26-esignature-backed-doa-task-delegation-service.md)
+- [2026-08-27: Offline Data Ingestion & Sync Engine](2026-08-27-offline-data-reconciliation-integrity.md)
+- [2026-08-27: 21 CFR Part 11 Batch Electronic Signatures for PI Casebook Sign-Off](2026-08-27-prd-sys-001-compliance-batch-e-signatures.md)
+- [2026-08-28: Shared Domain Vocabulary and Authorization Foundation](2026-08-28-shared-domain-vocabulary-and-authorization-foundation.md)
+- [2026-08-28: Extend Centralized Permission Matrix for Clinical Execution](2026-08-28-extend-centralized-permission-matrix-for-execution.md)
+- [2026-08-28: Shared eSignature Foundations](2026-08-28-shared-esignature-foundations.md)
+- [2026-08-29: SDV and TSDV Endpoint Hardening, RBAC Permission Mapping, and Local Study Scope Enforcement](2026-08-29-sdv-tsdv-endpoint-hardening-rbac-study-scope.md)

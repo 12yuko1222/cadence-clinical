@@ -75,6 +75,23 @@ const routes = [
     },
   },
   {
+    path: "/icf-builder",
+    name: "icf-builder",
+    component: () => import("./views/ICFBuilderView.vue"),
+    meta: {
+      requiresAuth: false,
+    },
+  },
+  {
+    path: "/econsent-authoring",
+    name: "econsent-authoring",
+    component: () => import("./views/ConsentAuthoringView.vue"),
+    meta: {
+      requiresAuth: true,
+      requiresRole: ["sponsor_designer", "data_manager", "sponsor_admin"],
+    },
+  },
+  {
     path: "/ecrf",
     name: "ecrf",
     component: () => import("./views/EcrfView.vue"),
@@ -107,12 +124,30 @@ const routes = [
     },
   },
   {
+    path: "/auditor",
+    name: "auditor",
+    component: () => import("./views/AuditorView.vue"),
+    meta: {
+      requiresAuth: true,
+      requiresRole: ["auditor", "tmf_auditor", "sponsor_admin"],
+    },
+  },
+  {
     path: "/rules",
     name: "rules",
     component: () => import("./views/RulesView.vue"),
     meta: {
       requiresAuth: true,
       requiresRole: ["data_manager", "sponsor_admin"],
+    },
+  },
+  {
+    path: "/etmf",
+    name: "etmf",
+    component: () => import("./views/DocumentManagerView.vue"),
+    meta: {
+      requiresAuth: true,
+      requiresRole: ["cra", "monitor", "auditor", "tmf_auditor", "sponsor_admin"],
     },
   },
   {

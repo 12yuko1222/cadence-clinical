@@ -28,6 +28,14 @@ on the target database:
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS issue_date;
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS expiration_date;
      ALTER TABLE tmf_documents DROP COLUMN IF EXISTS document_owner_id;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS idempotency_key;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS correlation_key;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS content_checksum;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS source_system;
+     ALTER TABLE tmf_documents DROP COLUMN IF EXISTS sync_status;
+     ALTER TABLE tmf_audit_logs DROP COLUMN IF EXISTS reason_for_change;
+     DROP INDEX IF EXISTS ix_tmf_documents_idempotency_key;
+     DROP INDEX IF EXISTS ix_tmf_documents_correlation_key;
    - For SQLite (Since SQLite does not support dropping columns directly, rebuild the table):
      CREATE TABLE tmf_document_qc_transitions_rollback (
          id VARCHAR(36) PRIMARY KEY,
@@ -167,6 +175,7 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 CREATE TABLE IF NOT EXISTS tmf_documents_new (
                     id VARCHAR(36) PRIMARY KEY,
                     study_id VARCHAR(255) NOT NULL,
+                    idempotency_key VARCHAR(255),
                     site_id VARCHAR(255),
                     zone INTEGER NOT NULL,
                     section VARCHAR(255) NOT NULL,
@@ -196,6 +205,10 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     issue_date DATE,
                     expiration_date DATE,
                     document_owner_id VARCHAR(255),
+                    correlation_key VARCHAR(255),
+                    content_checksum VARCHAR(64),
+                    source_system VARCHAR(255),
+                    sync_status VARCHAR(50),
                     CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'))
                 );
             """)
@@ -208,6 +221,7 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             for col in [
                 "id",
                 "study_id",
+                "idempotency_key",
                 "site_id",
                 "zone",
                 "section",
@@ -237,6 +251,10 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 "issue_date",
                 "expiration_date",
                 "document_owner_id",
+                "correlation_key",
+                "content_checksum",
+                "source_system",
+                "sync_status",
             ]:
                 if col in cols_present:
                     select_parts.append(col)
@@ -259,12 +277,12 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             await conn.execute(
                 text(f"""
                 INSERT INTO tmf_documents_new (
-                    id, study_id, site_id, zone, section, artifact_type, filename, content, mime_type,
+                    id, study_id, idempotency_key, site_id, zone, section, artifact_type, filename, content, mime_type,
                     created_at, created_by, version_index, status, taxonomy_version, artifact_code,
                     metadata_json, reason_for_change, protocol_version_tag, protocol_version_index, protocol_version_status,
                     document_type, approval_status, signature_manifestation, signer,
                     signing_timestamp, is_redacted, redaction_source_id, redaction_manifest_json,
-                    issue_date, expiration_date, document_owner_id
+                    issue_date, expiration_date, document_owner_id, correlation_key, content_checksum, source_system, sync_status
                 )
                 SELECT {select_sql}
                 FROM tmf_documents;
@@ -280,6 +298,11 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             await conn.execute(
                 text(
                     "CREATE INDEX IF NOT EXISTS ix_tmf_documents_study_id ON tmf_documents (study_id);"
+                )
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_idempotency_key ON tmf_documents (idempotency_key);"
                 )
             )
             await conn.execute(
@@ -327,6 +350,11 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                     "CREATE INDEX IF NOT EXISTS ix_tmf_documents_document_owner_id ON tmf_documents (document_owner_id);"
                 )
             )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_tmf_documents_correlation_key ON tmf_documents (correlation_key);"
+                )
+            )
 
         elif dialect_name == "postgresql":
             # Add site_id column to PostgreSQL table if missing
@@ -339,6 +367,20 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                 await conn.execute(
                     text(
                         "CREATE INDEX IF NOT EXISTS ix_tmf_documents_site_id ON tmf_documents (site_id);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(255);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_documents_idempotency_key ON tmf_documents (idempotency_key);"
                     )
                 )
             except Exception:
@@ -412,6 +454,47 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
             except Exception:
                 pass
 
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS correlation_key VARCHAR(255);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_documents_correlation_key ON tmf_documents (correlation_key);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS content_checksum VARCHAR(64);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS source_system VARCHAR(255);"
+                    )
+                )
+            except Exception:
+                pass
+
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_documents ADD COLUMN IF NOT EXISTS sync_status VARCHAR(50);"
+                    )
+                )
+            except Exception:
+                pass
+
             # Attempt to add check constraint if missing
             try:
                 res_const = await conn.execute(
@@ -428,6 +511,141 @@ async def upgrade_existing_tables(conn, dialect_name: str) -> None:
                         CHECK (status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED'));
                     """)
                     )
+            except Exception:
+                pass
+
+    # 3. Upgrade and Backfill tmf_document_expiration_alert_states table
+    has_alert_states = await conn.run_sync(
+        lambda sc: inspect(sc).has_table("tmf_document_expiration_alert_states")
+    )
+    if has_alert_states:
+        alert_cols = await conn.run_sync(
+            lambda sc: get_table_columns(sc, "tmf_document_expiration_alert_states")
+        )
+        if "dispatched" not in alert_cols:
+            if dialect_name == "sqlite":
+                print(
+                    "[Migration] Rebuilding tmf_document_expiration_alert_states for SQLite..."
+                )
+                await conn.execute(
+                    text("""
+                    CREATE TABLE IF NOT EXISTS tmf_document_expiration_alert_states_new (
+                        id VARCHAR(36) PRIMARY KEY,
+                        document_id VARCHAR(36) NOT NULL,
+                        warning_window VARCHAR(50) NOT NULL,
+                        alerted_at DATETIME NOT NULL,
+                        dispatched BOOLEAN NOT NULL DEFAULT 0,
+                        notification_id VARCHAR(255),
+                        attempts INTEGER NOT NULL DEFAULT 0,
+                        last_error VARCHAR(1000),
+                        created_at DATETIME NOT NULL,
+                        created_by VARCHAR(255) NOT NULL,
+                        reason_for_change VARCHAR(1000) NOT NULL,
+                        version_index INTEGER NOT NULL,
+                        FOREIGN KEY (document_id) REFERENCES tmf_documents(id) ON DELETE CASCADE,
+                        UNIQUE (document_id, warning_window)
+                    );
+                """)
+                )
+
+                await conn.execute(
+                    text("""
+                    INSERT INTO tmf_document_expiration_alert_states_new (
+                        id, document_id, warning_window, alerted_at, dispatched, notification_id, attempts, last_error,
+                        created_at, created_by, reason_for_change, version_index
+                    )
+                    SELECT id, document_id, warning_window, alerted_at, 0, NULL, 0, NULL,
+                           created_at, created_by, reason_for_change, version_index
+                    FROM tmf_document_expiration_alert_states;
+                """)
+                )
+
+                await conn.execute(
+                    text("DROP TABLE tmf_document_expiration_alert_states;")
+                )
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_document_expiration_alert_states_new RENAME TO tmf_document_expiration_alert_states;"
+                    )
+                )
+
+                # Recreate indices
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_document_id ON tmf_document_expiration_alert_states (document_id);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_warning_window ON tmf_document_expiration_alert_states (warning_window);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_dispatched ON tmf_document_expiration_alert_states (dispatched);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_notification_id ON tmf_document_expiration_alert_states (notification_id);"
+                    )
+                )
+
+            elif dialect_name == "postgresql":
+                print(
+                    "[Migration] Setting constraints for PostgreSQL dialect on tmf_document_expiration_alert_states..."
+                )
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_document_expiration_alert_states ADD COLUMN IF NOT EXISTS dispatched BOOLEAN NOT NULL DEFAULT FALSE;"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_document_expiration_alert_states ADD COLUMN IF NOT EXISTS notification_id VARCHAR(255);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_document_expiration_alert_states ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0;"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_document_expiration_alert_states ADD COLUMN IF NOT EXISTS last_error VARCHAR(1000);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_dispatched ON tmf_document_expiration_alert_states (dispatched);"
+                    )
+                )
+                await conn.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS ix_tmf_document_expiration_alert_states_notification_id ON tmf_document_expiration_alert_states (notification_id);"
+                    )
+                )
+
+        # For tmf_audit_logs, add nullable column reason_for_change
+        if dialect_name == "sqlite":
+            # Rebuild is optional, but SQLite's ALTER TABLE supports adding nullable columns directly!
+            # Let's check if reason_for_change exists in tmf_audit_logs first.
+            audit_cols = await conn.run_sync(
+                lambda sc: get_table_columns(sc, "tmf_audit_logs")
+            )
+            if audit_cols and "reason_for_change" not in audit_cols:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_audit_logs ADD COLUMN reason_for_change VARCHAR(1000);"
+                    )
+                )
+        elif dialect_name == "postgresql":
+            try:
+                await conn.execute(
+                    text(
+                        "ALTER TABLE tmf_audit_logs ADD COLUMN IF NOT EXISTS reason_for_change VARCHAR(1000);"
+                    )
+                )
             except Exception:
                 pass
 

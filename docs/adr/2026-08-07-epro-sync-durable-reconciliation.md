@@ -1,9 +1,10 @@
-# ADR-058: ePRO Sync Durable Reconciliation, Defeated Record Retention, and Structural Queries
+# ADR-116: ePRO Sync Durable Reconciliation, Defeated Record Retention, and Structural Queries
 
 * **Status:** Accepted
 * **Date:** 2026-08-07
 * **Authors:** @fderuiter
 * **Deciders:** @fderuiter
+* **GitHub Issue:** #389
 
 ---
 
@@ -48,8 +49,10 @@ This decision implements requirements under Trace-9.
 ## 5. Consequences & Trade-offs
 * **Positive Impact:** Full 21 CFR Part 11 traceability. Defeated inputs are easily reviewable by clinical staff. Structural errors (ghost submissions) instantly raise highly visible clinical queries for correction.
 * **Negative Impact / Technical Debt:** Marginal increase in relational database schema footprint.
+* **AES-GCM at-rest Encryption Boundary**: Client-side AES-GCM encryption and per-record signatures on the local queue (IndexedDB) are explicitly out of scope for the current delivery and tracked as pending future work under #389. This preserves the ownership boundary of Subject Portal capture ➔ Interop reconciliation ➔ CTMS online monitoring, focusing current interop delivery on server-side reconciliation and query generation.
 * **Mitigation Strategy:** Automated unit and integration tests run on every build to guarantee database migrations and constraints remain correct.
 
 ## 6. Implementation & Verification
 * **Affected Repositories / Services:** Interop microservice (`apps/interop/`).
 * **Verification Plan:** Verified via `tests/test_interop_defeated.py` validating correct persistence of defeated inputs on conflict scenarios, and robust handling of structural sync conflicts (rejection, query opening, exception logging).
+* **Pending/Future Scope Verification**: Client-side IndexedDB AES-GCM encryption and local signature manifestation verification are deferred to #389 and excluded from current automated testing.

@@ -3,12 +3,15 @@ import hashlib
 import hmac
 import os
 import time
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Optional, Union
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
+
+if TYPE_CHECKING:
+    from packages.security.permissions import PermissionEnum
 
 from packages.security.context import (
     current_change_reason,
@@ -127,9 +130,11 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             app: The ASGI application to wrap.
         """
         super().__init__(app)
-        self.gateway_secret = os.getenv(
-            "GATEWAY_SECRET", "internal-gateway-secret-12345"
-        ).encode()
+
+    @property
+    def gateway_secret(self) -> bytes:
+        """Dynamically resolve gateway secret from environment to support runtime configuration and test overrides."""
+        return os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345").encode()
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -204,13 +209,16 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Change reason exceeds 255 characters"},
             )
 
-        # Retrieve optional scope headers from API gateway
-        site_id = request.headers.get("X-Site-Id")
-        sponsor_id = request.headers.get("X-Sponsor-Id")
-        unblinded_header = request.headers.get("X-Unblinded-Access", "")
-        unblinded_access = False
-        if unblinded_header.lower() in ("true", "1", "yes"):
-            unblinded_access = True
+        # Retrieve optional scope headers from API gateway and normalize them using the shared helper
+        from packages.security.signing import normalize_scope_values
+
+        raw_site_id = request.headers.get("X-Site-Id")
+        raw_sponsor_id = request.headers.get("X-Sponsor-Id")
+        raw_unblinded = request.headers.get("X-Unblinded-Access")
+
+        site_id, sponsor_id, unblinded_access = normalize_scope_values(
+            raw_site_id, raw_sponsor_id, raw_unblinded
+        )
 
         # Extract tenant identity and apply least-privilege migration policy (default to tenant_default)
         tenant_id = request.headers.get("X-Tenant-Id")
@@ -361,8 +369,16 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
                         },
                     )
 
+        from packages.security.permissions import (
+            get_permissions_for_roles,
+        )
+
+        role_list = [r.strip() for r in (roles or "").split(",") if r.strip()]
+        granted_permissions = get_permissions_for_roles(role_list)
+
         request.state.user_id = user_id
         request.state.roles = roles
+        request.state.permissions = granted_permissions
         request.state.change_reason = change_reason
         request.state.site_id = site_id
         request.state.sponsor_id = sponsor_id
@@ -407,3 +423,64 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
             current_sponsor_id.reset(sponsor_token)
             current_unblinded_access.reset(unblinded_token)
             current_tenant_id.reset(tenant_token)
+
+
+def require_gateway_permission(required_permission: "PermissionEnum") -> Callable:
+    """FastAPI route dependency to enforce a specific granular PermissionEnum.
+
+    Args:
+        required_permission: PermissionEnum required to execute the endpoint.
+
+    Returns:
+        Callable FastAPI dependency function.
+    """
+
+    async def _dependency(request: Request) -> None:
+        permissions = getattr(request.state, "permissions", set())
+        if required_permission not in permissions:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: Missing required permission '{required_permission.value}'",
+            )
+
+    return _dependency
+
+
+async def get_current_user(request: Request) -> dict:
+    """FastAPI dependency extracting current user identity from request context or headers.
+
+    Raises 401 Unauthorized if no user identity or authorization header is present.
+    """
+    from fastapi import HTTPException
+
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id and hasattr(request, "headers"):
+        user_id = request.headers.get("X-User-Id") or request.headers.get("x-user-id")
+
+    auth_header = (
+        request.headers.get("Authorization") if hasattr(request, "headers") else None
+    )
+
+    if not user_id and not auth_header:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Missing user identity or authorization header",
+        )
+
+    roles = getattr(request.state, "roles", "")
+    if isinstance(roles, str):
+        role_list = [r.strip() for r in roles.split(",") if r.strip()]
+    else:
+        role_list = list(roles)
+
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if not tenant_id and hasattr(request, "headers"):
+        tenant_id = request.headers.get("X-Tenant-Id", "tenant_default")
+
+    return {
+        "sub": user_id or "authenticated_user",
+        "roles": role_list,
+        "tenant_id": tenant_id or "tenant_default",
+    }

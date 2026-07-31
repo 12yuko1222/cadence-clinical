@@ -1,0 +1,101 @@
+"""Field-Level Data Masking and Blinded Data Protection for Execution Service.
+
+Provides fine-grained data masking helpers for Clinical Observations, Subject Data,
+and RTSM Randomization Records based on granular PermissionEnum and unblinded access claims.
+
+Requirements: PRD-SYS-001, 21 CFR Part 11
+"""
+
+from typing import Any, Dict, List, Set
+
+from packages.security.permissions import PermissionEnum
+
+# Fields subject to unblinded access protection (blinded treatment arms, doses, kit numbers)
+BLINDED_TREATMENT_FIELDS: Set[str] = {
+    "treatment_arm",
+    "unblinded_dose",
+    "kit_number",
+    "randomization_code",
+    "investigational_product_batch",
+}
+
+# Fields subject to PII/PHI redaction
+PII_PHI_FIELDS: Set[str] = {
+    "ssn",
+    "social_security_number",
+    "first_name",
+    "last_name",
+    "full_name",
+    "phone_number",
+    "email_address",
+    "home_address",
+}
+
+MASKED_REPLACEMENT_TEXT = "***MASKED***"
+
+
+def mask_clinical_record(
+    record: Dict[str, Any],
+    permissions: Set[PermissionEnum],
+    unblinded_access: bool = False,
+) -> Dict[str, Any]:
+    """Mask sensitive blinded fields and PII in a single clinical record dictionary.
+
+    Args:
+        record: Dictionary representation of a clinical observation or subject record.
+        permissions: Set of PermissionEnum members assigned to the caller.
+        unblinded_access: True if explicit unblinded access claim is active.
+
+    Returns:
+        Masked record dictionary.
+    """
+    masked_record = dict(record)
+
+    can_unblind = unblinded_access or (PermissionEnum.EXPERT_UNBLIND in permissions)
+
+    for field_name, value in list(masked_record.items()):
+        if value is None:
+            continue
+
+        lower_field = field_name.lower()
+
+        # Blinded treatment fields masking
+        if lower_field in BLINDED_TREATMENT_FIELDS and not can_unblind:
+            masked_record[field_name] = MASKED_REPLACEMENT_TEXT
+
+        # PII/PHI fields masking
+        elif lower_field in PII_PHI_FIELDS:
+            masked_record[field_name] = MASKED_REPLACEMENT_TEXT
+
+        # Handle nested dictionary or list items
+        elif isinstance(value, dict):
+            masked_record[field_name] = mask_clinical_record(
+                value, permissions, unblinded_access
+            )
+        elif isinstance(value, list):
+            masked_record[field_name] = [
+                mask_clinical_record(item, permissions, unblinded_access)
+                if isinstance(item, dict)
+                else item
+                for item in value
+            ]
+
+    return masked_record
+
+
+def mask_clinical_records_list(
+    records: List[Dict[str, Any]],
+    permissions: Set[PermissionEnum],
+    unblinded_access: bool = False,
+) -> List[Dict[str, Any]]:
+    """Mask sensitive blinded fields and PII across a list of clinical records.
+
+    Args:
+        records: List of record dictionaries.
+        permissions: Set of PermissionEnum members assigned to caller.
+        unblinded_access: True if explicit unblinded access claim is active.
+
+    Returns:
+        List of masked record dictionaries.
+    """
+    return [mask_clinical_record(rec, permissions, unblinded_access) for rec in records]

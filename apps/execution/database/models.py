@@ -16,8 +16,15 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, validates
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    validates,
+    relationship,
+)
 
+from sqlalchemy import event, inspect
 from apps.execution.subject_lifecycle import (
     LockedFactorMutationError,
     guard_subject_transition,
@@ -178,6 +185,7 @@ class ClinicalSubject(AuditedModel):
     unblinded_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     unblinded_by: Mapped[str] = mapped_column(String(255), nullable=True)
     unblinded_reason: Mapped[str] = mapped_column(String(1000), nullable=True)
+    unblinded_signature: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     withdrawn_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     withdrawal_reason: Mapped[str] = mapped_column(String(1000), nullable=True)
     randomization_id: Mapped[str] = mapped_column(String(36), nullable=True)
@@ -261,6 +269,102 @@ class SubjectConsent(AuditedModel):
     requires_reconsent: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
+
+
+class ConsentFormRecord(AuditedModel):
+    """Represents an eConsent form record bound to a specific ICF version.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "consent_form_records"
+
+    subject_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    icf_version_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    printed_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    relationship_to_subject: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+    signature_svg: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    otp_auth_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False)
+    signed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class ConsentSignature(AuditedModel):
+    """Represents a GxP 21 CFR Part 11 compliant consent signature.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "consent_signatures"
+
+    subject_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    icf_version_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    printed_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    signature_svg_data: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    signature_svg: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    otp_auth_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    meaning: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        default="I agree to participate in this research study",
+    )
+    cryptographic_token: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
+    verification_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    signed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(50), default="SIGNED", nullable=False)
+    created_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, server_default=func.now(), nullable=True
+    )
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reason_for_change: Mapped[Optional[str]] = mapped_column(
+        String(1000), nullable=True
+    )
+
+
+@event.listens_for(ConsentSignature, "before_update")
+def lock_consent_signature_update(mapper, connection, target):
+    raise ValueError("Cannot modify signed consent records")
+
+
+@event.listens_for(ConsentSignature, "before_delete")
+def lock_consent_signature_delete(mapper, connection, target):
+    raise ValueError("Cannot delete consent records")
+
+
+@event.listens_for(ConsentFormRecord, "before_update")
+def lock_consent_form_record_update(mapper, connection, target):
+    from sqlalchemy.orm.attributes import get_history
+
+    state = inspect(target)
+    status_history = get_history(target, "status")
+    was_signed = "SIGNED" in status_history.deleted
+
+    is_currently_signed = getattr(target, "status") == "SIGNED"
+    is_transitioning_to_signed = (
+        is_currently_signed and "PENDING" in status_history.deleted
+    )
+
+    if was_signed or (is_currently_signed and not is_transitioning_to_signed):
+        new_status = getattr(target, "status")
+        if new_status != "RECONSENT_REQUIRED":
+            raise ValueError("Cannot modify signed consent records")
+        # Ensure immutable fields are not modified
+        for field in ("subject_id", "icf_version_id"):
+            if get_history(target, field).has_changes():
+                raise ValueError("Cannot modify signed consent records")
+
+
+@event.listens_for(ConsentFormRecord, "before_delete")
+def lock_consent_form_record_delete(mapper, connection, target):
+    raise ValueError("Cannot delete consent records")
 
 
 class ClinicalVisit(AuditedModel):
@@ -852,6 +956,7 @@ class StratumState(AuditedModel):
             "study_id", "stratum_key", name="uq_stratum_state_study_stratum"
         ),
     )
+    __mapper_args__ = {"version_id_col": AuditedModel.version}
 
     study_id: Mapped[str] = mapped_column(String(255), nullable=False)
     stratum_key: Mapped[str] = mapped_column(
@@ -882,6 +987,21 @@ class SubjectRandomization(AuditedModel):
         String(255), nullable=True
     )  # trial kit/IP reference
     randomized_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+
+class AllocationKeyMetadata(AuditedModel):
+    """Acts as a key-metadata store for derived RTSM allocation keys."""
+
+    __tablename__ = "allocation_key_metadata"
+    __table_args__ = (
+        UniqueConstraint("key_version", name="uq_allocation_key_metadata_version"),
+    )
+
+    key_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    salt: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), nullable=False
     )
 
@@ -1062,3 +1182,161 @@ class MigrationRule(AuditedModel):
     target_field: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     default_value_string: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     default_value_float: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+
+class ComplianceChangeRequest(AuditedModel):
+    """Represents a GxP-regulated compliance change request.
+
+    Maintains a multi-approver workflow for system settings and policy updates.
+    """
+
+    __tablename__ = "compliance_change_requests"
+
+    setting_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    old_value: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    new_value: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    requested_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason: Mapped[str] = mapped_column(String(1000), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(50), default="PENDING_APPROVAL", nullable=False
+    )
+    impact_assessment: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    signatures: Mapped[list["ChangeApprovalSignature"]] = relationship(
+        "ChangeApprovalSignature",
+        primaryjoin="ComplianceChangeRequest.id == foreign(ChangeApprovalSignature.change_request_id)",
+        back_populates="change_request",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class ChangeApprovalSignature(AuditedModel):
+    """Represents a cryptographic/electronic approval signature for a change request."""
+
+    __tablename__ = "change_approval_signatures"
+    __table_args__ = (
+        UniqueConstraint("signature_token", name="uq_change_approval_signature_token"),
+    )
+
+    change_request_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    approver_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    signature_token: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(255), nullable=False)
+    signed_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+    change_request: Mapped["ComplianceChangeRequest"] = relationship(
+        "ComplianceChangeRequest",
+        primaryjoin="foreign(ChangeApprovalSignature.change_request_id) == ComplianceChangeRequest.id",
+        back_populates="signatures",
+        uselist=False,
+    )
+
+
+class ComprehensionQuizResult(AuditedModel):
+    """Represents a subject's comprehension evaluation result."""
+
+    __tablename__ = "comprehension_quiz_results"
+
+    subject_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    icf_version_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    passed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+
+class SyncedBatchIdempotencyKey(Base):
+    """Represents a unique client batch synchronization token for idempotency.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "synced_batch_idempotency_keys"
+
+    client_batch_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    processed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    processed_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+
+class SDTMDomainRecord(AuditedModel):
+    """Represents a transformed, strongly-typed, validated SDTM domain record in the database."""
+
+    __tablename__ = "sdtm_domain_records"
+
+    study_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    domain: Mapped[str] = mapped_column(String(50), nullable=False)
+    usubjid: Mapped[str] = mapped_column(String(255), nullable=False)
+    record_data: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
+class SiteStaffMember(AuditedModel):
+    """Represents a clinical trial site staff member for delegation tracking.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "site_staff_members"
+
+    site_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    staff_user_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    has_gcp_training: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+
+class DOADelegationRecord(AuditedModel):
+    """Represents a Delegation of Authority (DOA) task delegation record.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "doa_delegation_records"
+
+    site_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    staff_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    task_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(50), default="PENDING_PI_APPROVAL", nullable=False
+    )
+    pi_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason_for_change: Mapped[str] = mapped_column(String(1000), nullable=False)
+    pi_approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    pi_signature_hash: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    end_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class DOAAuditLog(Base):
+    """Represents an append-only audit trail for DOA delegation operations.
+
+    Requirements: PRD-SYS-001
+    """
+
+    __tablename__ = "doa_audit_logs"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    details: Mapped[str] = mapped_column(String(1000), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+
+class ProcessedOfflineBatch(Base):
+    """Represents a processed offline batch record for idempotency tracking."""
+
+    __tablename__ = "processed_offline_batches"
+
+    client_batch_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())

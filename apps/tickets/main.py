@@ -3,16 +3,21 @@ FastAPI application for the Tickets microservice.
 """
 
 import asyncio
+import logging
 import os
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.tickets.database import db_manager
+from apps.tickets.escalation import (
+    start_background_ticket_escalation,
+    stop_background_ticket_escalation,
+)
 from apps.tickets.models import (
     TERMINAL_STATES,
     TICKET_TRANSITIONS,
@@ -24,7 +29,15 @@ from apps.tickets.models import (
     TicketPriority,
     TicketStatus,
 )
+from apps.tickets.models.diff_models import (
+    RegulatoryRiskAssessment,
+    SettingDiffEntry,
+)
+from apps.tickets.notification_events import generate_ticket_notification_payloads
+from apps.tickets.notifications_client import publish_notification
+from apps.tickets.services.change_analyzer import SettingChangeAnalyzer
 from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
+from packages.security.context import audit_context
 from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import (
     Principal,
@@ -33,6 +46,8 @@ from packages.security.rbac import (
     get_principal,
     verify_not_auditor,
 )
+
+TICKET_ESCALATE = "TICKET_ESCALATE"
 
 
 class TicketCreate(BaseModel):
@@ -184,7 +199,98 @@ class TicketAuditLogResponse(BaseModel):
     record_id: Optional[str] = None
 
 
+class PaginatedTicketAuditLogResponse(BaseModel):
+    """
+    Paginated representation of ticket audit trail logs.
+    """
+
+    items: List[TicketAuditLogResponse]
+    total_count: int
+    limit: int
+    offset: int
+    has_more: bool
+    next_page: Optional[str] = None
+    next_cursor: Optional[str] = None
+
+
 DATABASE_URL = os.getenv("TICKETS_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
+
+logger = logging.getLogger("tickets-notifications-client")
+
+
+async def dispatch_ticket_notifications(
+    ticket_id: str,
+    reference: str,
+    assignee_user: Optional[str],
+    assignee_role: Optional[str],
+    reporter: str,
+    version_index: int,
+    event_type: str,
+    actor_id: str,
+    change_reason: Optional[str],
+    old_status: Optional[str] = None,
+    new_status: Optional[str] = None,
+    comment_body: Optional[str] = None,
+) -> None:
+    """
+    Background task to generate and publish notifications for ticket events.
+    Does not touch the active SQLAlchemy session, operating on captured committed values.
+    Swallows and logs any exception.
+    """
+    try:
+
+        class CommittedTicket:
+            def __init__(
+                self,
+                id,
+                reference,
+                assignee_user,
+                assignee_role,
+                reporter,
+                version_index,
+            ):
+                self.id = id
+                self.reference = reference
+                self.assignee_user = assignee_user
+                self.assignee_role = assignee_role
+                self.reporter = reporter
+                self.version_index = version_index
+
+        ticket = CommittedTicket(
+            id=ticket_id,
+            reference=reference,
+            assignee_user=assignee_user,
+            assignee_role=assignee_role,
+            reporter=reporter,
+            version_index=version_index,
+        )
+
+        with audit_context(user_id=actor_id, change_reason=change_reason):
+            payloads = generate_ticket_notification_payloads(
+                ticket,
+                event_type,
+                old_status=old_status,
+                new_status=new_status,
+                comment_body=comment_body,
+            )
+            for payload in payloads:
+                try:
+                    await publish_notification(payload)
+                except Exception as e:
+                    logger.error(
+                        "Error publishing ticket notification payload for ticket %s: %s",
+                        ticket_id,
+                        e,
+                        exc_info=True,
+                    )
+    except Exception as e:
+        logger.error(
+            "Error building/dispatching ticket notifications for ticket %s: %s",
+            ticket_id,
+            e,
+            exc_info=True,
+        )
 
 
 app = FastAPI(
@@ -194,6 +300,8 @@ app = FastAPI(
         db_manager=db_manager,
         database_url=DATABASE_URL,
         base_metadata=Base.metadata,
+        startup_hooks=[start_background_ticket_escalation],
+        shutdown_hooks=[stop_background_ticket_escalation],
     ),
 )
 
@@ -202,18 +310,6 @@ app.add_middleware(GatewayAuthMiddleware)
 
 # Dependable to obtain database session
 get_db_session = DatabaseSessionDependency(db_manager)
-
-
-def get_user_context(request: Request):
-    """
-    Helper to extract user identity headers parsed by GatewayAuthMiddleware.
-    """
-    user_id = getattr(request.state, "user_id", "system")
-    user_role = request.headers.get("X-User-Roles", "system")
-    change_reason = getattr(
-        request.state, "change_reason", None
-    ) or request.headers.get("X-Change-Reason")
-    return user_id, user_role, change_reason
 
 
 async def write_ticket_audit_log(
@@ -501,16 +597,42 @@ async def list_tickets(
 
 
 # Audit Logs Retrieval Endpoint
-@app.get("/api/v1/tickets/audit-logs", response_model=List[TicketAuditLogResponse])
+@app.get("/api/v1/tickets/audit-logs", response_model=PaginatedTicketAuditLogResponse)
 async def list_ticket_audit_logs(
     request: Request,
     ticket_id: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=250),
+    offset: int = Query(0, ge=0),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
+    principal: Principal = Depends(get_principal),
     session: AsyncSession = Depends(get_db_session),
-) -> List[TicketAuditLogResponse]:
+) -> PaginatedTicketAuditLogResponse:
     """
     Retrieve ticket audit logs in descending chronological order.
     """
-    user_id, user_role, change_reason = get_user_context(request)
+    user_id = principal.user_id
+    change_reason = principal.change_reason
+
+    actual_ticket_id = None
+    if ticket_id:
+        ticket_stmt = select(Ticket).where(
+            (Ticket.id == ticket_id) | (Ticket.reference == ticket_id)
+        )
+        ticket_res = await session.execute(ticket_stmt)
+        ticket = ticket_res.scalars().first()
+        if not ticket:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Ticket with ID/reference '{ticket_id}' not found.",
+            )
+        actual_ticket_id = ticket.id
+        # Apply site scope check
+        if ticket.site_id and not can_access_site(principal, ticket.site_id):
+            raise HTTPException(
+                status_code=403,
+                detail="Forbidden: Insufficient scope access for this site.",
+            )
 
     # Note: Recording self-auditing list action first so it is included in the query result.
     await write_ticket_audit_log(
@@ -518,20 +640,51 @@ async def list_ticket_audit_logs(
         user_id=user_id,
         action="TICKET_AUDIT_LOG_LIST",
         details="Listed ticket audit logs.",
-        ticket_id=ticket_id,
+        ticket_id=actual_ticket_id or ticket_id,
         change_reason=change_reason,
         version_index=1,
     )
 
+    # Build filters dynamically
+    filters = []
+    if actual_ticket_id:
+        filters.append(TicketAuditLog.ticket_id == actual_ticket_id)
+    else:
+        site_scoped_roles = {"investigator", "crc", "cra", "external_monitor"}
+        is_site_scoped = any(role in site_scoped_roles for role in principal.roles)
+
+        if is_site_scoped or principal.assigned_sites:
+            if principal.assigned_sites:
+                subq = select(Ticket.id).where(
+                    Ticket.site_id.in_(principal.assigned_sites)
+                )
+                filters.append(TicketAuditLog.ticket_id.in_(subq))
+            else:
+                filters.append(1 == 0)
+
+    if start_time:
+        filters.append(TicketAuditLog.created_at >= start_time)
+    if end_time:
+        filters.append(TicketAuditLog.created_at <= end_time)
+
+    # Count total matching rows
+    count_stmt = select(func.count(TicketAuditLog.id)).select_from(TicketAuditLog)
+    for f in filters:
+        count_stmt = count_stmt.where(f)
+    count_res = await session.execute(count_stmt)
+    total_count = count_res.scalar() or 0
+
+    # Retrieve paginated matching records
     stmt = select(TicketAuditLog)
-    if ticket_id:
-        stmt = stmt.where(TicketAuditLog.ticket_id == ticket_id)
-    stmt = stmt.order_by(TicketAuditLog.created_at.desc())
+    for f in filters:
+        stmt = stmt.where(f)
+    stmt = stmt.order_by(TicketAuditLog.created_at.desc(), TicketAuditLog.id.desc())
+    stmt = stmt.offset(offset).limit(limit)
 
     result = await session.execute(stmt)
     logs = result.scalars().all()
 
-    return [
+    items = [
         TicketAuditLogResponse(
             id=log.id,
             ticket_id=log.ticket_id,
@@ -545,6 +698,16 @@ async def list_ticket_audit_logs(
         )
         for log in logs
     ]
+
+    has_more = (offset + limit) < total_count
+
+    return PaginatedTicketAuditLogResponse(
+        items=items,
+        total_count=total_count,
+        limit=limit,
+        offset=offset,
+        has_more=has_more,
+    )
 
 
 @app.get("/api/v1/tickets/{id}", response_model=TicketResponse)
@@ -600,6 +763,7 @@ async def update_ticket(
     request: Request,
     id: str,
     payload: TicketUpdate,
+    background_tasks: BackgroundTasks,
     principal: Principal = Depends(get_principal),
     _not_auditor=Depends(verify_not_auditor),
     session: AsyncSession = Depends(get_db_session),
@@ -661,6 +825,33 @@ async def update_ticket(
                 detail=f"Invalid transition from {current_status} to {target_status}.",
             )
 
+    # Detect assignment diff and status change
+    has_assignment_diff = False
+    if (
+        payload.assignee_user is not None
+        and payload.assignee_user != ticket.assignee_user
+    ):
+        has_assignment_diff = True
+    if (
+        payload.assignee_role is not None
+        and payload.assignee_role != ticket.assignee_role
+    ):
+        has_assignment_diff = True
+
+    has_status_change = False
+    old_status_str = (
+        current_status.value
+        if hasattr(current_status, "value")
+        else str(current_status)
+    )
+    if payload.status is not None and payload.status != ticket.status:
+        has_status_change = True
+        new_status_str = (
+            payload.status.value
+            if hasattr(payload.status, "value")
+            else str(payload.status)
+        )
+
     # Track audit details
     assignment_changes = []
     if (
@@ -716,6 +907,37 @@ async def update_ticket(
         version_index=ticket.version_index,
     )
 
+    # Enqueue notification dispatches
+    if has_assignment_diff:
+        background_tasks.add_task(
+            dispatch_ticket_notifications,
+            ticket_id=ticket.id,
+            reference=ticket.reference,
+            assignee_user=ticket.assignee_user,
+            assignee_role=ticket.assignee_role,
+            reporter=ticket.reporter,
+            version_index=ticket.version_index,
+            event_type="assignment",
+            actor_id=user_id,
+            change_reason=change_reason,
+        )
+
+    if has_status_change:
+        background_tasks.add_task(
+            dispatch_ticket_notifications,
+            ticket_id=ticket.id,
+            reference=ticket.reference,
+            assignee_user=ticket.assignee_user,
+            assignee_role=ticket.assignee_role,
+            reporter=ticket.reporter,
+            version_index=ticket.version_index,
+            event_type="transition",
+            actor_id=user_id,
+            change_reason=change_reason,
+            old_status=old_status_str,
+            new_status=new_status_str,
+        )
+
     return map_ticket_to_response(ticket)
 
 
@@ -724,6 +946,7 @@ async def transition_ticket(
     request: Request,
     id: str,
     payload: TicketTransitionPayload,
+    background_tasks: BackgroundTasks,
     principal: Principal = Depends(get_principal),
     _not_auditor=Depends(verify_not_auditor),
     session: AsyncSession = Depends(get_db_session),
@@ -778,6 +1001,15 @@ async def transition_ticket(
                 detail=f"Invalid transition from {current_status} to {target_status}.",
             )
 
+    old_status_str = (
+        current_status.value
+        if hasattr(current_status, "value")
+        else str(current_status)
+    )
+    new_status_str = (
+        target_status.value if hasattr(target_status, "value") else str(target_status)
+    )
+
     # Record details for auditing before we modify the model
     actor_roles = ", ".join(principal.roles)
     audit_details = (
@@ -808,6 +1040,21 @@ async def transition_ticket(
         version_index=ticket.version_index,
     )
 
+    background_tasks.add_task(
+        dispatch_ticket_notifications,
+        ticket_id=ticket.id,
+        reference=ticket.reference,
+        assignee_user=ticket.assignee_user,
+        assignee_role=ticket.assignee_role,
+        reporter=ticket.reporter,
+        version_index=ticket.version_index,
+        event_type="transition",
+        actor_id=user_id,
+        change_reason=change_reason,
+        old_status=old_status_str,
+        new_status=new_status_str,
+    )
+
     return map_ticket_to_response(ticket)
 
 
@@ -816,6 +1063,7 @@ async def assign_ticket(
     request: Request,
     id: str,
     payload: TicketAssignPayload,
+    background_tasks: BackgroundTasks,
     principal: Principal = Depends(get_principal),
     _not_auditor=Depends(verify_not_auditor),
     session: AsyncSession = Depends(get_db_session),
@@ -921,6 +1169,19 @@ async def assign_ticket(
         version_index=ticket.version_index,
     )
 
+    background_tasks.add_task(
+        dispatch_ticket_notifications,
+        ticket_id=ticket.id,
+        reference=ticket.reference,
+        assignee_user=ticket.assignee_user,
+        assignee_role=ticket.assignee_role,
+        reporter=ticket.reporter,
+        version_index=ticket.version_index,
+        event_type="assignment",
+        actor_id=user_id,
+        change_reason=change_reason,
+    )
+
     return map_ticket_to_response(ticket)
 
 
@@ -932,12 +1193,16 @@ async def create_ticket_comment(
     request: Request,
     id: str,
     payload: CommentCreate,
+    background_tasks: BackgroundTasks,
+    principal: Principal = Depends(get_principal),
+    _not_auditor=Depends(verify_not_auditor),
     session: AsyncSession = Depends(get_db_session),
 ) -> CommentResponse:
     """
     Append an auditable comment/note to a specific ticket.
     """
-    user_id, user_role, change_reason = get_user_context(request)
+    user_id = principal.user_id
+    change_reason = principal.change_reason
     if not change_reason:
         raise HTTPException(
             status_code=403, detail="Missing change justification reason"
@@ -949,6 +1214,13 @@ async def create_ticket_comment(
     ticket = ticket_res.scalars().first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket with ID '{id}' not found.")
+
+    # Validate site scope access
+    if ticket.site_id and not can_access_site(principal, ticket.site_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient scope access for this site.",
+        )
 
     comment = TicketComment(
         ticket_id=id,
@@ -972,6 +1244,20 @@ async def create_ticket_comment(
         version_index=1,
     )
 
+    background_tasks.add_task(
+        dispatch_ticket_notifications,
+        ticket_id=ticket.id,
+        reference=ticket.reference,
+        assignee_user=ticket.assignee_user,
+        assignee_role=ticket.assignee_role,
+        reporter=ticket.reporter,
+        version_index=ticket.version_index,
+        event_type="comment",
+        actor_id=user_id,
+        change_reason=change_reason,
+        comment_body=comment.body,
+    )
+
     return CommentResponse(
         id=comment.id,
         ticket_id=comment.ticket_id,
@@ -987,12 +1273,14 @@ async def create_ticket_comment(
 async def list_ticket_comments(
     request: Request,
     id: str,
+    principal: Principal = Depends(get_principal),
     session: AsyncSession = Depends(get_db_session),
 ) -> List[CommentResponse]:
     """
     Retrieve all comments for a specific ticket in ascending chronological order.
     """
-    user_id, user_role, change_reason = get_user_context(request)
+    user_id = principal.user_id
+    change_reason = principal.change_reason
 
     # Verify ticket exists
     ticket_stmt = select(Ticket).where(Ticket.id == id)
@@ -1000,6 +1288,13 @@ async def list_ticket_comments(
     ticket = ticket_res.scalars().first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket with ID '{id}' not found.")
+
+    # Validate site scope access
+    if ticket.site_id and not can_access_site(principal, ticket.site_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Insufficient scope access for this site.",
+        )
 
     stmt = (
         select(TicketComment)
@@ -1033,3 +1328,25 @@ async def list_ticket_comments(
         )
         for c in comments
     ]
+
+
+@app.post(
+    "/api/v1/compliance/change-requests/analyze-diff",
+    response_model=RegulatoryRiskAssessment,
+)
+async def analyze_diff_endpoint(
+    payload: SettingDiffEntry,
+    principal: Principal = Depends(get_principal),
+    _not_auditor=Depends(verify_not_auditor),
+) -> RegulatoryRiskAssessment:
+    """
+    Analyze proposed setting change and evaluate GxP regulatory risk level.
+
+    Requirements: PRD-SYS-001
+    """
+    analyzer = SettingChangeAnalyzer()
+    return analyzer.analyze_change(
+        setting_key=payload.setting_key,
+        old_val=payload.old_value,
+        new_val=payload.new_value,
+    )

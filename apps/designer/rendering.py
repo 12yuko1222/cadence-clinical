@@ -15,7 +15,7 @@ os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 jinja_env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
-    autoescape=select_autoescape(["html", "xml", "j2"]),
+    autoescape=select_autoescape(default_for_string=True, default=True),
 )
 
 
@@ -62,7 +62,10 @@ def build_docx_template() -> str:
     docxtpl placeholders, always overwriting the target file at
     TEMPLATES_DIR/protocol_template.docx.
     """
+    import uuid
+
     template_path = os.path.join(TEMPLATES_DIR, "protocol_template.docx")
+    temp_path = template_path + f".tmp.{uuid.uuid4().hex}"
     doc = Document()
 
     # Title Page
@@ -143,7 +146,15 @@ def build_docx_template() -> str:
     doc.add_paragraph("{{ soa_subdoc }}")
     doc.add_paragraph("{% endif %}")
 
-    doc.save(template_path)
+    doc.save(temp_path)
+    try:
+        os.replace(temp_path, template_path)
+    except Exception:
+        doc.save(template_path)
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
     return template_path
 
 
@@ -248,6 +259,22 @@ def build_soa_subdoc(subdoc: Any, soa_matrix: SoAMatrixView) -> None:
         row_idx += 1
 
 
+def render_protocol_to_html(
+    doc: RenderedProtocolDocument, output: str = "combined"
+) -> str:
+    """
+    Renders the RenderedProtocolDocument to an HTML string using Jinja2.
+    """
+    template = jinja_env.get_template("protocol_template.html")
+    return template.render(
+        metadata=doc.metadata,
+        synopsis=doc.synopsis,
+        narrative_sections=doc.narrative_sections,
+        soa_matrix=doc.soa_matrix,
+        output=output,
+    )
+
+
 def render_protocol_to_pdf(
     doc: RenderedProtocolDocument, output: str = "combined"
 ) -> RendererResult:
@@ -261,15 +288,7 @@ def render_protocol_to_pdf(
     try:
         from weasyprint import HTML
 
-        template = jinja_env.get_template("protocol_template.html")
-        # Render HTML template with model context
-        html_content = template.render(
-            metadata=doc.metadata,
-            synopsis=doc.synopsis,
-            narrative_sections=doc.narrative_sections,
-            soa_matrix=doc.soa_matrix,
-            output=output,
-        )
+        html_content = render_protocol_to_html(doc, output)
         # Generate PDF bytes via WeasyPrint
         pdf_bytes = HTML(string=html_content).write_pdf()
     except Exception as err:

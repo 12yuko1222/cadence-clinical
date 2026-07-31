@@ -20,12 +20,13 @@ This matrix details the distribution of core compliance and tracking features ac
 | **Medical Coding: AE Coverage**   | N/A | Automated MedDRA dictionary coding and system query generation for Adverse Events (AETERM) | v1.5.0 | Supported |
 | **Medical Coding: MH Coverage**   | N/A | Automated MedDRA dictionary coding and system query generation for Medical History (MHTERM) | v1.5.0 | Supported |
 | **Medical Coding: CM Coverage**   | N/A | Automated WHODrug dictionary coding and system query generation for Concomitant Medications (CMTRT) | v1.5.0 | Supported |
-| **SDTM/ADaM CDISC Export**        | N/A | Secured Dataset-JSON 1.0.0 format exports (DM, AE, VS, LB, MH, ADSL, ADAE, ADVS) with audit trails | v1.7.0 | Supported |
+| **SDTM/ADaM CDISC Export**        | N/A | Secured Dataset-JSON 1.0.0 format exports (DM, AE, VS, LB, MH, CM, ADSL, ADAE, ADVS) with audit trails | v1.7.0 | Supported |
 | **Global Library Templates**      | Multi-versioned Forms, Data Elements, Arms, and Visits | N/A (Referenced downstream on instantiation) | v1.8.0 | Supported |
 | **Multi-Tenant Scoping**          | Metadata partitioned by validated sponsor IDs, blank context blocked | N/A | v1.8.0 | Supported |
 | **Governance & State Machine**    | Allowed transition validations and role gates (DRAFT to ARCHIVED) | N/A | v1.8.0 | Supported |
 | **In-Use Locks & Amendments**     | In-use template mutation write blocking, formal `/amend` cloning workflow | N/A | v1.8.0 | Supported |
 | **Native Part 11 eSignatures**    | Certificate-bound protocol-approval signing & graph version locking | Certificate-bound document-signing with 60s gateway step-up token, replay prevention & immutability locking | v1.9.0 | Supported |
+| **Tickets & Query Escalation**    | N/A | Secured query/ticket tracking including comments, status transitions, optimistic locking, and background SLA escalation with GxP audit logs | v1.9.0 | Supported |
 
 ---
 
@@ -41,6 +42,8 @@ The table below specifies how individual clinical domain entities are processed,
 | **eCRF Form Submissions** | Execution | PostgreSQL | App-Layer Event Interceptor |
 | **System Audit Logs** | Execution | PostgreSQL | Background Cryptographic Sealer & DB Triggers |
 | **TMF Documents** | eTMF Service | SQLite/PostgreSQL | Ingestion-driven validation, QC transition logging, and TMFAuditLog ledger |
+| **eISF Documents** | eISF Service | SQLite/PostgreSQL | Ingestion-driven validation, CRUD operations, site-isolation gating, and ISFAuditLog ledger |
+| **eISF Audit Logs** | eISF Service | SQLite/PostgreSQL | Append-only chronological audit logging for all site operations, views, and sync conflict resolutions |
 | **CTMS Visits & Milestones** | CTMS Service | SQLite/PostgreSQL | Explicit `CTMSAuditLog` writes & standard Part 11 fields |
 | **Protocol Deviations & CAPA**| Quality Service | SQLite/PostgreSQL | Automated `QualityAuditLog` logging, transition controls, and 21 CFR Part 11 fields |
 | **Subject Assignments** | Interop Service | SQLite/PostgreSQL | Explicit `InteropAuditLog` writes with Part 11 metadata |
@@ -51,6 +54,11 @@ The table below specifies how individual clinical domain entities are processed,
 | **Global Library Objects** | Designer | Neo4j/Mock DB | Graph node versioning via `PREVIOUS_VERSION` chains and metadata JSON serialization |
 | **Study Library Instances** | Designer | Neo4j/Mock DB | Copy-on-instantiation clones linked via `INSTANTIATED_FROM` with local overrides |
 | **Signature Manifestations** | Designer & eTMF Services | Neo4j & SQLite/PostgreSQL | On-the-fly transient RSA/X.509 cryptographic signing of canonical JSON payloads |
+| **Organizations** | Organization Service | PostgreSQL/SQLite | Explicit `OrgAuditLog` writes with Part 11 metadata |
+| **Clinical Sites** | Organization Service | PostgreSQL/SQLite | Explicit `OrgAuditLog` writes with Part 11 metadata |
+| **Personnel** | Organization Service | PostgreSQL/SQLite | Explicit `OrgAuditLog` writes with Part 11 metadata |
+| **Delegation of Authority** | Organization Service | PostgreSQL/SQLite | Explicit `OrgAuditLog` writes with Part 11 metadata & dual eISF/eTMF archival handoff |
+| **Tickets & Comments** | Tickets Service | SQLite/PostgreSQL | Explicit `TicketAuditLog` append-only write pattern and 21 CFR Part 11 fields |
 
 ---
 

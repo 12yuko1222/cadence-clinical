@@ -360,4 +360,328 @@ describe("Notifications System End-to-End Visual Integration", () => {
       );
     });
   });
+
+  describe("Differentiated Rendering & Filter/Action Gaps", () => {
+    it("renders global broadcast message when recipient fields are null", async () => {
+      notificationsService.getNotifications.mockResolvedValue([
+        {
+          id: "notif-global",
+          recipient_user_id: null,
+          recipient_role: null,
+          category: "SYSTEM",
+          priority: "LOW",
+          channels: "IN_APP",
+          message_content: "Global Maintenance Tonight",
+          status: "OPEN",
+          delivery_state: "DELIVERED",
+          created_at: "2026-08-17T09:00:00Z",
+          created_by: "system",
+          version_index: 1,
+        },
+      ]);
+
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".global-indicator").exists()).toBe(true);
+      expect(wrapper.find(".global-indicator").text()).toContain(
+        "Global / Broadcast"
+      );
+    });
+
+    it("resets all filters when clicking Reset Filters", async () => {
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      // Modify filters
+      notificationsStore.filters.category = "ALERTS";
+      notificationsStore.filters.priority = "HIGH";
+      notificationsStore.filters.status = "OPEN";
+
+      await wrapper.find("#btn-reset-filters").trigger("click");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      expect(notificationsStore.filters.category).toBe("");
+      expect(notificationsStore.filters.priority).toBe("");
+      expect(notificationsStore.filters.status).toBe("");
+      expect(notificationsService.getNotifications).toHaveBeenLastCalledWith({
+        category: undefined,
+        priority: undefined,
+        status: undefined,
+      });
+    });
+
+    it("hides action controls completely when a notification is RESOLVED", async () => {
+      notificationsService.getNotifications.mockResolvedValue([
+        {
+          id: "notif-resolved",
+          recipient_user_id: "fderuiter",
+          category: "ALERTS",
+          priority: "LOW",
+          message_content: "Resolved system message",
+          status: "RESOLVED",
+          delivery_state: "DELIVERED",
+          created_at: "2026-08-17T09:00:00Z",
+          created_by: "system",
+          version_index: 2,
+        },
+      ]);
+
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".btn-acknowledge").exists()).toBe(false);
+      expect(wrapper.find(".btn-resolve").exists()).toBe(false);
+    });
+
+    it("completes the Resolve transition successfully and updates in-place", async () => {
+      const updated = {
+        ...mockNotifications[0],
+        status: "RESOLVED",
+        version_index: 2,
+        reason_for_change: "Issue resolved",
+      };
+      notificationsService.resolveNotification.mockResolvedValue(updated);
+
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      // Trigger resolve modal on card 1
+      await wrapper.find(".btn-resolve").trigger("click");
+      expect(wrapper.find("#justification-modal").exists()).toBe(true);
+
+      await wrapper
+        .find("#modal-reason-select")
+        .setValue("Corrective action documented");
+      await wrapper.find("#btn-submit-modal").trigger("click");
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      expect(notificationsService.resolveNotification).toHaveBeenCalledWith(
+        "notif-001",
+        { changeReason: "Corrective action documented" }
+      );
+      expect(notificationsStore.notifications[0].status).toBe("RESOLVED");
+    });
+
+    it("resets modal fields on reopening", async () => {
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      // Open, change fields
+      await wrapper.find(".btn-acknowledge").trigger("click");
+      await wrapper.find("#modal-reason-select").setValue("Other");
+      await wrapper.find("#modal-custom-reason").setValue("Modified reason");
+
+      // Close
+      await wrapper.find("#btn-cancel-modal").trigger("click");
+      expect(wrapper.find("#justification-modal").exists()).toBe(false);
+
+      // Reopen
+      await wrapper.find(".btn-acknowledge").trigger("click");
+      expect(wrapper.find("#modal-reason-select").element.value).toBe(
+        "Action completed successfully"
+      );
+      expect(wrapper.find("#modal-custom-reason").element.value).toBe("");
+    });
+
+    it("closes modal on cancel without calling api endpoints", async () => {
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+
+      await wrapper.find(".btn-acknowledge").trigger("click");
+      await wrapper.find("#btn-cancel-modal").trigger("click");
+
+      expect(wrapper.find("#justification-modal").exists()).toBe(false);
+      expect(
+        notificationsService.acknowledgeNotification
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("State Surfacing & Loading Visualization", () => {
+    it("surfaces loading element when store is loading", async () => {
+      notificationsStore.loading = true;
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      expect(wrapper.find("#notifications-loading").exists()).toBe(true);
+    });
+
+    it("surfaces distinct error banners based on status codes (403, 404, 422)", async () => {
+      // 403 check
+      const error403 = new Error("Forbidden Access");
+      error403.status = 403;
+      notificationsService.getNotifications.mockRejectedValueOnce(error403);
+
+      let wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find("#notifications-error-403").exists()).toBe(true);
+
+      // 422 check (generic error banner)
+      const error422 = new Error("Unprocessable Entity State Violation");
+      error422.status = 422;
+      notificationsService.getNotifications.mockRejectedValueOnce(error422);
+
+      wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find("#notifications-error-generic").exists()).toBe(true);
+      expect(wrapper.text()).toContain("Unprocessable Entity State Violation");
+    });
+
+    it("renders generic error banner when network error occurs without a status code", async () => {
+      notificationsStore.errorStatus = null;
+      notificationsStore.error = "TypeError: Failed to fetch";
+      notificationsStore.loading = false;
+
+      const wrapper = mount(NotificationsView, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+      expect(wrapper.find("#notifications-error-generic").exists()).toBe(true);
+      expect(wrapper.text()).toContain("TypeError: Failed to fetch");
+    });
+  });
+
+  describe("Pinia Store Unit Tests", () => {
+    it("handles loading and error state transitions during fetchNotifications", async () => {
+      notificationsService.getNotifications.mockRejectedValue(
+        new Error("Database offline")
+      );
+
+      await notificationsStore.fetchNotifications();
+      expect(notificationsStore.loading).toBe(false);
+      expect(notificationsStore.error).toBe("Database offline");
+      expect(notificationsStore.notifications).toEqual([]);
+    });
+
+    it("re-throws server-side errors on failed acknowledge and resolve actions", async () => {
+      notificationsService.acknowledgeNotification.mockRejectedValue(
+        new Error("Acknowledge forbidden")
+      );
+      notificationsService.resolveNotification.mockRejectedValue(
+        new Error("Resolve unprocessable")
+      );
+
+      await expect(
+        notificationsStore.acknowledge("notif-123", "Reason")
+      ).rejects.toThrow("Acknowledge forbidden");
+      await expect(
+        notificationsStore.resolve("notif-123", "Reason")
+      ).rejects.toThrow("Resolve unprocessable");
+    });
+  });
+
+  describe("API Client Contract Tests", () => {
+    beforeEach(() => {
+      vi.stubGlobal("fetch", vi.fn());
+    });
+
+    it("constructs correct query strings and attaches JWT/Reason headers correctly", async () => {
+      // Mock Pinia Auth token
+      const authStore = useAuthStore();
+      authStore.accessToken = "dummy-jwt-signature-token";
+
+      globalThis.fetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [{ id: "notif-01" }],
+      });
+
+      // Import actual notificationsService
+      const { notificationsService: realService } = await vi.importActual(
+        "../src/api/notifications"
+      );
+
+      await realService.getNotifications({
+        category: "ALERTS",
+        priority: "CRITICAL",
+        status: "OPEN",
+      });
+
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+      const [url, options] = globalThis.fetch.mock.calls[0];
+
+      expect(url).toContain(
+        "/api/v1/notifications?category=ALERTS&priority=CRITICAL&status=OPEN"
+      );
+      expect(options.headers["Authorization"]).toBe(
+        "Bearer dummy-jwt-signature-token"
+      );
+    });
+
+    it("attaches X-Change-Reason to mutations correctly", async () => {
+      const authStore = useAuthStore();
+      authStore.accessToken = "dummy-jwt-signature-token";
+
+      globalThis.fetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "notif-01", status: "ACKNOWLEDGED" }),
+      });
+
+      const { notificationsService: realService } = await vi.importActual(
+        "../src/api/notifications"
+      );
+
+      await realService.acknowledgeNotification("notif-01", {
+        changeReason: "Attestation reason",
+      });
+
+      const [, options] = globalThis.fetch.mock.calls[0];
+      expect(options.headers["X-Change-Reason"]).toBe("Attestation reason");
+    });
+  });
 });

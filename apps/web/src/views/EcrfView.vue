@@ -1,5 +1,8 @@
 <template>
-  <div id="section-ecrf" class="dashboard-section active">
+  <div
+    id="section-ecrf"
+    class="dashboard-section active"
+  >
     <div class="section-header">
       <h2>eCRF Runtime Renderer</h2>
       <p>
@@ -11,7 +14,9 @@
     <div class="grid-2">
       <!-- Dynamic eCRF Form -->
       <div class="card">
-        <div class="card-title">Subject eCRF Data Entry Form</div>
+        <div class="card-title">
+          Subject eCRF Data Entry Form
+        </div>
         <form
           id="form-VS_DEMO"
           class="clinical-form clinical-form-grid"
@@ -42,7 +47,11 @@
         </form>
 
         <div class="form-actions">
-          <button id="btn-clear-ecrf" class="btn" @click="clearForm">
+          <button
+            id="btn-clear-ecrf"
+            class="btn"
+            @click="clearForm"
+          >
             Clear Form
           </button>
           <button
@@ -61,7 +70,9 @@
         style="display: flex; flex-direction: column; gap: 16px"
       >
         <div>
-          <div class="card-title">CDASH Metadata Specification</div>
+          <div class="card-title">
+            CDASH Metadata Specification
+          </div>
           <p style="font-size: 0.85rem; color: #475569; margin-bottom: 8px">
             The fields on the left are dynamically rendered using structural
             CDASH metadata tags (e.g. <code>DM.BRTHDT</code>,
@@ -143,7 +154,9 @@
         class="card"
         style="display: flex; flex-direction: column; gap: 16px"
       >
-        <div class="card-title">PI Sign-Off Worklist & Verification</div>
+        <div class="card-title">
+          PI Sign-Off Worklist & Verification
+        </div>
         <p style="font-size: 0.85rem; color: #475569; margin-bottom: 4px">
           Perform a 21 CFR Part 11 compliant electronic signature. This action
           requires re-authenticating the Principal Investigator credentials to
@@ -152,9 +165,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 12px">
           <div class="form-group">
-            <label for="signoff-target-type"
-              >Sign-Off Scope (Granularity)</label
-            >
+            <label for="signoff-target-type">Sign-Off Scope (Granularity)</label>
             <select
               id="signoff-target-type"
               v-model="signoffTargetType"
@@ -165,9 +176,15 @@
                 border-radius: 4px;
               "
             >
-              <option value="FORM">FORM Level</option>
-              <option value="VISIT">VISIT Level</option>
-              <option value="SUBJECT">SUBJECT Level</option>
+              <option value="FORM">
+                FORM Level
+              </option>
+              <option value="VISIT">
+                VISIT Level
+              </option>
+              <option value="SUBJECT">
+                SUBJECT Level
+              </option>
             </select>
           </div>
 
@@ -183,7 +200,9 @@
                 border-radius: 4px;
               "
             >
-              <option value="">-- Choose ID --</option>
+              <option value="">
+                -- Choose ID --
+              </option>
               <template v-if="signoffTargetType === 'SUBJECT'">
                 <option
                   v-for="sub in availableSubjects"
@@ -211,11 +230,16 @@
                   {{ form }}
                 </option>
               </template>
-              <option value="custom">-- Enter Custom --</option>
+              <option value="custom">
+                -- Enter Custom --
+              </option>
             </select>
           </div>
 
-          <div v-if="signoffTargetId === 'custom'" class="form-group">
+          <div
+            v-if="signoffTargetId === 'custom'"
+            class="form-group"
+          >
             <label for="signoff-custom-target-id">Custom Target ID Value</label>
             <input
               id="signoff-custom-target-id"
@@ -228,7 +252,7 @@
                 border-radius: 4px;
               "
               @input="(e) => (customTargetId = e.target.value)"
-            />
+            >
           </div>
 
           <div class="form-group">
@@ -267,143 +291,363 @@
       </div>
 
       <!-- Protocol Ingestion & Candidate Review Card -->
-      <div class="card" style="display: flex; flex-direction: column; gap: 16px; grid-column: span 12;">
-        <div class="card-title">Ultimate CRF Builder: Protocol Ingestion & Review</div>
-        <p style="font-size: 0.85rem; color: #475569;">
-          Upload a clinical protocol document (PDF/DOCX) to automatically generate candidate SoA visits and form fields with trace citations and confidence levels. Accept, edit, or reject each item before promoting reviewed candidates into a formal study draft.
+      <div
+        class="card"
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          grid-column: span 12;
+        "
+      >
+        <div class="card-title">
+          Ultimate CRF Builder: Protocol Ingestion & Review
+        </div>
+        <p style="font-size: 0.85rem; color: #475569">
+          Upload a clinical protocol document (PDF/DOCX) to automatically
+          generate candidate SoA visits and form fields with trace citations and
+          confidence levels. Accept, edit, or reject each item before promoting
+          reviewed candidates into a formal study draft.
         </p>
 
         <!-- Upload File Section -->
-        <div style="border: 1px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; background-color: #f8fafc;">
+        <div
+          style="
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            background-color: #f8fafc;
+          "
+        >
           <input
             ref="fileInputRef"
             type="file"
             accept=".pdf,.docx"
             style="display: none"
             @change="triggerDocumentUpload"
-          />
+          >
           <button
             class="btn"
             type="button"
-            @click="triggerFileSelect"
             :disabled="store.ingestionLoading"
+            @click="triggerFileSelect"
           >
-            {{ store.ingestionLoading ? "Processing Document..." : "📁 Select Protocol PDF/DOCX" }}
+            {{
+              store.ingestionLoading
+                ? "Processing Document..."
+                : "📁 Select Protocol PDF/DOCX"
+            }}
           </button>
-          <div v-if="selectedFileName" style="margin-top: 8px; font-size: 0.8rem; color: #475569;">
-            Selected: <strong class="selected-file-name">{{ selectedFileName }}</strong>
+          <div
+            v-if="selectedFileName"
+            style="margin-top: 8px; font-size: 0.8rem; color: #475569"
+          >
+            Selected:
+            <strong class="selected-file-name">{{ selectedFileName }}</strong>
           </div>
         </div>
 
         <!-- Ingestion Error Display -->
-        <div v-if="store.ingestionError" style="color: #ef4444; font-size: 0.85rem; margin-top: 8px;">
+        <div
+          v-if="store.ingestionError"
+          style="color: #ef4444; font-size: 0.85rem; margin-top: 8px"
+        >
           Error: {{ store.ingestionError }}
         </div>
 
         <!-- Candidate Draft Item Review List -->
-        <div v-if="store.candidateDraft" style="display: flex; flex-direction: column; gap: 16px; margin-top: 12px;" class="candidate-draft-section">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-            <span style="font-size: 0.9rem; font-weight: 700;">
-              Candidate ID: <code style="background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px;" class="candidate-id">{{ store.candidateDraft.id }}</code>
+        <div
+          v-if="store.candidateDraft"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 12px;
+          "
+          class="candidate-draft-section"
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 1px solid var(--border);
+              padding-bottom: 8px;
+            "
+          >
+            <span style="font-size: 0.9rem; font-weight: 700">
+              Candidate ID:
+              <code
+                style="
+                  background-color: #f1f5f9;
+                  padding: 2px 4px;
+                  border-radius: 4px;
+                "
+                class="candidate-id"
+              >{{ store.candidateDraft.id }}</code>
+              <!-- deid: ignore -->
             </span>
-            <span :class="['badge', store.candidateDraft.status === 'PROMOTED' ? 'lookup-valid' : 'lookup-degraded']" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 4px;" class="candidate-status">
+            <span
+              :class="[
+                'badge',
+                store.candidateDraft.status === 'PROMOTED'
+                  ? 'lookup-valid'
+                  : 'lookup-degraded',
+              ]"
+              style="font-size: 0.8rem; padding: 4px 8px; border-radius: 4px"
+              class="candidate-status"
+            >
               {{ store.candidateDraft.status }}
             </span>
           </div>
 
-          <div style="font-size: 0.85rem; font-weight: bold; color: var(--primary);">Candidate Items Under Review:</div>
+          <div
+            style="font-size: 0.85rem; font-weight: bold; color: var(--primary)"
+          >
+            Candidate Items Under Review:
+          </div>
 
-          <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              max-height: 400px;
+              overflow-y: auto;
+            "
+          >
             <div
               v-for="item in Object.values(store.candidateDraft.items)"
               :key="item.id"
-              style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;"
+              style="
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              "
               class="candidate-item-card"
             >
-              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: flex-start;
+                "
+              >
                 <div>
-                  <span class="badge" style="background-color: #e2e8f0; color: #475569; font-size: 0.75rem; text-transform: uppercase; margin-right: 6px;">
+                  <span
+                    class="badge"
+                    style="
+                      background-color: #e2e8f0;
+                      color: #475569;
+                      font-size: 0.75rem;
+                      text-transform: uppercase;
+                      margin-right: 6px;
+                    "
+                  >
+                    <!-- deid: ignore -->
                     {{ item.type }}
                   </span>
-                  <strong class="item-label">{{ item.type === 'visit' ? item.name : item.label }}</strong>
+                  <strong class="item-label">{{
+                    item.type === "visit" ? item.name : item.label
+                  }}</strong>
                 </div>
 
                 <!-- Confidence badge and citations -->
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span :class="['badge', getConfidenceClass(item.confidence_level)]" style="font-size: 0.7rem;" class="item-confidence">
-                    {{ (item.confidence * 100).toFixed(0) }}% ({{ item.confidence_level }})
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span
+                    :class="[
+                      'badge',
+                      getConfidenceClass(item.confidence_level),
+                    ]"
+                    style="font-size: 0.7rem"
+                    class="item-confidence"
+                  >
+                    {{ (item.confidence * 100).toFixed(0) }}% ({{
+                      item.confidence_level
+                    }})
                   </span>
-                  <span style="font-size: 0.75rem; color: #64748b;" title="Source Reference" class="item-citation">
+                  <span
+                    style="font-size: 0.75rem; color: #64748b"
+                    title="Source Reference"
+                    class="item-citation"
+                  >
                     📖 {{ item.source_citation }}
                   </span>
                 </div>
               </div>
 
               <!-- Item Edit Fields if user is editing -->
-              <div v-if="editingItemId === item.id" style="display: flex; flex-direction: column; gap: 8px; background-color: #f8fafc; padding: 8px; border-radius: 6px;" class="item-edit-section">
+              <div
+                v-if="editingItemId === item.id"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                  background-color: #f8fafc;
+                  padding: 8px;
+                  border-radius: 6px;
+                "
+                class="item-edit-section"
+              >
                 <div class="form-group">
-                  <label style="font-size: 0.75rem;">Modify Candidate Name/Label</label>
+                  <label style="font-size: 0.75rem">Modify Candidate Name/Label</label>
                   <input
                     v-model="editItemValue"
                     type="text"
-                    style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem;"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid var(--border);
+                      border-radius: 4px;
+                      font-size: 0.8rem;
+                    "
                     class="edit-item-input"
-                  />
+                  >
                 </div>
                 <div class="form-group">
-                  <label style="font-size: 0.75rem;">Change Reason Justification (Mandatory)</label>
+                  <label style="font-size: 0.75rem">Change Reason Justification (Mandatory)</label>
                   <input
                     v-model="editItemReason"
                     type="text"
                     placeholder="Enter mandatory reason..."
-                    style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem;"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid var(--border);
+                      border-radius: 4px;
+                      font-size: 0.8rem;
+                    "
                     class="edit-item-reason"
-                  />
+                  >
                 </div>
-                <div style="display: flex; justify-content: flex-end; gap: 6px;">
-                  <button class="btn btn-sm" @click="cancelEditItem">Cancel</button>
-                  <button class="btn btn-primary btn-sm save-edit-btn" @click="saveEditItem(item.id)">Save Edit</button>
+                <div style="display: flex; justify-content: flex-end; gap: 6px">
+                  <button
+                    class="btn btn-sm"
+                    @click="cancelEditItem"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm save-edit-btn"
+                    @click="saveEditItem(item.id)"
+                  >
+                    Save Edit
+                  </button>
                 </div>
               </div>
 
               <!-- Reason Prompt modal/input inline for Rejection -->
-              <div v-else-if="rejectingItemId === item.id" style="display: flex; flex-direction: column; gap: 8px; background-color: #fef2f2; padding: 8px; border-radius: 6px;" class="item-reject-section">
+              <div
+                v-else-if="rejectingItemId === item.id"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                  background-color: #fef2f2;
+                  padding: 8px;
+                  border-radius: 6px;
+                "
+                class="item-reject-section"
+              >
                 <div class="form-group">
-                  <label style="font-size: 0.75rem; color: #ef4444; font-weight: bold;">Provide Rejection Reason (Mandatory)</label>
+                  <label
+                    style="
+                      font-size: 0.75rem;
+                      color: #ef4444;
+                      font-weight: bold;
+                    "
+                  >Provide Rejection Reason (Mandatory)</label>
                   <input
                     v-model="rejectItemReason"
                     type="text"
                     placeholder="Provide justification for rejecting candidate..."
-                    style="width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem;"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid var(--border);
+                      border-radius: 4px;
+                      font-size: 0.8rem;
+                    "
                     class="reject-item-reason"
-                  />
+                  >
                 </div>
-                <div style="display: flex; justify-content: flex-end; gap: 6px;">
-                  <button class="btn btn-sm" @click="cancelRejectItem">Cancel</button>
-                  <button class="btn btn-primary btn-sm confirm-reject-btn" style="background-color: #ef4444;" @click="confirmRejectItem(item.id)">Confirm Reject</button>
+                <div style="display: flex; justify-content: flex-end; gap: 6px">
+                  <button
+                    class="btn btn-sm"
+                    @click="cancelRejectItem"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm confirm-reject-btn"
+                    style="background-color: #ef4444"
+                    @click="confirmRejectItem(item.id)"
+                  >
+                    Confirm Reject
+                  </button>
                 </div>
               </div>
 
               <!-- General Item Actions & Metadata -->
-              <div v-else style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
-                <div style="color: #64748b;">
+              <div
+                v-else
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  font-size: 0.8rem;
+                "
+              >
+                <div style="color: #64748b">
                   Status:
-                  <span :class="['badge', getStatusClass(item.review_status)]" style="font-size: 0.75rem;" class="item-review-status">
+                  <span
+                    :class="['badge', getStatusClass(item.review_status)]"
+                    style="font-size: 0.75rem"
+                    class="item-review-status"
+                  >
                     {{ item.review_status }}
                   </span>
-                  <span v-if="item.reason" style="margin-left: 6px; font-style: italic;" class="item-review-reason">
+                  <span
+                    v-if="item.reason"
+                    style="margin-left: 6px; font-style: italic"
+                    class="item-review-reason"
+                  >
                     - "{{ item.reason }}"
                   </span>
                 </div>
 
-                <div v-if="store.candidateDraft.status !== 'PROMOTED'" style="display: flex; gap: 6px;">
-                  <button class="btn btn-sm accept-btn" style="padding: 2px 8px; font-size: 0.75rem;" @click="acceptItem(item.id)">
+                <div
+                  v-if="store.candidateDraft.status !== 'PROMOTED'"
+                  style="display: flex; gap: 6px"
+                >
+                  <button
+                    class="btn btn-sm accept-btn"
+                    style="padding: 2px 8px; font-size: 0.75rem"
+                    @click="acceptItem(item.id)"
+                  >
                     ✔️ Accept
                   </button>
-                  <button class="btn btn-sm edit-btn" style="padding: 2px 8px; font-size: 0.75rem;" @click="startEditItem(item)">
+                  <button
+                    class="btn btn-sm edit-btn"
+                    style="padding: 2px 8px; font-size: 0.75rem"
+                    @click="startEditItem(item)"
+                  >
                     ✏️ Edit
                   </button>
-                  <button class="btn btn-sm reject-btn" style="padding: 2px 8px; font-size: 0.75rem; background-color: #fecaca; color: #991b1b;" @click="startRejectItem(item.id)">
+                  <button
+                    class="btn btn-sm reject-btn"
+                    style="
+                      padding: 2px 8px;
+                      font-size: 0.75rem;
+                      background-color: #fecaca;
+                      color: #991b1b;
+                    "
+                    @click="startRejectItem(item.id)"
+                  >
                     ❌ Reject
                   </button>
                 </div>
@@ -412,36 +656,83 @@
           </div>
 
           <!-- Promotion Gating Controls -->
-          <div v-if="store.candidateDraft.status !== 'PROMOTED'" style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+          <div
+            v-if="store.candidateDraft.status !== 'PROMOTED'"
+            style="
+              border-top: 1px solid var(--border);
+              padding-top: 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            "
+          >
             <div class="form-group">
-              <label for="promote-change-reason" style="font-weight: bold;">Promotion Change Reason (Mandatory)</label>
+              <label
+                for="promote-change-reason"
+                style="font-weight: bold"
+              >Promotion Change Reason (Mandatory)</label>
               <input
                 id="promote-change-reason"
                 v-model="promoteChangeReason"
                 type="text"
                 placeholder="Enter justification to promote reviewed draft into formal protocol..."
-                style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid var(--border);
+                  border-radius: 4px;
+                "
                 class="promote-change-reason"
-              />
+              >
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.8rem; color: #64748b;" class="remaining-reviews-text">
-                {{ unreviewedCount === 0 ? "✅ All items reviewed. Ready to promote." : `⚠️ ${unreviewedCount} items remaining to be reviewed.` }}
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span
+                style="font-size: 0.8rem; color: #64748b"
+                class="remaining-reviews-text"
+              >
+                {{
+                  unreviewedCount === 0
+                    ? "✅ All items reviewed. Ready to promote."
+                    : `⚠️ ${unreviewedCount} items remaining to be reviewed.`
+                }}
               </span>
               <button
                 id="btn-promote-candidate"
                 class="btn btn-primary"
                 type="button"
-                :disabled="unreviewedCount > 0 || !promoteChangeReason.trim() || store.ingestionLoading"
+                :disabled="
+                  unreviewedCount > 0 ||
+                    !promoteChangeReason.trim() ||
+                    store.ingestionLoading
+                "
                 @click="promoteCandidate"
               >
                 🚀 Promote Reviewed Candidate
               </button>
             </div>
           </div>
-          <div v-else style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; color: #166534; font-size: 0.85rem; text-align: center;" class="promoted-success-banner">
-            🎉 This candidate draft has been successfully promoted to formal draft study version!
+          <div
+            v-else
+            style="
+              background-color: #f0fdf4;
+              border: 1px solid #bbf7d0;
+              border-radius: 8px;
+              padding: 12px;
+              color: #166534;
+              font-size: 0.85rem;
+              text-align: center;
+            "
+            class="promoted-success-banner"
+          >
+            🎉 This candidate draft has been successfully promoted to formal
+            draft study version!
           </div>
         </div>
       </div>
@@ -458,6 +749,14 @@
       @cancel="cancelChange"
     />
 
+    <!-- Conflict Resolution Modal Dialog -->
+    <ConflictResolutionModal
+      :show="showConflictModal"
+      :conflict="activeConflict"
+      @confirm="handleResolveConflict"
+      @cancel="handleCancelConflict"
+    />
+
     <!-- Re-authentication Modal Dialog -->
     <div
       v-if="showReauthModal"
@@ -466,14 +765,19 @@
       style="display: flex"
     >
       <div class="modal">
-        <div class="modal-header">Identity Re-Authentication Required</div>
+        <div class="modal-header">
+          Identity Re-Authentication Required
+        </div>
         <div class="modal-body">
           <p>
             To comply with <strong>FDA 21 CFR Part 11 / EU Annex 11</strong>,
             you must re-verify your identity before performing this
             high-security action.
           </p>
-          <div class="form-group" style="margin-bottom: 12px">
+          <div
+            class="form-group"
+            style="margin-bottom: 12px"
+          >
             <label for="reauth-username">Username</label>
             <input
               id="reauth-username"
@@ -485,9 +789,12 @@
                 border: 1px solid var(--border);
                 border-radius: 4px;
               "
-            />
+            >
           </div>
-          <div class="form-group" style="margin-bottom: 12px">
+          <div
+            class="form-group"
+            style="margin-bottom: 12px"
+          >
             <label for="reauth-password">Password</label>
             <input
               id="reauth-password"
@@ -502,9 +809,12 @@
                 border-radius: 4px;
               "
               @keyup.enter="confirmReauth"
-            />
+            >
           </div>
-          <div class="form-group" style="margin-bottom: 12px">
+          <div
+            class="form-group"
+            style="margin-bottom: 12px"
+          >
             <label for="reauth-totp">MFA/TOTP Token (Optional)</label>
             <input
               id="reauth-totp"
@@ -517,7 +827,7 @@
                 border: 1px solid var(--border);
                 border-radius: 4px;
               "
-            />
+            >
           </div>
           <div
             v-if="reauthError"
@@ -528,7 +838,11 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button id="btn-cancel-reauth" class="btn" @click="cancelReauth">
+          <button
+            id="btn-cancel-reauth"
+            class="btn"
+            @click="cancelReauth"
+          >
             Cancel
           </button>
           <button
@@ -549,11 +863,14 @@ import { ref, reactive, watch, onMounted, computed } from "vue";
 import { useClinicalStore } from "../stores/clinical";
 import { useAuthStore } from "../stores/auth";
 import { soaClient } from "../api/soaClient";
-import { validateField } from "../lib/legacy_helpers.js";
-import { debounce } from "ui";
+import { validateField, debounce } from "ui";
+import { evaluateAST } from "../evaluator.js";
 import { terminologyClient } from "../api/terminologyClient";
 import ClinicalFormField from "../components/clinical/ClinicalFormField.vue";
 import ReasonModal from "../components/ReasonModal.vue";
+import ConflictResolutionModal from "../components/ConflictResolutionModal.vue";
+import { useSyncStore } from "../stores/sync";
+import { ClientSyncEngine } from "../utils/syncEngine";
 
 const ecrfReasonOptions = [
   { value: "Initial Entry", text: "Initial Data Entry" },
@@ -565,6 +882,28 @@ const ecrfReasonOptions = [
 
 const store = useClinicalStore();
 const authStore = useAuthStore();
+
+const syncStore = useSyncStore();
+const syncEngine = new ClientSyncEngine();
+
+if (typeof window !== "undefined") {
+  window.syncStore = syncStore;
+  window.syncEngine = syncEngine;
+}
+
+const showConflictModal = computed(() => syncStore.status === "CONFLICT_DETECTED");
+const activeConflict = computed(() => syncStore.conflict);
+
+async function handleResolveConflict({ strategy, reason }) {
+  if (activeConflict.value && activeConflict.value.conflictItem) {
+    await syncEngine.resolveConflict(activeConflict.value.conflictItem.deltaId, strategy, reason);
+  }
+}
+
+function handleCancelConflict() {
+  syncStore.setStatus("IDLE");
+  syncStore.clearConflict();
+}
 
 const conceptValidationStates = reactive({});
 const conceptRequestIds = reactive({});
@@ -834,7 +1173,7 @@ const validSigningReasons = [
 
 function getValidationError(field) {
   const value = store.formValues[field.id];
-  const res = validateField(field, value, store.formValues);
+  const res = validateField(field, value, store.formValues, evaluateAST);
   return res.valid ? null : res.message;
 }
 
@@ -1160,7 +1499,12 @@ function submitEcrf() {
   let errMsgs = [];
 
   store.ecrfFields.forEach((f) => {
-    const res = validateField(f, store.formValues[f.id]);
+    const res = validateField(
+      f,
+      store.formValues[f.id],
+      store.formValues,
+      evaluateAST
+    );
     if (!res.valid) {
       allValid = false;
       errMsgs.push(`${f.label}: ${res.message}`);
@@ -1219,7 +1563,10 @@ async function triggerDocumentUpload(event) {
 
   selectedFileName.value = file.name;
   try {
-    await store.uploadProtocolDocument(file, "Uploader triggers protocol ingestion scan.");
+    await store.uploadProtocolDocument(
+      file,
+      "Uploader triggers protocol ingestion scan."
+    );
     alert("Protocol Document ingested successfully. Candidate draft loaded.");
   } catch (err) {
     alert("Ingestion failed: " + err.message);
@@ -1270,7 +1617,10 @@ async function saveEditItem(itemId) {
     return;
   }
   const item = store.candidateDraft.items[itemId];
-  const payload = item.type === "visit" ? { name: editItemValue.value } : { label: editItemValue.value };
+  const payload =
+    item.type === "visit"
+      ? { name: editItemValue.value }
+      : { label: editItemValue.value };
 
   try {
     await store.transitionCandidateItemState(
@@ -1323,7 +1673,10 @@ async function promoteCandidate() {
     return;
   }
   try {
-    await store.promoteCandidateDraft(store.candidateDraft.id, promoteChangeReason.value);
+    await store.promoteCandidateDraft(
+      store.candidateDraft.id,
+      promoteChangeReason.value
+    );
     alert("Candidate promoted successfully into formal DRAFT version!");
     promoteChangeReason.value = "";
   } catch (err) {

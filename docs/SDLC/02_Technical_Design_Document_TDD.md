@@ -722,7 +722,90 @@ The Gateway Service detects client compression capabilities via the standard `Ac
 
 ---
 
-## 6. ISO 14971 Risk Controls & Architectural Hazard Analysis
+## 6. Eligibility Criteria Evaluation Engine & Advisory Pre-screening
+
+### 6.1 Shared Eligibility Criteria Evaluation Engine
+The platform implements a sandboxed, deterministic Abstract Syntax Tree (AST) evaluator for clinical inclusion/exclusion criteria. This architecture guarantees safety by preventing any dynamic code execution (e.g., `eval()` or `exec()`) of user-defined DSL expressions.
+* **Responsibility:** Lexical parsing, syntax validation, AST construction, and Kleene three-valued logic evaluation of clinical criteria.
+* **Storage:** Database-free; operates entirely in-memory at runtime.
+* **Data Guarantee:** Evaluates deterministic logical criteria to a clean True, False, or Indeterminate (Kleene three-valued logic) result with structured explanation traces.
+
+#### 6.1.1 Abstract Syntax Tree (AST) & Lexical Parsing
+As governed by **ADR-053**, dynamic expressions such as `eCRF.DM.AGE >= 18` are processed using a recursive-descent parser defined in `packages/core-models/eligibility/parser.py`. The parser decomposes expressions into a structured Pydantic `ExpressionNode` AST defined in `packages/core-models/eligibility/models.py`.
+- **Parsing Flow:** Tokenizer parses characters into typed tokens (field references, constants, operators, logical keywords).
+- **AST Generation:** Build recursive comparison or logical nodes. No arbitrary Python execution is permitted, establishing a robust security boundary.
+
+#### 6.1.2 Kleene Three-Valued Logic Evaluator
+The runtime evaluation core in `packages/core-models/eligibility/evaluator.py` implements Kleene three-valued logic (`True`, `False`, `None` / Indeterminate).
+- **Indeterminate (null/missing) Propagation:** If any referenced eCRF data point is missing or unresolved (e.g., missing lab result or unborn age), the comparison evaluates to `Indeterminate`.
+- **Short-Circuit Logical Rules:**
+  - `False AND Indeterminate` evaluates deterministically to `False` (as the criteria can never be fully met).
+  - `True OR Indeterminate` evaluates deterministically to `True`.
+  - Other mixed states propagate `Indeterminate` to prevent false positive enrollments.
+- **Node Explanations:** The evaluator returns an `EvaluationResult` containing a step-by-step trace mapping exact variables to their evaluated state and reasons.
+
+---
+
+### 6.2 Designer Metadata Storage & Canonical USDM v3 Projection
+The Metadata Designer service manages criteria authoring and standards alignment.
+* **Responsibility:** Authoring, validating, versioning, and projecting inclusion/exclusion criteria to canonical formats.
+* **Storage:** Neo4j Graph Database (using the `EligibilityCriterion` and `EligibilityCriterionVersion` node chain).
+* **Data Guarantee:** Flawless round-trip fidelity between legacy flat structures and standard CDISC USDM v3 clinical study representations.
+
+#### 6.2.1 Graph-Based Versioning & Immutability
+All authored eligibility rules are stored in Neo4j under `apps/designer/`.
+- Once a study version transitions to `LOCKED` or `PUBLISHED`, the associated criteria are made strictly immutable via graph guards.
+- Mid-study amendments trigger graph cloning where new draft versions are linked using the `PREVIOUS_VERSION` relationship, incrementing the `version_index`.
+
+#### 6.2.2 Canonical USDM v3 Mapping & Inverse Mapping
+- **USDM Projection (`apps/designer/mapper.py`):** Translates internal flat eligibility schemas to CDISC USDM v3 compatible JSON/YAML outputs. Includes custom tags such as `_original_id` and `_dsl_source` to preserve non-standard metadata attributes.
+- **USDM Ingestion (`apps/designer/inverse_mapper.py`):** Reconstructs the exact, validated internal eligibility graph from canonical files, preserving full round-trip fidelity.
+
+---
+
+### 6.3 Clinical Execution Gating (EDC Screen & Randomization Blocks)
+The clinical execution service acts as the GxP-regulated enforcement gate during subject screening and treatment randomization.
+* **Responsibility:** Aggregating dynamic clinical observations, evaluating criteria in real-time, executing state transitions, and guarding randomization.
+* **Storage:** PostgreSQL (persisting subject states, observations, and signed screening audit trails).
+* **Data Guarantee:** Complete immutability of signed observations; absolute blocking of un-screened or ineligible subjects from allocation keys.
+
+#### 6.3.1 Context Building & Latest Observation Precedence
+- Dynamic clinical observations are fetched and parsed in `apps/execution/eligibility_context.py`.
+- Demographics and standard observations map to the `eCRF.<DOMAIN>.<VARIABLE>` namespace.
+- **Precedence Rule:** If a field has multiple observation records, the latest timestamped record takes absolute precedence. Missing values default to Kleene-absent `None`.
+
+#### 6.3.2 Transition Guard State Machine
+- When a screening request is POSTed to the screening endpoint, the execution service runs the aggregated eligibility engine.
+- **Pass (Transition to `ENROLLED`):** If all criteria evaluate to `True`, the state machine transitions the subject to `ENROLLED` and issues an auditable GxP certificate.
+- **Fail (Transition to `SCREEN_FAILED`):** If any criteria evaluates to `False`, the subject is transitioned immediately to `SCREEN_FAILED`. This state is locked; subsequent modifications are blocked.
+- **Indeterminate (No Transition):** If any criteria evaluates to `Indeterminate`, the subject remains in the `SCREENING` state. Transition is blocked until all required values are captured.
+
+#### 6.3.3 Randomization Allocation Guard
+- The treatment allocation endpoint `/api/v1/execution/rtsm/dispense` enforces a physical verification gate.
+- Any attempt to randomise or allocate kits to a subject who is not in the `ENROLLED` state is strictly rejected with a `PermissionError` and an HTTP 403 Forbidden response.
+
+---
+
+### 6.4 Interop FHIR Advisory Pre-screening Boundary
+The Interoperability service exposes a secure, advisory endpoint allowing external systems (e.g., EHRs) to evaluate candidate eligibility without modifying state.
+* **Responsibility:** Ingesting external FHIR bundles, projecting them to the canonical context, invoking the evaluation engine, and writing non-PHI compliance audit logs.
+* **Storage:** SQLite/PostgreSQL for advisory pre-screen transaction audit records.
+* **Data Guarantee:** Absolute read-only boundary; guarantee of no state mutation in the execution/EDC databases.
+
+#### 6.4.1 FHIR to Canonical `eCRF.*` Namespace Projection
+- In `apps/interop/fhir_adapter.py`, external FHIR Bundles are parsed.
+- Patient demographics, observations, conditions, and medication statements are parsed and projected into the shared `eCRF.<DOMAIN>.<VARIABLE>` namespace.
+- Demographics such as age are derived safely relative to the active pre-screening request timestamp.
+
+#### 6.4.2 Advisory Boundary & Zero-State Isolation
+- The pre-screen endpoint `POST /api/v1/interop/fhir/pre-screen` runs in isolation.
+- It pulls active eligibility criteria from the Metadata Designer using gateway V2 signatures, runs the evaluation engine, and returns advisory results.
+- **Zero-State Isolation:** The interop layer is architecturally decoupled from the core EDC databases. It is structurally impossible for a pre-screening request to write, modify, or corrupt subject state in the execution service.
+- **Non-PHI Compliance Auditing:** Each pre-screening evaluation writes an audit entry in the `InteropAuditLog` (using the action `FHIR_PRESCREEN`). To remain HIPAA/GDPR compliant, the details contain strictly pseudonymized tokens and aggregate results; no names, raw clinical readings, or unredacted demographics are recorded.
+
+---
+
+## 7. ISO 14971 Risk Controls & Architectural Hazard Analysis
 
 In compliance with ISO 14971:2019, this section identifies critical software hazards, analyzes their downstream impact, and links them directly to the architectural safety controls implemented in Cadence Clinical.
 
@@ -737,9 +820,9 @@ In compliance with ISO 14971:2019, this section identifies critical software haz
 
 ---
 
-## 7. Change Management, GxP Validation & Operations
+## 8. Change Management, GxP Validation & Operations
 
-### 7.1 GxP Environment Promotion Protocol
+### 8.1 GxP Environment Promotion Protocol
 In accordance with GxP regulatory requirements, system code and clinical protocol schemas progress through a strictly isolated environment promotion pipeline.
 
 ```
@@ -750,14 +833,14 @@ In accordance with GxP regulatory requirements, system code and clinical protoco
 * **Validation (UAT):** Enforces 100% test coverage check on all GxP pathways. Manual User Acceptance Testing is performed and signed off.
 * **Production (Prod):** Operates on the validated environment. No direct hot-fixes are permitted; every release requires an environment migration script.
 
-### 7.2 Database Migrations & Point-in-Time Recovery
+### 8.2 Database Migrations & Point-in-Time Recovery
 1. **Schema Migrations:** Database migrations are defined using SQL migration files executed sequentially. Each file must define both `UP` and `DOWN` transitions.
 2. **Backups & PITR:** PostgreSQL databases utilize continuous archive logging (WAL-G/PgBackRest). This ensures Point-In-Time Recovery (PITR) to any target second within a 30-day window, mitigating hardware disasters.
 3. **Graph Backups:** Neo4j cluster backups are performed using daily physical dumps, stored in encrypted multi-region AWS S3 buckets.
 
 ---
 
-## 8. Detailed Architectural Sign-Off & Approval
+## 9. Detailed Architectural Sign-Off & Approval
 
 *This section confirms the technical design meets all regulatory, safety, and performance requirements specified in the Product Requirements Document (PRD).*
 
