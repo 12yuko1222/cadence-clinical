@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1665
-- **Passed:** 1665 🟢
+- **Total Automated Test Cases Run:** 1669
+- **Passed:** 1669 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -751,6 +751,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_migration_adds_expiration_columns_idempotently` | `tests.test_etmf_eisf_expiration_metadata` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_audit_attribution` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_determine_warning_window` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dispatch_failure_and_retryability` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dispatch_fallback_cra_routing` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dispatch_idempotency_limit` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dispatch_successful_owner_routing` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_execute_expiration_scan_cycle_thresholds` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_failure_isolation_and_resilience` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_scanner_idempotency_restart_and_rearming` | `tests.test_etmf_expiration_scanner` | *Regression/Helper* | 🟢 PASSED | < 1s |
