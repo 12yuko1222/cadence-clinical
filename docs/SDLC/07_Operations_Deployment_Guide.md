@@ -523,6 +523,60 @@ To load and apply a localization dictionary without requiring a service restart,
 
 ---
 
+## 2.4 Tickets & Query Escalation Operations
+
+The in-app Tickets and Query Escalation service manages operational issues, support tickets, and system queries. SREs and system operators must follow these deployment and monitoring specifications to guarantee GxP and ISO 27001 compliance.
+
+### Directory Mapping & Active Utilities
+* Active ticket service routes and controllers reside in `apps/tickets/main.py`.
+* Relational database tables and Alembic configuration reside in `apps/tickets/database.py` and `apps/tickets/models.py`.
+* Dynamic notification generation logic resides in `apps/tickets/notification_events.py`.
+* Gate-signed internal service notification dispatch resides in `apps/tickets/notifications_client.py`.
+* Automated background priority escalation loops reside in `apps/tickets/escalation.py`.
+
+### Environment Variables & CI Configuration
+Using the CI env: block convention, SREs must inject these keys into deployment templates:
+
+```yaml
+env:
+  TICKETS_URL: "http://localhost:8009"
+  TICKETS_DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+  TICKETS_ESCALATION_POLL_INTERVAL_SECONDS: "60.0"
+  TICKETS_ESCALATION_INTERVAL_SECONDS: "86400.0"
+```
+
+### SLA Priority & MTTR Metrics Matrix
+Under the §4.3 Severity/SLA/MTTR format, tickets are escalated stepwise up to CRITICAL based on these targets:
+
+| Priority Level | Definition | Target Resolution (SLA) | Target MTTR | Notification Chain |
+| :--- | :--- | :--- | :--- | :--- |
+| **CRITICAL** | Critical clinical roadblock, randomization freeze, or data corruption. | **1 Hour** | **2 Hours** | Immediate SMS/Pager alert to SRE Lead, QA Director, and System Admin. |
+| **HIGH** | Form submission block, single site query backlog, or major API latency. | **4 Hours** | **8 Hours** | High-priority email/Slack alert to SRE Team and Developer Lead. |
+| **MEDIUM** | Standard operational query, minor eCRF glitch, or localization discrepancy. | **24 Hours** | **48 Hours** | Support Desk ticket queue automated routing. |
+| **LOW** | Enhancement request, minor documentation update, or cosmetic portal issue. | **72 Hours** | **120 Hours** | Bi-weekly backlog review and release planning. |
+
+### Escalation Worker & Background Runner Specifications
+Following the §3.1.0 background-runner style, the escalation worker operates as follows:
+* **Module Path:** `apps/tickets/escalation.py`
+* **Poll & Cooldown Vars:** Configured via `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS` (sleep interval between scans, e.g. 60s) and `TICKETS_ESCALATION_INTERVAL_SECONDS` (cooldown window between escalation steps, e.g. 86400s / 1 day).
+* **Eligibility & Idempotency Rules:**
+  - Overdue tickets (`due_date` in the past), non-terminal (not in `CLOSED` or `CANCELLED`), non-deleted, and below `CRITICAL` priority are eligible.
+  - Priority advances stepwise (`LOW` -> `MEDIUM` -> `HIGH` -> `CRITICAL`). Once at `CRITICAL`, it is capped and does not advance.
+  - No `due_date` or terminal tickets are skipped.
+* **Notification-Owed Retry Invariant:**
+  - To prevent duplicate or lost notifications across worker restarts, the loop executes a strict transactional order: (1) Escalation commits priority mutation and writes a `TICKET_ESCALATE` audit log. (2) Outbound notification is dispatched via `notifications_client.py` using HMAC-SHA256 signatures. (3) On notification success, `last_escalation_notified_at` is stamped.
+  - If notification fails, the timestamp remains `None` (stale). In the next cycle, the cooldown check blocks re-escalation but identifies that a notification is still owed, safely retrying the dispatch.
+
+### Observability & Health Checks
+* **Endpoint:** `GET /health` on port `8009` returns `{"status": "ok", "service": "tickets"}`.
+* **Prometheus metrics:** Exposes `http_requests_total`, `http_request_duration_seconds`, and active/idle database pool size.
+
+### Rollback & Operational Guidance
+* **Pytest Test Bypass:** To allow unit testing, the escalation worker automatically detects standard pytest execution contexts (`"pytest" in sys.modules` or the `PYTEST_CURRENT_TEST` env var) and bypasses the background loop auto-execution.
+* **Optimistic & Pessimistic Lock Safety:** Concurrency is eliminated during escalation by acquiring a pessimistic write lock via `.with_for_update()` on target rows. If a rollback is needed, the `version_index` protects historical lines from conflicting database writes.
+
+---
+
 # SECTION 3: Database Migration, Schema Evolution, and Version Rollbacks
 
 Clinical data migrations must guarantee **zero data loss** (GxP GAMP 5 Class 5 software requirements) and continuous backward compatibility to allow uninterrupted EDC data entry while database nodes undergo schema-level mutations.

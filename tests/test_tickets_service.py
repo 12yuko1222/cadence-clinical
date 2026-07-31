@@ -108,6 +108,7 @@ async def test_tickets_database_schema_creation():
 @pytest.mark.asyncio
 async def test_tickets_lifecycle():
     """
+    # @req:Trace-14
     Verify that a ticket can be created, listed, viewed, and updated with proper GxP fields.
     """
     client = TestClient(app)
@@ -210,6 +211,7 @@ async def test_tickets_lifecycle():
 @pytest.mark.asyncio
 async def test_ticket_audit_log_immutable_ledger():
     """
+    # @req:Trace-14
     Verify TicketAuditLog is append-only and rejects updates/deletions.
     """
     client = TestClient(app)
@@ -702,6 +704,7 @@ async def test_tickets_validation_invalid_enums():
 @pytest.mark.asyncio
 async def test_tickets_optimistic_locking_and_explicit_endpoints():
     """
+    # @req:Trace-14
     Verify:
     (a) optimistic locking 409 responses for mismatched version indexes,
     (b) 400 responses for invalid state transitions (undeclared),

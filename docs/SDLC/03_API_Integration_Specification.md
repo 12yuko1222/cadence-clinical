@@ -1690,4 +1690,173 @@ When a localized request is issued, the dictionary connector maps the base conce
 This ensures that regardless of the site language executing data capture, the underlying clinical metrics are bound to the identical numerical identifier, enforcing universal semantic consistency.
 
 ---
+
+## 11. Tickets & Query Escalation Endpoints
+
+The Tickets microservice endpoints manage in-application support tickets, comments, and audit trails. These endpoints comply fully with standard Section 3 protocols (such as gateway signature handshake, RFC 7807 problem details, and standard limit/offset pagination).
+
+### 11.1 General Architecture & Semantics
+
+#### 11.1.1 Status Transition State Machine
+Support tickets follow a rigid status transition lifecycle:
+* **Allowed Paths:**
+  $$\text{OPEN} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{RESOLVED} \longrightarrow \text{CLOSED}$$
+  $$\text{CLOSED} \longrightarrow \text{REOPENED} \longrightarrow \text{IN\_PROGRESS}$$
+* **Terminal States:** `CLOSED` and `CANCELLED`. Direct updates to tickets in terminal states are rejected with HTTP 400, except for status transition requests to `REOPENED` or `OPEN`.
+
+#### 11.1.2 Optimistic Locking Semantic (`version_index`)
+To prevent concurrent overwrite hazards (race conditions), all ticket updates (`PUT` and `/assign`, `/transition` mutations) require the current `version_index`. The gateway/service searches for the expected version in:
+1. **Request Body:** payload attribute `version_index`.
+2. **Query Parameter:** `version_index` or `expected_version`.
+3. **HTTP Header:** `If-Match` or `X-Expected-Version`.
+
+If the expected version index is missing or mismatched with the current database `version_index`, the request is immediately rejected with **HTTP 409 Conflict** (`version_index` mismatch).
+
+#### 11.1.3 Site & Study Scoped Isolation Rules
+* **Global Access:** Sponsor administrator and global admin roles preserve view and mutation access across all tickets.
+* **Site Scoped Gating:** Clinical research coordinators (CRC) and investigator roles are restricted to tickets matching their assigned site IDs. Direct requests referencing out-of-scope site IDs are blocked with **HTTP 403 Forbidden**.
+* **Auditor Gating:** Auditor and inspector roles are permitted read-only (`GET`) queries, but are blocked from any write/mutation pathways via `verify_not_auditor` checks, returning **HTTP 403 Forbidden**.
+
+#### 11.1.4 Part 11 Audit Trail & Read-Audit Policy
+Every ticket mutation requires a non-empty change reason (propagated via `X-Change-Reason` / `X-Change-Justification` or header). To satisfy 21 CFR Part 11 non-repudiation, **read actions also generate append-only logs** in the immutable audit ledger. Specially:
+* `GET /api/v1/tickets/{id}` emits a `TICKET_VIEW` log.
+* `GET /api/v1/tickets` emits a `TICKET_LIST` log.
+* `GET /api/v1/tickets/{id}/comments` emits a `TICKET_COMMENTS_VIEW` log.
+* `GET /api/v1/tickets/audit-logs` emits a `TICKET_AUDIT_LOG_LIST` log.
+
+---
+
+### 11.2 Endpoint Specifications
+
+#### 11.2.1 POST /api/v1/tickets
+Creates a new support ticket.
+
+* **Status Codes:**
+  * `211 Created`: Ticket created successfully (Note: returns HTTP 201).
+  * `403 Forbidden`: Missing change justification reason, or role-scope mismatch.
+  * `422 Unprocessable Entity`: Invalid fields or categories.
+
+* **Request Body Summary:**
+```json
+{
+  "title": "System connection failure on study 102",
+  "description": "Database connection timed out during subject randomization.",
+  "category": "TECHNICAL",
+  "priority": "HIGH",
+  "assignee_user": "bob_developer",
+  "assignee_role": "developer",
+  "site_id": "SITE-BOSTON-01",
+  "study_id": "STUDY-ONC-01"
+}
+```
+
+* **Response Body Summary:**
+```json
+{
+  "id": "tkt_81a8b992f03",
+  "reference": "TKT-00001",
+  "title": "System connection failure on study 102",
+  "description": "Database connection timed out during subject randomization.",
+  "category": "TECHNICAL",
+  "priority": "HIGH",
+  "status": "OPEN",
+  "reporter": "crc_user_1",
+  "assignee_user": "bob_developer",
+  "assignee_role": "developer",
+  "site_id": "SITE-BOSTON-01",
+  "study_id": "STUDY-ONC-01",
+  "is_deleted": false,
+  "created_at": "2026-10-24T14:32:01.009Z",
+  "created_by": "crc_user_1",
+  "reason_for_change": "Initial ticket logging",
+  "version_index": 1
+}
+```
+
+#### 11.2.2 GET /api/v1/tickets
+Retrieves a filtered list of tickets scoped to the user's site permissions. Generates a `TICKET_LIST` audit log.
+
+* **Query Parameters:**
+  * `status`, `category`, `priority`, `reporter`, `assignee`, `site_id`, `study_id`.
+  * `limit` (default: 20, max: 100), `offset` (default: 0).
+  * `include_deleted` (default: false).
+
+* **Status Codes:**
+  * `200 OK`: Returns a list of matching `TicketResponse` structures.
+  * `403 Forbidden`: Querying out-of-scope site IDs.
+
+#### 11.2.3 GET /api/v1/tickets/{id}
+Retrieves details of a specific ticket by its ID or sequential reference (e.g. `TKT-00001`). Generates a `TICKET_VIEW` audit log.
+
+* **Status Codes:**
+  * `200 OK`: Returns the ticket details.
+  * `403 Forbidden`: Ticket belongs to a site outside user's assigned scope.
+  * `404 Not Found`: Ticket reference/ID does not exist.
+
+#### 11.2.4 PUT /api/v1/tickets/{id}
+Updates general fields of a ticket. Checks status transitions and optimistic locking version.
+
+* **Status Codes:**
+  * `200 OK`: Ticket updated.
+  * `400 Bad Request`: Ticket in terminal state and request is not a reopen transition, or invalid status transition path.
+  * `409 Conflict`: Missing or stale `version_index`.
+
+#### 11.2.5 POST /api/v1/tickets/{id}/transition
+Transitions a ticket's status explicitly. Emits transition notifications asynchronously.
+
+* **Request Body Summary:**
+```json
+{
+  "status": "RESOLVED",
+  "version_index": 1
+}
+```
+
+* **Status Codes:**
+  * `200 OK`: Transition successful.
+  * `400 Bad Request`: Invalid transition path from current state.
+  * `409 Conflict`: Stale version index.
+
+#### 11.2.6 POST /api/v1/tickets/{id}/assign
+Assigns a ticket to a user and/or role-based target explicitly.
+
+* **Request Body Summary:**
+```json
+{
+  "assignee_user": "bob_developer",
+  "assignee_role": "developer",
+  "version_index": 1
+}
+```
+
+#### 11.2.7 POST /api/v1/tickets/{id}/comments
+Appends an auditable comment to a ticket. Enqueues a notification to other stakeholders.
+
+* **Request Body Summary:**
+```json
+{
+  "body": "This issue is resolved following a database pool resize."
+}
+```
+
+* **Status Codes:**
+  * `211 Created`: Comment appended (Note: returns HTTP 201).
+  * `403 Forbidden`: Missing change justification or out of scope.
+
+#### 11.2.8 GET /api/v1/tickets/{id}/comments
+Lists comments for a ticket in ascending chronological order. Generates a `TICKET_COMMENTS_VIEW` audit log.
+
+#### 11.2.9 GET /api/v1/tickets/audit-logs
+Retrieves the paginated audit trail ledger of ticket events in descending chronological order. Generates a `TICKET_AUDIT_LOG_LIST` log.
+
+* **Query Parameters:**
+  * `ticket_id` (optional, filter logs for a specific ticket).
+  * `limit` (default: 50, max: 250), `offset` (default: 0).
+  * `start_time`, `end_time` (ISO 8601 date filters).
+
+* **Status Codes:**
+  * `200 OK`: Returns paginated audit items.
+  * `422 Unprocessable Entity`: Boundary validation failures (e.g. limit > 250, offset < 0).
+
+---
 **End of Specification.**
