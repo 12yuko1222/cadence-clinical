@@ -1267,6 +1267,103 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
     assert result.returncode == 0
 
 
+def test_gateway_comprehensive_scope_spoofing_prevention(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Test that the gateway successfully extracts, normalizes, and propagates scope/identity claims,
+    while completely stripping/overriding any spoofed client headers:
+    1. Send a request with spoofed X-Site-Id, X-Sponsor-Id, X-Unblinded-Access, and X-User-Id headers
+       alongside a legitimate Bearer JWT.
+       Assert the outbound proxied headers carry only the gateway-derived normalized scopes/identity
+       from JWT claims, and NOT the spoofed values.
+    2. Cover empty-scope case: a JWT with no scope claims must result in scope headers (X-Site-Id,
+       X-Sponsor-Id, X-Unblinded-Access) being omitted downstream entirely (not forwarded empty or as client-supplied).
+    """
+    monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
+
+    # Mock send downstream
+    mock_send = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{"status": "ok"}'
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_send.return_value = mock_resp
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_send)
+
+    # 1. Scoped legitimate JWT
+    scoped_token = jwt.encode(
+        {
+            "sub": "pi_boston",
+            "roles": ["site investigator"],
+            "site_id": "site-boston-01",
+            "sponsor_id": "spon-biotech-99",
+            "unblinded_access": "yes",
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    with TestClient(app) as client:
+        # Spoof attempt: pass fake/malicious headers in the request
+        res = client.get(
+            "/designer/test",
+            headers={
+                "Authorization": f"Bearer {scoped_token}",
+                "X-User-Id": "hacker_user_id",
+                "X-Site-Id": "hacker_site_id",
+                "X-Sponsor-Id": "hacker_sponsor_id",
+                "X-Unblinded-Access": "false",  # trying to bypass unblinding flag or tamper
+            },
+        )
+        assert res.status_code == 200
+
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Assert spoofed values are overridden by JWT derived values
+        assert sent_headers.get("X-User-Id") == "pi_boston"
+        assert sent_headers.get("X-Site-Id") == "site-boston-01"
+        assert sent_headers.get("X-Sponsor-Id") == "spon-biotech-99"
+        # "yes" coerced to "true"
+        assert sent_headers.get("X-Unblinded-Access") == "true"
+
+
+    # 2. Empty-scope legitimate JWT
+    unscoped_token = jwt.encode(
+        {
+            "sub": "unscoped_user",
+            "roles": ["sponsor_designer"],
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    with TestClient(app) as client:
+        mock_send.reset_mock()
+        # Spoof attempt with empty-scope JWT
+        res = client.get(
+            "/designer/test",
+            headers={
+                "Authorization": f"Bearer {unscoped_token}",
+                "X-User-Id": "hacker_user_id",
+                "X-Site-Id": "hacker_site_id",
+                "X-Sponsor-Id": "hacker_sponsor_id",
+                "X-Unblinded-Access": "true",
+            },
+        )
+        assert res.status_code == 200
+
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Assert X-User-Id is overridden by unscoped_user
+        assert sent_headers.get("X-User-Id") == "unscoped_user"
+
+        # Assert scope headers are omitted downstream entirely
+        assert "X-Site-Id" not in sent_headers
+        assert "X-Sponsor-Id" not in sent_headers
+        assert "X-Unblinded-Access" not in sent_headers
+
+
 @pytest.mark.asyncio
 async def test_eisf_gateway_site_isolation_propagation(
     monkeypatch: pytest.MonkeyPatch,
