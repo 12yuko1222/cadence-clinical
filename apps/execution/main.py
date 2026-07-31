@@ -90,6 +90,7 @@ from apps.execution.edit_checks import (
 )
 from apps.execution.outliers import recalculate_cohort_outliers
 from apps.execution.query_service import QueryService, StateTransitionError
+from apps.execution.routers.locks import router as locks_router
 from apps.execution.rtsm_authz import redact_response, verify_site_access
 from apps.execution.rtsm_supply import (
     InsufficientStockError,
@@ -280,6 +281,8 @@ class UnblindRequest(BaseModel):
 app = FastAPI(
     title="Cadence Clinical - EDC Execution Engine", version="0.1.0", lifespan=lifespan
 )
+
+app.include_router(locks_router)
 
 
 @app.exception_handler(RequestValidationError)
