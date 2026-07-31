@@ -296,6 +296,21 @@ def test_proxy_requests_paths(monkeypatch: pytest.MonkeyPatch) -> None:
             == "http://localhost:8010/events/publish"
         )
 
+        # Test tickets prefix
+        res = client.get("/tickets/test", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200
+        assert str(mock_send.call_args.args[0].url) == "http://localhost:8009/test"
+
+        # Test api/v1/tickets
+        res = client.get(
+            "/api/v1/tickets/test", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        assert (
+            str(mock_send.call_args.args[0].url)
+            == "http://localhost:8009/api/v1/tickets/test"
+        )
+
         # Test default route
         res = client.get("/unknown/path", headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200

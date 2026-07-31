@@ -574,7 +574,6 @@ Following the §3.1.0 background-runner style, the escalation worker operates as
 ### Rollback & Operational Guidance
 * **Pytest Test Bypass:** To allow unit testing, the escalation worker automatically detects standard pytest execution contexts (`"pytest" in sys.modules` or the `PYTEST_CURRENT_TEST` env var) and bypasses the background loop auto-execution.
 * **Optimistic & Pessimistic Lock Safety:** Concurrency is eliminated during escalation by acquiring a pessimistic write lock via `.with_for_update()` on target rows. If a rollback is needed, the `version_index` protects historical lines from conflicting database writes.
-
 ---
 
 # SECTION 3: Database Migration, Schema Evolution, and Version Rollbacks
@@ -834,6 +833,24 @@ if __name__ == "__main__":
     asyncio.run(rollback_schema_to_version(1))
 ```
 
+### 3.1.3 Tickets SLA Escalation Background Runner
+The Tickets SLA Escalation background worker runs as a persistent service inside the Tickets microservice process lifespan.
+
+* **Module Path:** `apps/tickets/escalation.py`
+* **Configuration:**
+  - `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS`: Defines how frequently the worker sweeps the database (e.g. `60.0`).
+  - `TICKETS_ESCALATION_INTERVAL_SECONDS`: Cooldown window gating re-escalation of a single ticket (e.g., `86400.0` or 24 hours).
+* **Eligibility & Idempotency Behavior:**
+  - Candidates are active, overdue, non-deleted, and non-terminal tickets (i.e. not `CLOSED` or `CANCELLED`).
+  - The worker uses pessimism write-locking (`with_for_update()`) during re-fetch to ensure concurrent safe state transitions.
+* **Notification-Owed Retry Invariant:**
+  - If a priority advancement succeeds but the async notification dispatch fails (network/transport error), the `last_escalation_notified_at` field remains stale (`None`).
+  - During subsequent cycles, the worker retries dispatching the missed notification without re-escalating the ticket (cooldown gating), updating `last_escalation_notified_at` only upon a successful notification dispatch.
+* **Operational & Rollback Guidance:**
+  - The worker is automatically toggled off in test environments to isolate unit behaviors.
+  - To rollback or disable the worker during production incidents, set `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS` to `-1` or set the worker toggle in config variables.
+  - Due to pessimistic lock gating, `version_index` increments are fully transactional and safe to roll back at any point without causing database-level race conditions.
+
 ---
 
 ## 3.2 Neo4j Graph Schema Evolution & Migrations
@@ -987,6 +1004,15 @@ groups:
           severity: warning
         annotations:
           summary: "PostgreSQL active connection pool has reached 85% capacity"
+
+      - alert: TicketsServiceDowntime
+        expr: up{job="cadence-tickets"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tickets Service is offline"
+          description: "Tickets Service has stopped answering. Support ticket and query tracking is locked."
 ```
 
 ---
@@ -1011,6 +1037,16 @@ In the event of automated Prometheus alert triggers, SREs must action incidents 
 | **P1 - Critical** | Platform entirely unreachable; database replication failure; security/data breach detected. | **15 Minutes** | **1 Hour** | SMS/PagerDuty to SRE Lead, QA Director, Security Officer, VP Engineering. |
 | **P2 - Major** | Single tenant inaccessible; random audit logs failing to write; performance degradation > 1000ms latency. | **30 Minutes** | **4 Hours** | Level 1 SRE, Engineering Lead, Database Admin. |
 | **P3 - Minor** | Localized form design translation override glitches; non-blocking API anomalies; telemetry device pairing latency. | **12 Hours** | **48 Hours** | Support Desk, System Engineer. |
+
+### 4.3.1 Support Ticket SLA/Escalation Timers
+Support tickets logged inside the system follow standard GxP SLA, MTTR, and escalation triggers:
+
+| Ticket Priority | Definition | Target Response (SLA) | Target Resolution Time (MTTR) | Notification Chain |
+| :--- | :--- | :--- | :--- | :--- |
+| **CRITICAL** | System-wide failure blocking active patient randomization or form submissions. | **15 Minutes** | **1 Hour** | SMS/PagerDuty to Lead Unblinded Statistician, Principal Investigator, Sponsor Medical Monitor. |
+| **HIGH** | Single site/visit form lock issues; non-blocking telemetry device latency. | **1 Hour** | **4 Hours** | Email to assigned CTA/CRA and Clinical Study Manager. |
+| **MEDIUM** | Minor data correction queries; terminology lookup or localization discrepancies. | **4 Hours** | **12 Hours** | In-App alert to assigned Study Coordinator and Site Staff. |
+| **LOW** | General platform questions; enhancement requests; minor formatting feedback. | **24 Hours** | **72 Hours** | Standard Support Helpdesk Ticket queue. |
 
 ---
 

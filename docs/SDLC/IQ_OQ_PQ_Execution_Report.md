@@ -11,6 +11,8 @@ Based on the executed automated verification suite, the platform meets all prede
 ### Validation Result Summary
 - **Total Automated Test Cases Run:** 1519
 - **Passed:** 1519 🟢
+- **Total Automated Test Cases Run:** 1491
+- **Passed:** 1491 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1528,6 +1530,48 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_tickets_unauthorized_site_scope_blocking` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tickets_validation_invalid_enums` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unauthenticated_requests_are_rejected` | `tests.test_tickets_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_audit_log_creation_on_escalate` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_bounded_priority_advancement` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_cooldown_gating_and_idempotency` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_escalation_eligibility_rules` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_notification_deduplication_and_partial_failures` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_startup_shutdown_and_resilience` | `tests.test_tickets_escalation` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_end_to_end_tickets_and_notifications_handshake` | `tests.test_tickets_integration_seam` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_escalation_worker_notifications_retry_mechanics` | `tests.test_tickets_integration_seam` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_publish_notification_non_2xx_failure` | `tests.test_tickets_notifications_client` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_publish_notification_success` | `tests.test_tickets_notifications_client` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_publish_notification_transport_exception` | `tests.test_tickets_notifications_client` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_notification_failure_isolation` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_notification_idempotency` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_assignment_notification` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_comment_notification` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_transition_notification` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_update_ticket_notifications` | `tests.test_tickets_notifications_integration` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_comments_creation_and_retrieval_scoped` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_list_ticket_audit_logs_endpoint` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_missing_change_reason_fails_mutations` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_nonexistent_resources_return_404` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_audit_log_immutable_ledger` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_concurrent_reference_generation` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_ticket_scoped_audit_logs` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_pagination` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_query_boundaries` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_audit_logs_time_filtering` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_auditor_comments_access` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_database_schema_creation` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_enums_and_models_attributes` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_get_by_reference` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_health_check` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_in_scope_success_and_self_audit` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_lifecycle` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_optimistic_locking_and_explicit_endpoints` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_rbac_auditor_cannot_mutate_but_can_read` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_scope_aware_filtering` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_site_scope_filtering_audit_logs_unfiltered` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_terminal_state_rejection` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_unauthorized_site_scope_blocking` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_tickets_validation_invalid_enums` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
+| `test_unauthenticated_requests_are_rejected` | `tests.test_tickets_service` | Trace-14 | 🟢 PASSED | < 1s |
 | `test_active_version_selection` | `tests.test_tmf_reference_model` | PRD-TMF-001 | 🟢 PASSED | < 1s |
 | `test_artifact_parent_identification` | `tests.test_tmf_reference_model` | PRD-TMF-001 | 🟢 PASSED | < 1s |
 | `test_canonical_11_zones` | `tests.test_tmf_reference_model` | PRD-TMF-001 | 🟢 PASSED | < 1s |
