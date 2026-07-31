@@ -1186,6 +1186,7 @@ async def test_subject_content_submission_and_compliance_apis():
 @pytest.mark.asyncio
 async def test_notifications_and_reminders_lifecycle():
     """
+    # @req:Trace-10
     Test the complete lifecycle of Subject Reminders and Notification Inbox.
     Verifies:
     - Deterministic due reminder computation on demand from schedules.

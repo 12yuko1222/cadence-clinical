@@ -622,3 +622,297 @@ async def test_webhook_delivery_channel_failure_and_retry_backoff():
         assert delivery_3.status == "FAILED"
         assert delivery_3.attempts == 5
         assert delivery_3.retry_eligible is False
+
+
+@pytest.mark.asyncio
+async def test_email_delivery_channel_failure_and_exhaustion():
+    """
+    # @req:PRD-SYS-003
+    Verify that when EMAIL delivery fails, it is recorded, schedules backoff,
+    and increments attempts until capped, writing NOTIFICATION_DELIVERY_EXHAUSTED to NotificationAuditLog.
+    """
+    async with db_manager.get_session_maker()() as session:
+        notif = Notification(
+            recipient_user_id="email_failer",
+            category=NotificationCategory.SYSTEM,
+            priority=NotificationPriority.MEDIUM,
+            message_content="SMTP will fail.",
+            delivery_state="PENDING",
+            created_by="system",
+            reason_for_change="Initial",
+        )
+        session.add(notif)
+        await session.flush()
+
+        delivery = NotificationDelivery(
+            notification_id=notif.id,
+            channel="EMAIL",
+            status="PENDING",
+        )
+        session.add(delivery)
+        await session.commit()
+        delivery_id = delivery.id
+
+    # Mock SMTP to fail
+    mock_smtp_client = AsyncMock()
+    mock_smtp_client.connect.side_effect = Exception("SMTP connect error")
+    with patch("aiosmtplib.SMTP", return_value=mock_smtp_client):
+        # 1st attempt
+        await poll_and_dispatch()
+
+        # Robustly wait for first attempt to complete
+        for _ in range(30):
+            await asyncio.sleep(0.05)
+            async with db_manager.get_session_maker()() as session:
+                res = await session.execute(
+                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+                )
+                d = res.scalars().first()
+                if d.status == "FAILED":
+                    break
+
+        # Confirm failure
+        async with db_manager.get_session_maker()() as session:
+            res = await session.execute(
+                select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+            )
+            d = res.scalars().first()
+            assert d.status == "FAILED"
+            assert d.attempts == 1
+            assert d.retry_eligible is True
+
+            # Advance next_retry_at and max attempts close to cap (4)
+            d.attempts = 4
+            d.next_retry_at = datetime.utcnow() - timedelta(seconds=1)
+            await session.commit()
+
+        # Final attempt -> Exhaustion
+        await poll_and_dispatch()
+
+        # Robustly wait for final attempt to complete
+        for _ in range(30):
+            await asyncio.sleep(0.05)
+            async with db_manager.get_session_maker()() as session:
+                res = await session.execute(
+                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+                )
+                d = res.scalars().first()
+                if d.attempts == 5:
+                    break
+
+    # Check exhaustion audit log
+    async with db_manager.get_session_maker()() as session:
+        res = await session.execute(
+            select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+        )
+        d = res.scalars().first()
+        assert d.attempts == 5
+        assert d.retry_eligible is False
+
+        # Assert NOTIFICATION_DELIVERY_EXHAUSTED audit log was written
+        res_audit = await session.execute(
+            select(NotificationAuditLog).where(
+                NotificationAuditLog.action == "NOTIFICATION_DELIVERY_EXHAUSTED"
+            )
+        )
+        audit_entry = res_audit.scalars().first()
+        assert audit_entry is not None
+        assert "SMTP connect error" in audit_entry.details
+        assert "EMAIL" in audit_entry.details
+
+
+@pytest.mark.asyncio
+async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
+    """
+    # @req:PRD-SYS-003
+    Add a multi-channel edge-case test verifying the parent Notification state
+    and that the failed channel's exhaustion remains observable via the audit entry.
+    """
+    async with db_manager.get_session_maker()() as session:
+        notif = Notification(
+            recipient_user_id="multi_tester",
+            category=NotificationCategory.SYSTEM,
+            priority=NotificationPriority.MEDIUM,
+            message_content="Multi-channel test.",
+            delivery_state="PENDING",
+            created_by="system",
+            reason_for_change="Initial",
+        )
+        session.add(notif)
+        await session.flush()
+
+        delivery_in_app = NotificationDelivery(
+            notification_id=notif.id,
+            channel="IN_APP",
+            status="PENDING",
+        )
+        delivery_email = NotificationDelivery(
+            notification_id=notif.id,
+            channel="EMAIL",
+            status="PENDING",
+        )
+        session.add_all([delivery_in_app, delivery_email])
+        await session.commit()
+        delivery_in_app_id = delivery_in_app.id
+        delivery_email_id = delivery_email.id
+        notif_id = notif.id
+
+    # Mock SMTP to fail, run dispatcher
+    mock_smtp_client = AsyncMock()
+    mock_smtp_client.connect.side_effect = Exception("SMTP connection failure")
+    with patch("aiosmtplib.SMTP", return_value=mock_smtp_client):
+        # 1st dispatch tick -> IN_APP succeeds immediately, EMAIL fails once
+        await poll_and_dispatch()
+
+        # Robustly wait for the first dispatch to complete
+        for _ in range(30):
+            await asyncio.sleep(0.05)
+            async with db_manager.get_session_maker()() as session:
+                res_email = await session.execute(
+                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+                )
+                d_email = res_email.scalars().first()
+                if d_email.attempts == 1:
+                    break
+
+        # Advance EMAIL to 4 attempts and past next_retry_at
+        async with db_manager.get_session_maker()() as session:
+            res_email = await session.execute(
+                select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+            )
+            d_email = res_email.scalars().first()
+            assert d_email.attempts == 1
+            d_email.attempts = 4
+            d_email.next_retry_at = datetime.utcnow() - timedelta(seconds=1)
+            await session.commit()
+
+        # 2nd dispatch tick -> EMAIL exhausts (reaches 5 attempts)
+        await poll_and_dispatch()
+
+        # Robustly wait for the second dispatch to complete
+        for _ in range(30):
+            await asyncio.sleep(0.05)
+            async with db_manager.get_session_maker()() as session:
+                res_email = await session.execute(
+                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+                )
+                d_email = res_email.scalars().first()
+                if d_email.attempts == 5:
+                    break
+
+    # Verify both states
+    async with db_manager.get_session_maker()() as session:
+        # Check IN_APP is successful
+        res_in_app = await session.execute(
+            select(NotificationDelivery).where(NotificationDelivery.id == delivery_in_app_id)
+        )
+        d_in_app = res_in_app.scalars().first()
+        assert d_in_app.status == "SUCCESS"
+
+        # Check EMAIL is exhausted
+        res_email = await session.execute(
+            select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+        )
+        d_email = res_email.scalars().first()
+        assert d_email.status == "FAILED"
+        assert d_email.retry_eligible is False
+
+        # Assert parent notification is updated
+        res_notif = await session.execute(
+            select(Notification).where(Notification.id == notif_id)
+        )
+        n = res_notif.scalars().first()
+        assert n.delivery_state == "DELIVERED"  # Because IN_APP completed, marking delivery_state = "DELIVERED"
+        assert n.retries == 5
+
+        # Check NOTIFICATION_DELIVERY_EXHAUSTED audit log is present
+        res_audit = await session.execute(
+            select(NotificationAuditLog).where(
+                NotificationAuditLog.action == "NOTIFICATION_DELIVERY_EXHAUSTED"
+            )
+        )
+        audit_records = res_audit.scalars().all()
+        assert len(audit_records) > 0
+        email_exhaust_audit = [a for a in audit_records if "EMAIL" in a.details]
+        assert len(email_exhaust_audit) == 1
+
+
+def test_notifications_negative_security_paths():
+    """
+    # @req:PRD-SYS-004
+    Verify negative-path security checks at the microservice boundary.
+    Covers absent/malformed/expired/unsupported version/spoofed headers.
+    """
+    client = TestClient(app)
+
+    # Scenario 1: Absent signature/identity headers (expect 401 on GET, 403 on POST)
+    resp = client.get("/api/v1/notifications")
+    assert resp.status_code == 401
+    assert "Missing gateway authentication headers" in resp.json()["detail"]
+
+    resp_post = client.post("/api/v1/notifications", json={})
+    assert resp_post.status_code == 403
+    assert "Missing gateway authentication headers" in resp_post.json()["detail"]
+
+    # Scenario 2: Malformed/incorrect X-Gateway-Signature
+    timestamp = str(time.time())
+    headers_bad_sig = {
+        "X-User-Id": "test_user",
+        "X-User-Roles": "admin",
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": "invalid_signature_hex_code",
+        "X-Signature-Version": "2",
+    }
+    resp = client.get("/api/v1/notifications", headers=headers_bad_sig)
+    assert resp.status_code == 401
+    assert "Invalid gateway signature" in resp.json()["detail"]
+
+    # Scenario 3: Expired/stale X-Gateway-Timestamp (>300 seconds)
+    stale_timestamp = str(time.time() - 301)
+    sig_stale = generate_signature("test_user", "admin", stale_timestamp, version="2")
+    headers_stale = {
+        "X-User-Id": "test_user",
+        "X-User-Roles": "admin",
+        "X-Gateway-Timestamp": stale_timestamp,
+        "X-Gateway-Signature": sig_stale,
+        "X-Signature-Version": "2",
+    }
+    resp = client.get("/api/v1/notifications", headers=headers_stale)
+    assert resp.status_code == 401
+    assert "Gateway signature expired" in resp.json()["detail"]
+
+    # Scenario 4: Missing/unsupported X-Signature-Version
+    headers_no_ver = get_auth_headers(user_id="test_user", roles="admin")
+    headers_no_ver.pop("X-Signature-Version")
+    resp = client.get("/api/v1/notifications", headers=headers_no_ver)
+    assert resp.status_code == 401
+    assert "Missing or obsolete signature format" in resp.json()["detail"]
+
+    headers_bad_ver = get_auth_headers(user_id="test_user", roles="admin")
+    headers_bad_ver["X-Signature-Version"] = "3"
+    resp = client.get("/api/v1/notifications", headers=headers_bad_ver)
+    assert resp.status_code == 401
+    assert "Missing or obsolete signature format" in resp.json()["detail"]
+
+    # Scenario 5: Spoofed identity where signed reason/tenant mismatches headers
+    # Generate signature with tenant_id="tenant_A" but pass "tenant_B" in headers
+    sig_tenant = generate_signature(
+        user_id="test_user",
+        roles="admin",
+        timestamp=timestamp,
+        version="2",
+        change_reason="Reason",
+        tenant_id="tenant_A",
+    )
+    headers_spoof = {
+        "X-User-Id": "test_user",
+        "X-User-Roles": "admin",
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig_tenant,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": "Reason",
+        "X-Tenant-Id": "tenant_B",  # Mismatch / Spoof!
+    }
+    resp = client.get("/api/v1/notifications", headers=headers_spoof)
+    assert resp.status_code == 401
+    assert "Invalid gateway signature" in resp.json()["detail"]
