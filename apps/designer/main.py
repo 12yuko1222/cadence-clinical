@@ -149,11 +149,10 @@ from packages.security import ROLE_ALIASES, get_normalized_roles
 from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import (
     Principal,
+    can_access_study,
     get_principal,
     has_permission,
     require_permission,
-    can_access_study,
-    can_access_site,
 )
 
 
@@ -253,7 +252,9 @@ app = FastAPI(title="Cadence Clinical - Designer (MDR/SDR)", version="0.1.0")
 
 
 class StudyScopeChecker:
-    async def __call__(self, request: Request, principal: Principal = Depends(get_principal)) -> Principal:
+    async def __call__(
+        self, request: Request, principal: Principal = Depends(get_principal)
+    ) -> Principal:
         study_id = (
             request.path_params.get("study_id")
             or request.query_params.get("study_id")
@@ -282,9 +283,16 @@ class StudyScopeChecker:
                         if not sponsor_id:
                             sponsor_id = body.get("sponsor_id")
                     import json
+
                     body_bytes = json.dumps(body).encode()
+
                     async def receive():
-                        return {"type": "http.request", "body": body_bytes, "more_body": False}
+                        return {
+                            "type": "http.request",
+                            "body": body_bytes,
+                            "more_body": False,
+                        }
+
                     request._receive = receive
             except Exception:
                 pass
@@ -301,7 +309,11 @@ class StudyScopeChecker:
                     detail="Forbidden: Insufficient scope access for this study.",
                 )
 
-        is_library_or_instance = "/library" in request.url.path or "/instance" in request.url.path or "/mdr" in request.url.path
+        is_library_or_instance = (
+            "/library" in request.url.path
+            or "/instance" in request.url.path
+            or "/mdr" in request.url.path
+        )
         if is_library_or_instance:
             if not sponsor_id or not sponsor_id.strip():
                 raise HTTPException(
@@ -1477,7 +1489,10 @@ async def promote_ingestion_candidate(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_arm_endpoint(
     study_id: str,
@@ -1506,7 +1521,10 @@ async def retire_arm_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_epoch_endpoint(
     study_id: str,
@@ -1535,7 +1553,10 @@ async def retire_epoch_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_visit_endpoint(
     study_id: str,
@@ -1564,7 +1585,10 @@ async def retire_visit_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_procedure_endpoint(
     study_id: str,
@@ -1593,7 +1617,10 @@ async def retire_procedure_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_timing_window_endpoint(
     study_id: str,
@@ -1622,7 +1649,10 @@ async def retire_timing_window_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
     response_model=SoALinkResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_epoch_visit_endpoint(
     study_id: str,
@@ -1650,7 +1680,10 @@ async def retire_epoch_visit_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
     response_model=SoALinkResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_visit_procedure_endpoint(
     study_id: str,
@@ -1680,7 +1713,10 @@ async def retire_visit_procedure_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
     response_model=SoALinkResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_timing_endpoint(
     study_id: str,
@@ -1711,7 +1747,10 @@ async def retire_timing_endpoint(
 @app.delete(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
     response_model=SoALinkResponse,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def retire_arm_applicability_endpoint(
     study_id: str,
@@ -1815,7 +1854,10 @@ async def forward_to_etmf(
 
 @app.get(
     "/api/v1/studies/{study_id}/export",
-    dependencies=[Depends(require_permission("protocol_export:generate")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("protocol_export:generate")),
+        Depends(require_study_scope()),
+    ],
 )
 async def export_protocol(
     study_id: str,
@@ -2116,12 +2158,18 @@ async def archive_approved_protocol_background_task(
 @app.post(
     "/api/v1/studies/{study_id}/versions/{version_id}/approve",
     status_code=200,
-    dependencies=[Depends(require_permission("study_design:approve")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
 )
 @app.post(
     "/api/v1/studies/{study_id}/versions/{version_id}/sign-off",
     status_code=200,
-    dependencies=[Depends(require_permission("study_design:approve")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
 )
 async def approve_study_version_endpoint(
     study_id: str,
@@ -2302,7 +2350,10 @@ async def approve_study_version_endpoint(
         )
 
     # 9. Register background task for asynchronous archival forwarding to eTMF
-    roles_str = ",".join(roles_list) if roles_list else "sponsor_designer"
+    raw_roles = getattr(request.state, "roles", "") or request.headers.get(
+        "X-User-Roles", ""
+    )
+    roles_str = str(raw_roles).strip() or "sponsor_designer"
     background_tasks.add_task(
         archive_approved_protocol_background_task,
         study_id,
@@ -2460,7 +2511,10 @@ async def get_eligibility_criterion_detail(
     "/api/v1/studies/{study_id}/eligibility-criteria",
     response_model=EligibilityCriterion,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_eligibility_criterion_endpoint(
     study_id: str, payload: CreateEligibilityCriterionRequest, request: Request
@@ -2536,7 +2590,10 @@ async def create_eligibility_criterion_endpoint(
     "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}",
     response_model=EligibilityCriterion,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_eligibility_criterion_endpoint(
     study_id: str,
@@ -2968,7 +3025,10 @@ async def delete_concept(id: str, request: Request) -> Dict[str, str]:
     "/api/v1/mdr/library",
     response_model=LibraryObjectDetail,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("global_library:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_library_object_endpoint(
     payload: CreateLibraryObjectRequest,
@@ -3135,7 +3195,10 @@ async def get_library_object_endpoint(
 @app.put(
     "/api/v1/mdr/library/{id}",
     response_model=LibraryObjectDetail,
-    dependencies=[Depends(require_permission("global_library:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_library_object_endpoint(
     id: str,
@@ -3231,7 +3294,10 @@ class LibraryObjectAmendRequest(BaseModel):
     "/api/v1/mdr/library/{id}/amend",
     response_model=LibraryObjectDetail,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("global_library:amend")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:amend")),
+        Depends(require_study_scope()),
+    ],
 )
 async def amend_library_object_endpoint(
     id: str,
@@ -3342,7 +3408,10 @@ async def get_library_object_history_endpoint(
 @app.post(
     "/api/v1/mdr/library/{id}/transition",
     response_model=LibraryObjectDetail,
-    dependencies=[Depends(require_permission("global_library:transition")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:transition")),
+        Depends(require_study_scope()),
+    ],
 )
 async def transition_library_object_endpoint(
     id: str,
@@ -3498,7 +3567,10 @@ class CreateStudyVersionRequest(BaseModel):
 @app.post(
     "/api/v1/studies/{study_id}/versions",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def post_study_version(
     study_id: str, payload: CreateStudyVersionRequest, request: Request
@@ -3558,7 +3630,10 @@ async def get_study_rules(study_id: str, request: Request) -> List[Dict[str, Any
 @app.post(
     "/api/v1/studies/{study_id}/rules",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_study_rule(
     study_id: str, payload: CreateRuleRequest, request: Request
@@ -3625,7 +3700,10 @@ async def get_study_rule_by_id(
 @app.put(
     "/api/v1/studies/{study_id}/rules/{rule_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_study_rule_by_id(
     study_id: str, rule_id: str, payload: CreateRuleRequest, request: Request
@@ -3671,7 +3749,10 @@ async def update_study_rule_by_id(
 @app.delete(
     "/api/v1/studies/{study_id}/rules/{rule_id}",
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:delete")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def delete_study_rule_by_id(
     study_id: str, rule_id: str, request: Request
@@ -4083,7 +4164,10 @@ async def reorder_blocks_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_arm_endpoint(
     study_id: str,
@@ -4140,7 +4224,10 @@ async def list_arms_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_arm_endpoint(
     study_id: str,
@@ -4174,7 +4261,10 @@ async def update_arm_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_epoch_endpoint(
     study_id: str,
@@ -4231,7 +4321,10 @@ async def list_epochs_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_epoch_endpoint(
     study_id: str,
@@ -4265,7 +4358,10 @@ async def update_epoch_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_visit_endpoint(
     study_id: str,
@@ -4322,7 +4418,10 @@ async def list_visits_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_visit_endpoint(
     study_id: str,
@@ -4356,7 +4455,10 @@ async def update_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_procedure_endpoint(
     study_id: str,
@@ -4413,7 +4515,10 @@ async def list_procedures_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_procedure_endpoint(
     study_id: str,
@@ -4447,7 +4552,10 @@ async def update_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("study_design:create")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_timing_window_endpoint(
     study_id: str,
@@ -4504,7 +4612,10 @@ async def list_timing_windows_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     response_model=SoAEntityCreatedResponse,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_timing_window_endpoint(
     study_id: str,
@@ -4538,7 +4649,10 @@ async def update_timing_window_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_epoch_visit_endpoint(
     study_id: str,
@@ -4567,7 +4681,10 @@ async def link_epoch_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_visit_procedure_endpoint(
     study_id: str,
@@ -4598,7 +4715,10 @@ async def link_visit_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_timing_endpoint(
     study_id: str,
@@ -4628,7 +4748,10 @@ async def link_timing_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("study_design:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_arm_applicability_endpoint(
     study_id: str,
@@ -4764,7 +4887,10 @@ class LibraryInstanceResponse(BaseModel):
     "/api/v1/studies/{study_id}/library-instances",
     response_model=LibraryInstanceResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_permission("global_library:instantiate")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:instantiate")),
+        Depends(require_study_scope()),
+    ],
 )
 async def instantiate_library_object_endpoint(
     study_id: str,
@@ -4830,7 +4956,10 @@ class UpdateLibraryInstanceRequest(BaseModel):
     "/api/v1/studies/{study_id}/library-instances/{instance_id}",
     response_model=LibraryInstanceResponse,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_permission("global_library:update")), Depends(require_study_scope())],
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_library_instance_endpoint(
     study_id: str,

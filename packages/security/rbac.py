@@ -139,7 +139,14 @@ ROLE_ALIASES = {
 ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     ROLE_SYSADMIN: {
         "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
-        "global_library": {"create", "update", "amend", "transition", "instantiate", "read"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
         "mdr_concept": {"create", "update", "rename", "delete", "read"},
         "protocol_export": {"generate", "read"},
         "designer_cache": {"admin"},
@@ -190,7 +197,14 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     },
     ROLE_SPONSOR_DESIGNER: {
         "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
-        "global_library": {"create", "update", "amend", "transition", "instantiate", "read"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
         "mdr_concept": {"create", "update", "rename", "delete", "read"},
         "protocol_export": {"generate", "read"},
         "designer_cache": {"admin"},

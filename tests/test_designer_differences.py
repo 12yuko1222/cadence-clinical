@@ -15,7 +15,7 @@ def get_auth_headers():
 
     timestamp = str(time.time())
     user_id = "123"
-    roles = "admin"
+    roles = "sponsor_designer"
     change_reason = "system_operation"
     secret = "internal-gateway-secret-12345"
     payload = {
