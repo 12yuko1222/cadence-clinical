@@ -41,6 +41,7 @@ async def setup_tickets_db():
 @patch("apps.tickets.notifications_client.publish_notification", new_callable=AsyncMock)
 async def test_escalation_eligibility_rules(mock_publish):
     """
+    # @req:Trace-14
     Verify escalation eligibility rules:
     - Only non-terminal, due_date-past tickets escalate.
     - No due_date tickets are untouched.
@@ -334,6 +335,7 @@ async def test_audit_log_creation_on_escalate(mock_publish):
 @patch("apps.tickets.notifications_client.publish_notification", new_callable=AsyncMock)
 async def test_notification_deduplication_and_partial_failures(mock_publish):
     """
+    # @req:Trace-14
     Simulate a 'commit-but-no-notify' gap:
     If ticket last_escalated_at is set but last_escalation_notified_at is missing,
     running the cycle must NOT re-escalate (blocked by cooldown) but MUST successfully

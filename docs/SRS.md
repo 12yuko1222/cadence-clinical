@@ -88,6 +88,7 @@ The Quality & CAPA subsystem (`apps/quality/`) manages clinical protocol deviati
 
 * **Trace 14: PI Batch Electronic Sign-Off:** **The server-side atomic batch sign-off endpoint `/api/v1/execution/batch-sign-off` enables the Principal Investigator (PI) to sign off on multiple eligible form submissions in a single transaction block. Each approved record receives a distinct electronic signature manifestation with separate record binding, preserving transactional atomicity and database consistency.**
 * **Trace 14: SAE Reconciliation:** The safety gateway implements GxP-compliant and 21 CFR Part 11 compliant Serious Adverse Event (SAE) reconciliation including EDC-to-safety-case comparisons, secure discrepancy persistence with version_index, and async background job execution (PENDING to PROCESSING to COMPLETED or FAILED) with automatic fail-open alerts to the Sponsor Medical Monitor.
+* **Trace-14: Support Tickets & Query Escalation:** **The in-app Tickets and Query Escalation service enforces GxP-compliant lifecycle status transitions, role-based and site-scoped access isolation, optimistic locking checks, mandatory change reasons, and comprehensive read-auditing. Checked in `apps/tickets/main.py` and verifying test files (`tests/test_tickets_service.py`, `tests/test_tickets_escalation.py`, `tests/test_tickets_notifications_integration.py`).**
 * **Trace 15: Gateway Step-Up Re-Authentication and Signature Token Issuance:** **The central API Gateway challenges critical mutation requests with double-keying re-authentication, issuing a high-assurance, short-lived, single-use JWT `X-Sig-Token` signed using HS256 with `GATEWAY_SECRET` containing a unique `jti` to prevent replay attacks.**
 
 * **Trace 16: eISF Gateway Integration & Document Management:** The eISF microservice (`apps/eisf`) provides a site-isolated, binder-classified document repository and completeness tracking system. All operations are secured via OIDC RBAC permissions (`eisf_document:create`, `eisf_document:update`, `eisf_document:delete`, `eisf_document:sync`) verified via the `require_permission` dependency. The central API Gateway proxies requests to the eISF service under `/eisf/...` and `/api/v1/eisf/...` prefixes while preserving gateway-signed site claims used by `enforce_site_isolation` to enforce site boundaries. GxP audits are recorded to `ISFAuditLog` with mandatory change-reason justifications, verified under `tests/test_eisf_*` and `tests/test_gateway.py`.
@@ -159,3 +160,22 @@ The Organization Directory service (`apps/org`) acts as the GxP-compliant and 21
 ### C. Requirements Traceability Matrix (Trace-7 / PRD-SYS-001)
 * **Target Components:** `apps/org/main.py`, `apps/org/models.py`, `apps/org/database.py`
 * **Test Verification Suites:** `tests/test_doa_workflow.py`, `tests/test_org_integration_e2e.py`
+
+## 13. Tickets & Query Escalation Workflow
+The Tickets and Query Escalation subsystem (`apps/tickets/`) manages support tickets, questions, and system queries with robust GxP state controls, optimistic locking, role-based and site-isolated access boundaries, and append-only audit ledgers.
+
+### A. Core Delivered Behavior
+* **State Transition Model:** Tickets follow a strict status model:
+  $$\text{OPEN} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{RESOLVED} \longrightarrow \text{CLOSED}$$
+  Transitions are governed by declared allowed paths (e.g. from OPEN/IN_PROGRESS to RESOLVED or CLOSED, and from terminal CLOSED to REOPENED). Direct mutations are blocked on terminal states unless reopening.
+* **Optimistic Locking:** Every mutation enforces optimistic locking using the `version_index` field. The version index must be supplied in the request (body, query parameter, or header) and match the current database value. Any mismatch results in an HTTP 409 Conflict.
+* **RBAC & Site Scope Isolation:**
+  * **Read-Only Auditor Access:** Auditor and inspector roles are strictly blocked from executing any write or transition operations via the `verify_not_auditor` guard, receiving HTTP 403 Forbidden. They are allowed read-only access to view and list tickets and audit logs.
+  * **Site Scoped Isolation:** CRC, investigator, and CRA roles are isolated to their assigned sites. When listing or viewing tickets, query constraints dynamically filter records matching `principal.assigned_sites`. Accessing a ticket outside of their scope throws HTTP 403.
+* **Part 11 Compliance & Audit Log:** Every ticket mutation requires a non-empty `X-Change-Reason` header, incrementing `version_index`, and synchronously appending a chronological entry to `TicketAuditLog`. Deletions or updates to `TicketAuditLog` are strictly forbidden.
+* **Read-Audit Policy:** To satisfy GxP and FDA Part 11 auditing requirements, all read operations (viewing a ticket, listing tickets, listing comments, or listing audit logs) synchronously append self-audited entries (e.g. `TICKET_VIEW`, `TICKET_LIST`, `TICKET_COMMENTS_VIEW`, `TICKET_AUDIT_LOG_LIST`) to `TicketAuditLog`.
+
+### B. Automation Behavior (Delivered under #577/#578)
+* **Asynchronous Notifications:** Ticket assignment, comments, and status transitions dynamically trigger asynchronous background notifications via the signed notifications client (`apps/tickets/notifications_client.py`). Recipients are resolved via recipient policies (including assignee user/role and reporter, while strictly excluding the active initiator).
+* **Deterministic Deduplication:** To prevent duplicate delivery across systems, a deterministic token pattern of `{ticket_id}:{event_type}:{version_index}` is set in the notification's `related_entity_id` field.
+* **SLA Escalation Worker:** A background escalation worker (`apps/tickets/escalation.py`) polls active, non-terminal, overdue tickets using pessimistic locking (`.with_for_update()`), raising their priority stepwise up to `CRITICAL` and recording a `TICKET_ESCALATE` audit log. It enforces a post-commit notification dispatch order where failures leave the escalation notified timestamp stale, ensuring automatic retry.
