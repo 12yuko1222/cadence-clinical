@@ -10,14 +10,34 @@ from cdisc.cdisc_library_client import (
     SdtmDomainDefinition,
 )
 from cdisc.terminology_cache import CdiscTerminologyCache
+from cdisc.usdm_models import (
+    Activity,
+    Code,
+    EligibilityCriterion,
+    Encounter,
+    StudyArm,
+    StudyDesign,
+    StudyEpoch,
+    SyntaxTemplate,
+    USDMStudy,
+)
 
 __all__ = [
+    "Activity",
     "CdashDomainDefinition",
     "CdiscLibraryClient",
     "CdiscLibraryConfig",
     "CdiscProductSummary",
     "CdiscTerminologyCache",
+    "Code",
     "CodelistDefinition",
     "CodelistTerm",
+    "EligibilityCriterion",
+    "Encounter",
     "SdtmDomainDefinition",
+    "StudyArm",
+    "StudyDesign",
+    "StudyEpoch",
+    "SyntaxTemplate",
+    "USDMStudy",
 ]
