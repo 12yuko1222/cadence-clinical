@@ -17,6 +17,9 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 
+import packages  # noqa: F401
+from apps.gateway.routers.cdisc import router as cdisc_router
+
 
 def validate_environment() -> None:
     """
@@ -59,6 +62,8 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
 )
+
+app.include_router(cdisc_router, prefix="/api/v1/cdisc", tags=["CDISC Standards"])
 
 # CORS configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
