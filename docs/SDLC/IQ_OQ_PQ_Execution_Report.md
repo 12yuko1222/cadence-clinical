@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1637
-- **Passed:** 1637 🟢
+- **Total Automated Test Cases Run:** 1639
+- **Passed:** 1639 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -142,6 +142,7 @@ six                      1.17.0
 sortedcontainers         2.4.0
 soupsieve                2.9.1
 sqlalchemy               2.0.51
+sqlmodel                 0.0.39
 starlette                1.3.1
 stevedore                5.9.0
 stringcase               1.2.0
@@ -551,6 +552,8 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_scan_file_for_lines` | `tests.test_detect_duplication` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_historical_audit_trail_logging` | `tests.test_doa_audit_suite` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_assignment_record_creation` | `tests.test_doa_models` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_doa_delegation_record_defaults` | `tests.test_doa_models` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_doa_delegation_record_validation` | `tests.test_doa_models` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_assignment_and_signoff_api_flow` | `tests.test_doa_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_service_assignment_and_pi_signoff` | `tests.test_doa_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_complete_doa_workflow_lifecycle` | `tests.test_doa_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
