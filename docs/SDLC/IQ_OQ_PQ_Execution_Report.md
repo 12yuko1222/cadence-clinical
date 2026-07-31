@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1651
-- **Passed:** 1651 🟢
+- **Total Automated Test Cases Run:** 1654
+- **Passed:** 1654 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -627,6 +627,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_eisf_document_lifecycle_same_site` | `tests.test_eisf_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_documents_endpoint_blocks_unauthenticated` | `tests.test_eisf_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_health_unauthenticated` | `tests.test_eisf_api` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_phi_redaction_preserves_original` | `tests.test_eisf_binder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_site_isolation_and_redaction` | `tests.test_eisf_binder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_eisf_site_isolation_enforcement` | `tests.test_eisf_binder` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_auditor_view_and_download_permissions` | `tests.test_eisf_browse_completeness` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_completeness_workflow` | `tests.test_eisf_browse_completeness` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_document_listing_with_binder_filters` | `tests.test_eisf_browse_completeness` | *Regression/Helper* | 🟢 PASSED | < 1s |
