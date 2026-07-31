@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1671
-- **Passed:** 1671 🟢
+- **Total Automated Test Cases Run:** 1676
+- **Passed:** 1676 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -567,6 +567,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_complete_doa_workflow_lifecycle` | `tests.test_doa_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_document_renderer_render_docx` | `tests.test_document_renderer` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_document_renderer_render_pdf` | `tests.test_document_renderer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_document_download_logs_audit_and_watermarks` | `tests.test_document_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_document_upload_missing_permission` | `tests.test_document_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_document_upload_success` | `tests.test_document_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_document_versions_lineage` | `tests.test_document_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_study_archival_job_flow` | `tests.test_document_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_parse_e2b_xml_valid_payload` | `tests.test_e2b_parser` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_assignment_compliance_states_and_recalculations` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_instrument_retrieval_and_assignment_boundaries` | `tests.test_ecoa_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
