@@ -28,6 +28,10 @@ from packages.security.delegation import (
     validate_request_staff_roles,
     verify_delegation_scope,
 )
+from packages.security.gateway_client import (
+    GatewayBaseClient,
+    run_async,
+)
 from packages.security.middleware import (
     GatewayAuthMiddleware,
     require_gateway_permission,
@@ -83,6 +87,8 @@ from packages.security.signing import (
 )
 
 __all__ = [
+    "GatewayBaseClient",
+    "run_async",
     "current_user_id",
     "current_change_reason",
     "current_ip_address",

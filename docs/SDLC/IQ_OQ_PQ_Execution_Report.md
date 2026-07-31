@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1725
-- **Passed:** 1725 🟢
+- **Total Automated Test Cases Run:** 1731
+- **Passed:** 1731 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -947,6 +947,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_signature_verification_success` | `tests.test_gateway` | Trace-15 | 🟢 PASSED | < 1s |
 | `test_signature_verification_with_batch_id` | `tests.test_gateway` | Trace-15 | 🟢 PASSED | < 1s |
 | `test_verify_token_invalid` | `tests.test_gateway` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_base_client_headers` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_base_client_request_exception_logging` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_base_client_request_failure_logging` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_gateway_base_client_request_success` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_run_async_basic` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_run_async_in_running_loop` | `tests.test_gateway_base_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gateway_cdisc_cdash_domain_authenticated` | `tests.test_gateway_cdisc` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gateway_cdisc_codelist_authenticated` | `tests.test_gateway_cdisc` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_gateway_cdisc_products_authenticated` | `tests.test_gateway_cdisc` | *Regression/Helper* | 🟢 PASSED | < 1s |
