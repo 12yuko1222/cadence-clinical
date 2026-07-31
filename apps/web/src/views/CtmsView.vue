@@ -1,5 +1,8 @@
 <template>
-  <div id="section-ctms" class="dashboard-section active">
+  <div
+    id="section-ctms"
+    class="dashboard-section active"
+  >
     <div class="section-header">
       <h2>Clinical Trial Management System (CTMS)</h2>
       <p>
@@ -11,8 +14,47 @@
     <div class="grid-2">
       <!-- Site Milestones Card -->
       <div class="card">
-        <div class="card-title">Site Operational Milestones</div>
-        <div id="ctms-milestones-container" v-html="milestonesHtml" />
+        <div class="card-title">
+          Site Operational Milestones
+        </div>
+        <div id="ctms-milestones-container">
+          <table class="clinical-visit-matrix">
+            <thead>
+              <tr>
+                <th scope="col">
+                  Milestone Type
+                </th>
+                <th scope="col">
+                  Planned Date
+                </th>
+                <th scope="col">
+                  Actual Date
+                </th>
+                <th scope="col">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in store.currentCtmsData.milestones"
+                :key="m.id"
+              >
+                <td>
+                  <strong>{{ m.type }}</strong>
+                </td>
+                <td>{{ m.plannedDate || "N/A" }}</td>
+                <td>{{ m.actualDate || "Pending" }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    :class="{ gxp: m.status === 'ACHIEVED' }"
+                  >{{ m.status }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div style="margin-top: 12px; display: flex; gap: 8px">
           <button
             id="btn-achieve-milestone"
@@ -26,8 +68,51 @@
 
       <!-- Monitoring Visits Card -->
       <div class="card">
-        <div class="card-title">CRA Site Monitoring Visits (MVR)</div>
-        <div id="ctms-visits-container" v-html="visitsHtml" />
+        <div class="card-title">
+          CRA Site Monitoring Visits (MVR)
+        </div>
+        <div id="ctms-visits-container">
+          <table class="clinical-visit-matrix">
+            <thead>
+              <tr>
+                <th scope="col">
+                  Visit Type
+                </th>
+                <th scope="col">
+                  Scheduled Date
+                </th>
+                <th scope="col">
+                  Actual Date
+                </th>
+                <th scope="col">
+                  CRA Assigned
+                </th>
+                <th scope="col">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="v in store.currentCtmsData.visits"
+                :key="v.id"
+              >
+                <td>
+                  <strong>{{ v.type }}</strong>
+                </td>
+                <td>{{ v.scheduledDate || "N/A" }}</td>
+                <td>{{ v.actualDate || "Pending" }}</td>
+                <td>{{ v.cra || "N/A" }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    :class="{ gxp: v.status === 'SIGNED_OFF' }"
+                  >{{ v.status }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div style="margin-top: 12px; display: flex; gap: 8px">
           <button
             id="btn-schedule-visit"
@@ -36,29 +121,49 @@
           >
             Schedule New Visit
           </button>
-          <button id="btn-complete-visit" class="btn" @click="completeVisit">
+          <button
+            id="btn-complete-visit"
+            class="btn"
+            @click="completeVisit"
+          >
             Complete Current Visit
           </button>
         </div>
       </div>
     </div>
 
-    <div class="grid-2" style="margin-top: 24px">
+    <div
+      class="grid-2"
+      style="margin-top: 24px"
+    >
       <!-- CRA Allocations & Workload Card -->
       <div class="card">
-        <div class="card-title">CRA Allocation & Workload Summaries</div>
+        <div class="card-title">
+          CRA Allocation & Workload Summaries
+        </div>
         <div id="ctms-workload-container">
           <table class="clinical-visit-matrix">
             <thead>
               <tr>
-                <th scope="col">CRA</th>
-                <th scope="col">Active Allocations</th>
-                <th scope="col">Allocated Sites</th>
-                <th scope="col">Allocated Studies</th>
+                <th scope="col">
+                  CRA
+                </th>
+                <th scope="col">
+                  Active Allocations
+                </th>
+                <th scope="col">
+                  Allocated Sites
+                </th>
+                <th scope="col">
+                  Allocated Studies
+                </th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in store.currentCtmsData.allocations" :key="a.cra">
+              <tr
+                v-for="a in store.currentCtmsData.allocations"
+                :key="a.cra"
+              >
                 <td>
                   <strong>{{ a.cra }}</strong>
                 </td>
@@ -82,16 +187,28 @@
 
       <!-- Site Recruitment metrics Card -->
       <div class="card">
-        <div class="card-title">Site Recruitment Metrics</div>
+        <div class="card-title">
+          Site Recruitment Metrics
+        </div>
         <div id="ctms-recruitment-container">
           <table class="clinical-visit-matrix">
             <thead>
               <tr>
-                <th scope="col">Site ID</th>
-                <th scope="col">Screened</th>
-                <th scope="col">Enrolled</th>
-                <th scope="col">Target</th>
-                <th scope="col">Progress</th>
+                <th scope="col">
+                  Site ID
+                </th>
+                <th scope="col">
+                  Screened
+                </th>
+                <th scope="col">
+                  Enrolled
+                </th>
+                <th scope="col">
+                  Target
+                </th>
+                <th scope="col">
+                  Progress
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -125,19 +242,9 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
 import { useClinicalStore } from "../stores/clinical";
-import { createCtmsMilestoneTable, createCtmsVisitTable } from "ui";
 
 const store = useClinicalStore();
-
-const milestonesHtml = computed(() => {
-  return createCtmsMilestoneTable(store.currentCtmsData.milestones);
-});
-
-const visitsHtml = computed(() => {
-  return createCtmsVisitTable(store.currentCtmsData.visits);
-});
 
 function achieveMilestone() {
   const nextM = store.currentCtmsData.milestones.find(
@@ -169,7 +276,9 @@ function scheduleVisit() {
       .slice(0, 10),
     actualDate: "",
     status: "SCHEDULED",
-    cra: "cra_fderuiter",
+    cra: store.user?.username
+      ? `cra_${store.user.username}`
+      : "cra_demo_seed_fderuiter",
   };
   store.currentCtmsData.visits.push(newVisit);
   store.addLedgerBlock(

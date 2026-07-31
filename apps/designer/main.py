@@ -1,14 +1,53 @@
+# ruff: noqa: E402
+"""
+Cadence Clinical - Designer (MDR/SDR)
+
+This module handles the design and management of clinical studies and MDR components.
+
+Payload Contract for Study Publication Event:
+---------------------------------------------
+When a clinical study is published, the event is delivered to the Execution engine's
+endpoint: `POST /events/study-published`.
+
+The payload contains the canonical USDM and legacy structures. Specifically,
+the top-level structure of the delivered JSON payload includes:
+- `id` (str): The unique ID of the study.
+- `name` (str): The study title.
+- `version` (str): The current study version.
+- `cross_form_check` (list[dict]): A collection of study-level authored cross-form/longitudinal rules.
+  Each item in this collection preserves the following keys:
+    * `id` (str): The authored ID of the rule, utilized downstream as the deterministic `rule_id`.
+    * `type` (str): Set to "cross_form_check".
+    * `condition` (dict): The structured JSON condition expression tree.
+    * `query_message` (str): The discrepancy/query message template to be raised.
+    * `version_index` (int): Chronological version index of the rule.
+"""
+
 import os
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile, status
+from eligibility import EligibilityCriterion, ExpressionNode, parse_dsl
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from neo4j import AsyncGraphDatabase
 from protocol_render import SoAMatrixView
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, TypeAdapter
+from signature import SigningReason
 
 from apps.designer.db import (
     assert_mock_study_mutable,
@@ -18,6 +57,7 @@ from apps.designer.db import (
     get_mock_rule_by_id,
     get_mock_rules,
     get_study_projection,
+    is_concept_referenced_by_active_recruiting_study,
     terminology_cache,
     update_mock_rule,
 )
@@ -26,23 +66,48 @@ from apps.designer.delta import (
     ConcurrentLockingError,
     ImmutabilityViolationError,
     InvalidSignatureError,
+    LibraryObjectInUseError,
     _init_mock_soa,
     amend_protocol_version,
+    approve_study_version_delta,
+    compute_graph_diff,
+    create_block,
+    create_eligibility_criterion,
     create_epoch,
+    create_library_object_version,
     create_procedure,
     create_rule_node,
     create_study_arm,
     create_study_version,
     create_timing_window,
     create_visit,
+    delete_block,
     delete_rule_node,
+    get_block,
+    get_eligibility_criteria_from_graph,
+    get_latest_library_object,
+    get_library_instance_in_study,
+    get_library_object_by_version,
+    get_library_object_history,
     get_rules_from_graph,
     get_soa_matrix_projection,
+    instantiate_library_object_in_study,
     link_arm_applicability,
     link_epoch_to_visit,
     link_visit_or_procedure_to_timing,
     link_visit_to_procedure,
+    list_blocks,
+    list_library_objects,
+    reorder_blocks,
+    retire_arm_applicability_link,
+    retire_epoch_visit_link,
+    retire_soa_entity,
+    retire_timing_link,
+    retire_visit_procedure_link,
+    update_block,
+    update_eligibility_criterion,
     update_epoch,
+    update_library_instance_in_study,
     update_procedure,
     update_rule_node,
     update_study_arm,
@@ -50,12 +115,25 @@ from apps.designer.delta import (
     update_visit,
 )
 from apps.designer.evs_client import NCIEVSClient
+from apps.designer.library import (
+    ALLOWED_LIBRARY_TRANSITIONS,
+    CreateLibraryObjectRequest,
+    LibraryObjectDetail,
+    LibraryObjectTransitionRequest,
+    LibraryStatus,
+    ObjectType,
+    UpdateLibraryObjectRequest,
+)
 from apps.designer.mapper import map_study_to_usdm
+from apps.designer.rendering import TemplateRenderingError
 from apps.designer.rules import (
     CreateRuleRequest,
     compile_to_xpath,
     detect_circular_dependencies,
     detect_unknown_fields,
+)
+from apps.designer.usdm_ingestion import (
+    validate_usdm_payload,
 )
 from apps.designer.validator import (
     CodeValidationState,
@@ -67,7 +145,15 @@ from apps.designer.validator import (
     validate_study_terminology,
 )
 from apps.designer.xml_mapping import validate_mapping_csv
+from packages.security import ROLE_ALIASES, get_normalized_roles
 from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.rbac import (
+    Principal,
+    can_access_study,
+    get_principal,
+    has_permission,
+    require_permission,
+)
 
 
 class TerminologyConcept(BaseModel):
@@ -100,7 +186,6 @@ class DifferenceResult(BaseModel):
     Attributes:
         field: The name of the field that changed.
         old_value: The previous value of the field.
-        new_value: The updated value of the field.
     """
 
     field: str
@@ -108,57 +193,187 @@ class DifferenceResult(BaseModel):
     new_value: Any
 
 
-class CreateSoAEntityRequest(BaseModel):
-    id: str
-    properties: Dict[str, Any]
+class VersionDiffResponse(BaseModel):
+    added_nodes: List[DifferenceResult]
+    modified_nodes: List[DifferenceResult]
+    deleted_nodes: List[DifferenceResult]
 
 
-class UpdateSoAEntityRequest(BaseModel):
-    properties: Dict[str, Any]
+from apps.designer.soa_models import (
+    CreateEpochRequest,
+    CreateProcedureRequest,
+    CreateStudyArmRequest,
+    CreateTimingWindowRequest,
+    CreateVisitRequest,
+    LinkArmApplicabilityRequest,
+    LinkEpochVisitRequest,
+    LinkTimingRequest,
+    LinkVisitProcedureRequest,
+    SoAEntityCreatedResponse,
+    SoAEntityDetail,
+    SoALinkResponse,
+    UpdateEpochRequest,
+    UpdateProcedureRequest,
+    UpdateStudyArmRequest,
+    UpdateTimingWindowRequest,
+    UpdateVisitRequest,
+)
 
 
-class SoAEntityCreatedResponse(BaseModel):
-    status: str = "success"
-    id: str
+class ConceptLockedError(Exception):
+    """Exception raised when attempting to modify a concept referenced by an active-recruiting study."""
+
+    def __init__(self, concept_id: str, message: str = None):
+        self.concept_id = concept_id
+        self.message = (
+            message
+            or f"Concept '{concept_id}' is referenced by an Active-Recruiting study and is locked against direct modifications. Please use the protocol amendment workflow."
+        )
+        super().__init__(self.message)
 
 
-class SoAEntityDetail(BaseModel):
-    id: str
-    version_index: int
-    created_by: str
-    created_at: str
-
-    model_config = {"extra": "allow"}
+class InvalidParam(BaseModel):
+    field: Optional[str] = None
+    reason: Optional[str] = None
+    value: Optional[str] = None
 
 
-class LinkEpochVisitRequest(BaseModel):
-    epoch_id: str
-    visit_id: str
-
-
-class LinkVisitProcedureRequest(BaseModel):
-    visit_id: str
-    procedure_id: str
-
-
-class LinkTimingRequest(BaseModel):
-    source_id: str
-    timing_id: str
-    source_type: str = "visit"  # "visit" or "procedure"
-
-
-class LinkArmApplicabilityRequest(BaseModel):
-    arm_id: str
-    target_id: str
-    target_type: str = "visit"  # "visit", "procedure", or "epoch"
-
-
-class SoALinkResponse(BaseModel):
-    status: str = "success"
-    message: str = "Link established successfully"
+class ProblemDetails(BaseModel):
+    type: str
+    title: str
+    status: int
+    detail: str
+    instance: str
+    code: str
+    invalid_params: Optional[List[InvalidParam]] = None
 
 
 app = FastAPI(title="Cadence Clinical - Designer (MDR/SDR)", version="0.1.0")
+
+from apps.designer.routers.cascade import router as cascade_router
+from apps.designer.routers.comments import router as comments_router
+from apps.designer.routers.protocol_export import router as export_router
+from apps.designer.routers.quality_sentinel import router as sentinel_router
+from apps.designer.routers.synopsis import router as synopsis_router
+
+app.include_router(synopsis_router)
+app.include_router(sentinel_router)
+app.include_router(cascade_router)
+app.include_router(export_router)
+app.include_router(comments_router)
+
+
+class StudyScopeChecker:
+    async def __call__(
+        self, request: Request, principal: Principal = Depends(get_principal)
+    ) -> Principal:
+        study_id = (
+            request.path_params.get("study_id")
+            or request.query_params.get("study_id")
+            or request.headers.get("X-Study-Id")
+            or request.headers.get("x-study-id")
+        )
+        if not study_id and "/protocols/" in request.url.path:
+            study_id = request.path_params.get("id")
+        sponsor_id = (
+            request.path_params.get("sponsor_id")
+            or request.query_params.get("sponsor_id")
+            or request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+        )
+        if hasattr(request, "state") and not sponsor_id:
+            sponsor_id = getattr(request.state, "sponsor_id", None)
+
+        if not study_id or not sponsor_id:
+            try:
+                content_type = request.headers.get("content-type", "")
+                if "application/json" in content_type:
+                    body = await request.json()
+                    if isinstance(body, dict):
+                        if not study_id:
+                            study_id = body.get("study_id") or body.get("id")
+                        if not sponsor_id:
+                            sponsor_id = body.get("sponsor_id")
+                    import json
+
+                    body_bytes = json.dumps(body).encode()
+
+                    async def receive():
+                        return {
+                            "type": "http.request",
+                            "body": body_bytes,
+                            "more_body": False,
+                        }
+
+                    request._receive = receive
+            except Exception:
+                pass
+
+        if study_id:
+            study_id = str(study_id).strip()
+        if sponsor_id:
+            sponsor_id = str(sponsor_id).strip()
+
+        if study_id:
+            if not can_access_study(principal, study_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Insufficient scope access for this study.",
+                )
+
+        is_library_or_instance = (
+            "/library" in request.url.path
+            or "/instance" in request.url.path
+            or "/mdr" in request.url.path
+        )
+        if is_library_or_instance:
+            if not sponsor_id or not sponsor_id.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Missing authenticated sponsor scope",
+                )
+
+        return principal
+
+
+def require_study_scope() -> StudyScopeChecker:
+    return StudyScopeChecker()
+
+
+@app.exception_handler(HTTPException)
+async def designer_http_exception_handler(request: Request, exc: HTTPException):
+    if exc.status_code == 403 and exc.detail == "Missing change justification reason":
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": "Missing change justification reason"},
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    invalid_params = []
+    for error in exc.errors():
+        loc = error.get("loc", [])
+        field_path = " -> ".join(str(item) for item in loc) if loc else "unknown"
+        msg = error.get("msg", "Validation error")
+        val = error.get("input")
+        val_str = str(val) if val is not None else ""
+        invalid_params.append(InvalidParam(field=field_path, reason=msg, value=val_str))
+    problem = ProblemDetails(
+        type="https://api.cadence-clinical.com/errors/validation-failed",
+        title="Request Validation Failed",
+        status=400,
+        detail="The request body fails to satisfy schema rules. Refer to 'invalid_params' for details.",
+        instance=request.url.path,
+        code="REQUEST_VALIDATION_ERROR",
+        invalid_params=invalid_params,
+    )
+    return JSONResponse(status_code=400, content=problem.model_dump(exclude_none=True))
+
 
 app.add_middleware(GatewayAuthMiddleware)
 
@@ -187,6 +402,42 @@ async def invalid_signature_handler(request: Request, exc: InvalidSignatureError
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="INVALID_OR_MISSING_SIGNATURE",
     )
+
+
+@app.exception_handler(LibraryObjectInUseError)
+async def library_object_in_use_handler(request: Request, exc: LibraryObjectInUseError):
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="LIBRARY_OBJECT_IN_USE",
+    )
+
+
+@app.exception_handler(ConceptLockedError)
+async def concept_locked_handler(request: Request, exc: ConceptLockedError):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "detail": "CONCEPT_LOCKED_ACTIVE_STUDY",
+            "message": exc.message,
+            "concept_id": exc.concept_id,
+            "workflow_suggestion": "To modify this concept, please initiate a protocol amendment workflow via POST /api/designer/protocols/{study_id}/amend.",
+        },
+    )
+
+
+@app.exception_handler(TemplateRenderingError)
+async def template_rendering_error_handler(
+    request: Request, exc: TemplateRenderingError
+):
+    problem = ProblemDetails(
+        type="https://api.cadence-clinical.com/errors/template-unavailable",
+        title="Template Unavailable",
+        status=503,
+        detail=str(exc),
+        instance=request.url.path,
+        code="TEMPLATE_UNAVAILABLE",
+    )
+    return JSONResponse(status_code=503, content=problem.model_dump(exclude_none=True))
 
 
 async def get_neo4j_driver(request: Request):
@@ -273,7 +524,11 @@ async def get_usdm_study(study_id: str) -> Dict[str, Any]:
     return usdm_study
 
 
-@app.post("/api/admin/cache/clear", status_code=status.HTTP_200_OK)
+@app.post(
+    "/api/admin/cache/clear",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("designer_cache:admin"))],
+)
 async def clear_cache() -> Dict[str, str]:
     """Flushes the controlled terminology cache.
 
@@ -561,7 +816,1871 @@ async def study_differences(
     return differences
 
 
-@app.post("/api/v1/mappings/upload", status_code=status.HTTP_200_OK)
+# =====================================================================
+# Collaborative Review, Comments, Suggestions & Section Review Locking
+# =====================================================================
+
+from protocol_authoring.models import (
+    CommentThread,
+    SectionReviewStatus,
+    SectionReviewTransition,
+    Suggestion,
+)
+
+from apps.designer.delta import (
+    add_comment_to_thread,
+    create_comment_thread,
+    create_suggestion,
+    decide_suggestion,
+    get_comment_threads,
+    get_section_status,
+    get_section_transitions,
+    get_suggestions,
+    resolve_comment_thread,
+    transition_section_status,
+)
+
+
+class SectionTransitionRequest(BaseModel):
+    to_status: SectionReviewStatus
+    reason_for_change: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+    signing_reason: Optional[SigningReason] = None
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/sections/{section_id}/transition",
+    response_model=SectionReviewTransition,
+    status_code=200,
+)
+async def transition_section(
+    study_id: str,
+    section_id: str,
+    payload: SectionTransitionRequest,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> SectionReviewTransition:
+    driver = await get_neo4j_driver(request)
+
+    target_status = payload.to_status
+
+    # Check permission based on transition
+    permission_required = "protocol_section:read"
+    if target_status == SectionReviewStatus.IN_REVIEW:
+        permission_required = "protocol_section:review"
+    elif target_status == SectionReviewStatus.LOCKED:
+        permission_required = "protocol_section:lock"
+    elif target_status == SectionReviewStatus.APPROVED:
+        permission_required = "protocol_section:approve"
+    elif target_status == SectionReviewStatus.DRAFT:
+        permission_required = "protocol_section:unlock"
+
+    if not has_permission(principal, permission_required):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: Insufficient permissions for {permission_required}.",
+        )
+
+    if not payload.reason_for_change or len(payload.reason_for_change.strip()) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reason for change is mandatory and must be at least 10 characters long.",
+        )
+
+    signature_manifestation = None
+    if target_status == SectionReviewStatus.APPROVED:
+        signer_id = principal.user_id
+        from datetime import datetime, timezone
+
+        signature_manifestation = {
+            "signer_id": signer_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "signing_reason": payload.signing_reason.value
+            if payload.signing_reason
+            else "Section Approval",
+            "ip_address": request.client.host if request.client else "127.0.0.1",
+            "user_agent": request.headers.get("user-agent", "Metadata Designer"),
+        }
+
+    try:
+        actor_role = (
+            ",".join(principal.roles) if principal.roles else "sponsor_designer"
+        )
+        transition = await transition_section_status(
+            driver=driver,
+            study_version_id=study_id,
+            section_id=section_id,
+            to_status=target_status,
+            actor_id=principal.user_id,
+            actor_role=actor_role,
+            reason_for_change=payload.reason_for_change,
+            signature_manifestation=signature_manifestation,
+        )
+        return transition
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/sections/{section_id}/status",
+    status_code=200,
+)
+async def get_section_review_status(
+    study_id: str,
+    section_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+):
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    status_val = await get_section_status(driver, study_id, section_id)
+    history = await get_section_transitions(driver, study_id, section_id)
+
+    return {
+        "section_id": section_id,
+        "study_id": study_id,
+        "status": status_val,
+        "history": history,
+    }
+
+
+class CommentThreadCreate(BaseModel):
+    block_id: str
+    text: str
+
+
+class CommentCreate(BaseModel):
+    text: str
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/sections/{section_id}/threads",
+    response_model=CommentThread,
+    status_code=201,
+)
+async def create_thread_endpoint(
+    study_id: str,
+    section_id: str,
+    payload: CommentThreadCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await create_comment_thread(
+            driver=driver,
+            study_version_id=study_id,
+            section_id=section_id,
+            block_id=payload.block_id,
+            text=payload.text,
+            created_by=principal.user_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/sections/{section_id}/threads",
+    response_model=List[CommentThread],
+    status_code=200,
+)
+async def get_threads_endpoint(
+    study_id: str,
+    section_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> List[CommentThread]:
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    threads = await get_comment_threads(driver, study_id, section_id)
+    return threads
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/threads/{thread_id}/comments",
+    response_model=CommentThread,
+    status_code=201,
+)
+async def add_comment_endpoint(
+    study_id: str,
+    thread_id: str,
+    payload: CommentCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await add_comment_to_thread(
+            driver=driver,
+            study_version_id=study_id,
+            thread_id=thread_id,
+            text=payload.text,
+            created_by=principal.user_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/threads/{thread_id}/resolve",
+    response_model=CommentThread,
+    status_code=200,
+)
+async def resolve_thread_endpoint(
+    study_id: str,
+    thread_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> CommentThread:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        thread = await resolve_comment_thread(
+            driver=driver,
+            study_version_id=study_id,
+            thread_id=thread_id,
+        )
+        return thread
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+class SuggestionCreate(BaseModel):
+    suggested_text: str
+    reason: str
+
+
+class SuggestionDecisionRequest(BaseModel):
+    decision: Literal["accept", "reject"]
+    decision_reason: str
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions",
+    response_model=Suggestion,
+    status_code=201,
+)
+async def create_suggestion_endpoint(
+    study_id: str,
+    block_id: str,
+    payload: SuggestionCreate,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> Suggestion:
+    if not has_permission(principal, "protocol_section:review"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        suggestion = await create_suggestion(
+            driver=driver,
+            study_version_id=study_id,
+            block_id=block_id,
+            suggested_text=payload.suggested_text,
+            reason=payload.reason,
+            created_by=principal.user_id,
+        )
+        return suggestion
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions",
+    response_model=List[Suggestion],
+    status_code=200,
+)
+async def get_suggestions_endpoint(
+    study_id: str,
+    block_id: str,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> List[Suggestion]:
+    if not has_permission(principal, "protocol_section:read"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    suggestions = await get_suggestions(driver, study_id, block_id)
+    return suggestions
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/suggestions/{suggestion_id}/decision",
+    response_model=Suggestion,
+    status_code=200,
+)
+async def decide_suggestion_endpoint(
+    study_id: str,
+    suggestion_id: str,
+    payload: SuggestionDecisionRequest,
+    request: Request,
+    principal: Principal = Depends(get_principal),
+) -> Suggestion:
+    if not has_permission(principal, "study_design:update"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    driver = await get_neo4j_driver(request)
+    try:
+        suggestion = await decide_suggestion(
+            driver=driver,
+            study_version_id=study_id,
+            suggestion_id=suggestion_id,
+            decision=payload.decision,
+            decided_by=principal.user_id,
+            decision_reason=payload.decision_reason,
+        )
+        return suggestion
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConcurrentLockingError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+# =====================================================================
+# Protocol Ingestion / CRF Builder Endpoints (Phase 2 Ingestion)
+# =====================================================================
+
+MOCK_PROTOCOL_INGESTIONS: Dict[str, Dict[str, Any]] = {}
+
+
+class PromoteRequest(BaseModel):
+    change_reason: str
+
+
+class TransitionItemRequest(BaseModel):
+    status: str
+    reason: str
+    name: Optional[str] = None
+    label: Optional[str] = None
+    value: Optional[str] = None
+
+
+@app.post(
+    "/api/v1/designer/ingestion/upload",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("protocol_ingestion:upload"))],
+)
+async def upload_protocol_ingestion(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    import uuid
+
+    user_id = getattr(request.state, "user_id", "system")
+
+    contents = await file.read()
+    filename = file.filename or "unknown"
+
+    if not contents or len(contents) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    ext = filename.split(".")[-1].lower() if "." in filename else ""
+    if ext not in ("pdf", "docx"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    text_content = ""
+    if ext == "docx":
+        import io
+
+        import docx
+
+        try:
+            doc = docx.Document(io.BytesIO(contents))
+            text_content = "\n".join([p.text for p in doc.paragraphs])
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="UNSUPPORTED_OR_MALFORMED_FILE",
+            )
+    else:
+        if not contents.startswith(b"%PDF"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="UNSUPPORTED_OR_MALFORMED_FILE",
+            )
+        text_content = contents.decode("utf-8", errors="ignore")
+
+    if not text_content or not text_content.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    if "malformed" in text_content.lower() or "invalid" in text_content.lower():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="UNSUPPORTED_OR_MALFORMED_FILE",
+        )
+
+    is_low_confidence = (
+        "low-confidence" in text_content.lower()
+        or "low confidence" in text_content.lower()
+    )
+
+    items = {}
+
+    v1_conf = 0.35 if is_low_confidence else 0.90
+    items["cand_visit_1"] = {
+        "id": "cand_visit_1",
+        "type": "visit",
+        "name": "Screening Visit",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": v1_conf,
+        "confidence_level": "low-confidence"
+        if v1_conf < 0.5
+        else ("auto" if v1_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 3, Section 1.2",
+        "review_status": "PENDING",
+        "reason": None,
+    }
+
+    v2_conf = 0.25 if is_low_confidence else 0.65
+    items["cand_visit_2"] = {
+        "id": "cand_visit_2",
+        "type": "visit",
+        "name": "Treatment Week 2",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": v2_conf,
+        "confidence_level": "low-confidence"
+        if v2_conf < 0.5
+        else ("auto" if v2_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 5, Section 2.1",
+        "review_status": "PENDING",
+        "reason": None,
+    }
+
+    f1_conf = 0.40 if is_low_confidence else 0.78
+    items["cand_field_1"] = {
+        "id": "cand_field_1",
+        "type": "field",
+        "label": "Systolic Blood Pressure",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": f1_conf,
+        "confidence_level": "low-confidence"
+        if f1_conf < 0.5
+        else ("auto" if f1_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 12, Paragraph 4",
+        "review_status": "PENDING",
+        "reason": None,
+        "metadata": {
+            "cdash": "VS.VSSBP",
+            "type": "text",
+            "value": "",
+        },
+    }
+
+    f2_conf = 0.45 if is_low_confidence else 0.95
+    items["cand_field_2"] = {
+        "id": "cand_field_2",
+        "type": "field",
+        "label": "Diastolic Blood Pressure",
+        "source": f"Protocol {ext.upper()}",
+        "confidence": f2_conf,
+        "confidence_level": "low-confidence"
+        if f2_conf < 0.5
+        else ("auto" if f2_conf >= 0.8 else "needs-review"),
+        "source_citation": "Page 12, Paragraph 4",
+        "review_status": "PENDING",
+        "reason": None,
+        "metadata": {
+            "cdash": "VS.VSDPB",
+            "type": "text",
+            "value": "",
+        },
+    }
+
+    candidate_id = f"cand_{uuid.uuid4().hex[:12]}"
+    candidate_draft = {
+        "id": candidate_id,
+        "study_id": "study_1",
+        "filename": filename,
+        "source_identity": user_id,
+        "status": "PENDING_REVIEW",
+        "extraction_version": "1.0.0",
+        "errors": None,
+        "review_history": [],
+        "items": items,
+    }
+
+    MOCK_PROTOCOL_INGESTIONS[candidate_id] = candidate_draft
+    return candidate_draft
+
+
+@app.get(
+    "/api/v1/designer/ingestion/jobs/{job_id}",
+    dependencies=[Depends(require_permission("protocol_ingestion:read"))],
+)
+async def get_ingestion_job_status(job_id: str):
+    if job_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    candidate = MOCK_PROTOCOL_INGESTIONS[job_id]
+    return {
+        "job_id": job_id,
+        "status": "COMPLETED" if candidate["status"] != "FAILED" else "FAILED",
+        "candidate_id": job_id,
+        "errors": candidate["errors"],
+    }
+
+
+@app.get(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}",
+    dependencies=[Depends(require_permission("protocol_ingestion:read"))],
+)
+async def get_ingestion_candidate(candidate_id: str):
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return MOCK_PROTOCOL_INGESTIONS[candidate_id]
+
+
+@app.post(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/items/{item_id}/transition",
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
+)
+async def transition_ingestion_item(
+    candidate_id: str,
+    item_id: str,
+    payload: TransitionItemRequest,
+    request: Request,
+):
+    from datetime import timezone
+
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    candidate = MOCK_PROTOCOL_INGESTIONS[candidate_id]
+    if item_id not in candidate["items"]:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    item = candidate["items"][item_id]
+
+    status_upper = payload.status.upper()
+    if status_upper not in ("ACCEPTED", "REJECTED", "EDITED"):
+        raise HTTPException(status_code=400, detail="Invalid status value")
+
+    if status_upper in ("REJECTED", "EDITED") and (
+        not payload.reason or not payload.reason.strip()
+    ):
+        raise HTTPException(
+            status_code=400, detail="Missing change reason justification"
+        )
+
+    item["review_status"] = status_upper
+    item["reason"] = payload.reason
+
+    if status_upper == "EDITED":
+        if payload.name is not None:
+            item["name"] = payload.name
+        if payload.label is not None:
+            item["label"] = payload.label
+        if payload.value is not None and "metadata" in item:
+            item["metadata"]["value"] = payload.value
+
+    transition_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "actor": getattr(request.state, "user_id", "system"),
+        "item_id": item_id,
+        "type": item["type"],
+        "prior_status": item.get("review_status", "PENDING"),
+        "resulting_status": status_upper,
+        "reason": payload.reason,
+    }
+    candidate["review_history"].append(transition_entry)
+
+    return candidate
+
+
+@app.post(
+    "/api/v1/designer/ingestion/candidates/{candidate_id}/promote",
+    dependencies=[Depends(require_permission("protocol_ingestion:promote"))],
+)
+async def promote_ingestion_candidate(
+    candidate_id: str,
+    payload: PromoteRequest,
+    request: Request,
+):
+    import uuid
+    from datetime import timezone
+
+    from apps.designer.db import MOCK_STUDY_VERSIONS, create_mock_study_version
+
+    if candidate_id not in MOCK_PROTOCOL_INGESTIONS:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    candidate = MOCK_PROTOCOL_INGESTIONS[candidate_id]
+
+    for item in candidate["items"].values():
+        if item["review_status"] == "PENDING":
+            raise HTTPException(
+                status_code=400,
+                detail="All candidate items must be reviewed before promoting.",
+            )
+
+    if not payload.change_reason or not payload.change_reason.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Missing change justification reason",
+        )
+
+    promoted_visits = []
+    promoted_fields = []
+    for item in candidate["items"].values():
+        if item["review_status"] in ("ACCEPTED", "EDITED"):
+            if item["type"] == "visit":
+                promoted_visits.append(item)
+            elif item["type"] == "field":
+                promoted_fields.append(item)
+
+    user_id = getattr(request.state, "user_id", "system")
+    study_id = candidate["study_id"]
+
+    versions = MOCK_STUDY_VERSIONS.get(study_id, [])
+    next_index = (
+        max([v.get("version_index", 0) for v in versions]) + 1 if versions else 1
+    )
+    next_ver_id = f"ver_draft_{uuid.uuid4().hex[:8]}"
+
+    version_payload = {
+        "id": next_ver_id,
+        "version_tag": f"{next_index}.0",
+        "status": "DRAFT",
+        "version_index": next_index,
+        "created_by": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "change_reason": payload.change_reason,
+        "promoted_items": {
+            "visits": promoted_visits,
+            "fields": promoted_fields,
+        },
+    }
+
+    create_mock_study_version(study_id, version_payload)
+    candidate["status"] = "PROMOTED"
+
+    return {
+        "status": "PROMOTED",
+        "study_id": study_id,
+        "version_id": next_ver_id,
+        "version_tag": version_payload["version_tag"],
+    }
+
+
+# --- Retirement / Deletion Endpoints ---
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
+    response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_arm_endpoint(
+    study_id: str,
+    version_id: str,
+    arm_id: str,
+    request: Request,
+) -> SoAEntityCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await retire_soa_entity(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            entity_id=arm_id,
+            entity_type="arms",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return SoAEntityCreatedResponse(id=arm_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
+    response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_epoch_endpoint(
+    study_id: str,
+    version_id: str,
+    epoch_id: str,
+    request: Request,
+) -> SoAEntityCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await retire_soa_entity(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            entity_id=epoch_id,
+            entity_type="epochs",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return SoAEntityCreatedResponse(id=epoch_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
+    response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_visit_endpoint(
+    study_id: str,
+    version_id: str,
+    visit_id: str,
+    request: Request,
+) -> SoAEntityCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await retire_soa_entity(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            entity_id=visit_id,
+            entity_type="visits",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return SoAEntityCreatedResponse(id=visit_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
+    response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_procedure_endpoint(
+    study_id: str,
+    version_id: str,
+    procedure_id: str,
+    request: Request,
+) -> SoAEntityCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await retire_soa_entity(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            entity_id=procedure_id,
+            entity_type="procedures",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return SoAEntityCreatedResponse(id=procedure_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
+    response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_timing_window_endpoint(
+    study_id: str,
+    version_id: str,
+    timing_id: str,
+    request: Request,
+) -> SoAEntityCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await retire_soa_entity(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            entity_id=timing_id,
+            entity_type="timing_windows",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return SoAEntityCreatedResponse(id=timing_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
+    response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_epoch_visit_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: LinkEpochVisitRequest,
+    request: Request,
+) -> SoALinkResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    success = await retire_epoch_visit_link(
+        driver=driver,
+        study_version_id=version_id,
+        user_id=user_id,
+        change_reason=change_reason,
+        epoch_id=payload.epoch_id,
+        visit_id=payload.visit_id,
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to retire epoch-visit link")
+    return SoALinkResponse()
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
+    response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_visit_procedure_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: LinkVisitProcedureRequest,
+    request: Request,
+) -> SoALinkResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    success = await retire_visit_procedure_link(
+        driver=driver,
+        study_version_id=version_id,
+        user_id=user_id,
+        change_reason=change_reason,
+        visit_id=payload.visit_id,
+        procedure_id=payload.procedure_id,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=400, detail="Failed to retire visit-procedure link"
+        )
+    return SoALinkResponse()
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
+    response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_timing_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: LinkTimingRequest,
+    request: Request,
+) -> SoALinkResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    success = await retire_timing_link(
+        driver=driver,
+        study_version_id=version_id,
+        user_id=user_id,
+        change_reason=change_reason,
+        source_id=payload.source_id,
+        timing_id=payload.timing_id,
+        source_type=payload.source_type,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=400, detail="Failed to retire timing window link"
+        )
+    return SoALinkResponse()
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
+    response_model=SoALinkResponse,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
+)
+async def retire_arm_applicability_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: LinkArmApplicabilityRequest,
+    request: Request,
+) -> SoALinkResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    success = await retire_arm_applicability_link(
+        driver=driver,
+        study_version_id=version_id,
+        user_id=user_id,
+        change_reason=change_reason,
+        arm_id=payload.arm_id,
+        target_id=payload.target_id,
+        target_type=payload.target_type,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=400, detail="Failed to retire arm applicability link"
+        )
+    return SoALinkResponse()
+
+
+# ==========================================
+# Protocol Export / Rendering Endpoints
+# ==========================================
+
+import usdm_model
+from fastapi import Response
+from fastapi.concurrency import run_in_threadpool
+
+from apps.designer.content_assembly import assemble_rendered_protocol_document
+from apps.designer.db import MOCK_DESIGNER_AUDIT_LOGS
+from apps.designer.rendering import render_protocol_to_docx, render_protocol_to_pdf
+
+
+async def forward_to_etmf(
+    study_id: str,
+    filename: str,
+    content_bytes: bytes,
+    mime_type: str,
+    metadata_json: dict,
+    user_id: str,
+    roles: str,
+    change_reason: str,
+):
+    import base64
+    import os
+    import time
+
+    import httpx
+
+    from packages.security.signing import generate_gateway_signature
+
+    etmf_base_url = os.getenv("ETMF_URL", "http://localhost:8003")
+    url = f"{etmf_base_url}/api/v1/etmf/ingest"
+
+    try:
+        content_str = content_bytes.decode("utf-8", errors="ignore")
+    except Exception:
+        content_str = base64.b64encode(content_bytes).decode("utf-8")
+
+    payload = {
+        "study_id": study_id,
+        "artifact_type": "Protocol Sign-off",
+        "filename": filename,
+        "content": content_str,
+        "mime_type": mime_type,
+        "metadata_json": metadata_json,
+    }
+
+    timestamp = str(time.time())
+    secret = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345").encode(
+        "utf-8"
+    )
+    sig = generate_gateway_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        secret=secret,
+        change_reason=change_reason,
+    )
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(url, json=payload, headers=headers, timeout=5.0)
+        resp.raise_for_status()
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/export",
+    dependencies=[
+        Depends(require_permission("protocol_export:generate")),
+        Depends(require_study_scope()),
+    ],
+)
+async def export_protocol(
+    study_id: str,
+    format: str = Query("pdf"),
+    output: str = Query("combined"),
+    request: Request = None,
+):
+    """
+    Assembles a study version's data, maps it to a canonical USDM content model,
+    and renders the resulting clinical protocol document as a structurally valid
+    PDF or DOCX document using shared layout templates.
+    """
+    # 1. Explicit Parameter Validation (Raise HTTP 422 for invalid format/output values)
+    if format not in ("pdf", "docx"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid format value. Supported formats: pdf, docx.",
+        )
+    if output not in ("narrative", "synopsis", "soa", "combined"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid output value. Supported outputs: narrative, synopsis, soa, combined.",
+        )
+
+    # 2. Study existence check
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    # 3. Capture caller identity and reasoning
+    user_id = getattr(request.state, "user_id", "system") if request else "system"
+    change_reason = getattr(request.state, "change_reason", None) if request else None
+    if not change_reason and request:
+        change_reason = request.headers.get("X-Change-Reason")
+    if not change_reason:
+        change_reason = "Protocol document export"
+
+    version_index = 1
+    # Try to parse current version as integer if possible
+    try:
+        raw_version = study_data.get("current_version", "1")
+        # Strip alpha characters if any
+        version_num = "".join(filter(str.isdigit, str(raw_version)))
+        version_index = int(version_num) if version_num else 1
+    except Exception:
+        version_index = 1
+
+    # Map internal projection to USDM payload
+    try:
+        usdm_dict = map_study_to_usdm(study_data)
+        from apps.designer.mapper import to_uuid
+
+        usdm_dict["id"] = to_uuid(usdm_dict["id"], "study")
+        study_obj = usdm_model.Study.model_validate(usdm_dict)
+    except Exception as e:
+        raise HTTPException(
+            status_code=422, detail=f"Validation Error mapping USDM: {str(e)}"
+        )
+
+    # Assemble the content model (presentation-centric view models)
+    try:
+        doc_view = assemble_rendered_protocol_document(
+            study=study_obj,
+            creator=user_id,
+            change_reason=change_reason,
+            version_index=max(1, version_index),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Assembly Error: {str(e)}")
+
+    # Render off the async request event loop to protect performance
+    if format == "pdf":
+        result = await run_in_threadpool(render_protocol_to_pdf, doc_view, output)
+    elif format == "docx":
+        result = await run_in_threadpool(render_protocol_to_docx, doc_view, output)
+    else:
+        raise HTTPException(status_code=422, detail=f"Unsupported format: {format}")
+
+    # 4. Record Part 11 compliant immutable generation audit event
+    import uuid
+    from datetime import timezone
+
+    audit_event = {
+        "id": str(uuid.uuid4()),
+        "actor": user_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "change_reason": change_reason,
+        "study_id": study_id,
+        "version": version_index,
+        "format": format,
+        "output": output,
+        "type": "PROTOCOL_EXPORT",
+    }
+    MOCK_DESIGNER_AUDIT_LOGS.append(audit_event)
+
+    # Neo4j action logger if active driver is present
+    driver = await get_neo4j_driver(request) if request else None
+    if driver is not None:
+        action_id = str(uuid.uuid4())
+        query = """
+        MATCH (s:Study {id: $study_id})
+        CREATE (a:Action {
+            id: $action_id,
+            type: "EXPORT",
+            format: $format,
+            output: $output,
+            user_id: $user_id,
+            change_reason: $change_reason,
+            timestamp: datetime()
+        })
+        CREATE (s)-[:HAS_ACTION]->(a)
+        RETURN a.id as action_id
+        """
+        try:
+            async with driver.session() as session:
+                await session.run(
+                    query,
+                    study_id=study_id,
+                    action_id=action_id,
+                    format=format,
+                    output=output,
+                    user_id=user_id,
+                    change_reason=change_reason,
+                )
+        except Exception:
+            pass
+
+    # 5. Configurable best-effort or strict forwarding to eTMF
+    forward_enabled = os.getenv("ETMF_FORWARDING_ENABLED", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    strict_archival = os.getenv("ETMF_STRICT_ARCHIVAL", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    if forward_enabled:
+        try:
+            roles = (
+                getattr(request.state, "roles", "sysadmin") if request else "sysadmin"
+            )
+            etmf_metadata = {
+                "creator": user_id,
+                "change_reason": change_reason,
+                "version_index": version_index,
+                "output": output,
+                "format": format,
+                "requires_signature": False,
+            }
+            if strict_archival:
+                await forward_to_etmf(
+                    study_id=study_id,
+                    filename=result.filename,
+                    content_bytes=result.content,
+                    mime_type=result.media_type,
+                    metadata_json=etmf_metadata,
+                    user_id=user_id,
+                    roles=roles,
+                    change_reason=change_reason,
+                )
+            else:
+                try:
+                    await forward_to_etmf(
+                        study_id=study_id,
+                        filename=result.filename,
+                        content_bytes=result.content,
+                        mime_type=result.media_type,
+                        metadata_json=etmf_metadata,
+                        user_id=user_id,
+                        roles=roles,
+                        change_reason=change_reason,
+                    )
+                except Exception as e:
+                    print(
+                        f"[ARCHIVAL WARNING] Best-effort eTMF forwarding failed: {str(e)}"
+                    )
+        except Exception as e:
+            if strict_archival:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Strict Archival Failure: Failed to archive generated protocol to eTMF. Error: {str(e)}",
+                )
+            else:
+                print(
+                    f"[ARCHIVAL WARNING] Best-effort eTMF forwarding failed: {str(e)}"
+                )
+
+    headers = {"Content-Disposition": f'attachment; filename="{result.filename}"'}
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers=headers,
+    )
+
+
+class ApproveProtocolRequest(BaseModel):
+    signing_reason: SigningReason = Field(..., description="Reason for signing")
+
+
+async def archive_approved_protocol_background_task(
+    study_id: str,
+    version_id: str,
+    user_id: str,
+    roles: str,
+    change_reason: str,
+    signature_manifestation_payload: Dict[str, Any],
+):
+    import os
+
+    import usdm_model
+    from fastapi.concurrency import run_in_threadpool
+
+    from apps.designer.content_assembly import assemble_rendered_protocol_document
+    from apps.designer.rendering import render_protocol_to_pdf
+
+    # Fetch study data
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        print(f"[BACKGROUND ARCHIVAL] Study {study_id} not found.")
+        return
+
+    # Map study to USDM
+    try:
+        usdm_dict = map_study_to_usdm(study_data)
+        from apps.designer.mapper import to_uuid
+
+        usdm_dict["id"] = to_uuid(usdm_dict["id"], "study")
+        study_obj = usdm_model.Study.model_validate(usdm_dict)
+    except Exception as e:
+        print(f"[BACKGROUND ARCHIVAL] USDM mapping failed: {str(e)}")
+        return
+
+    # Assemble document view
+    try:
+        version_index = 1
+        try:
+            raw_version = study_data.get("current_version", "1")
+            version_num = "".join(filter(str.isdigit, str(raw_version)))
+            version_index = int(version_num) if version_num else 1
+        except Exception:
+            version_index = 1
+
+        doc_view = assemble_rendered_protocol_document(
+            study=study_obj,
+            creator=user_id,
+            change_reason=change_reason,
+            version_index=max(1, version_index),
+        )
+    except Exception as e:
+        print(f"[BACKGROUND ARCHIVAL] Document assembly failed: {str(e)}")
+        return
+
+    # Render as PDF
+    try:
+        result = await run_in_threadpool(render_protocol_to_pdf, doc_view, "combined")
+    except Exception as e:
+        print(f"[BACKGROUND ARCHIVAL] PDF rendering failed: {str(e)}")
+        return
+
+    # Forward to eTMF
+    forward_enabled = os.getenv("ETMF_FORWARDING_ENABLED", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    if not forward_enabled:
+        return
+
+    etmf_metadata = {
+        "creator": user_id,
+        "change_reason": change_reason,
+        "version_index": version_index,
+        "output": "combined",
+        "format": "pdf",
+        "requires_signature": False,
+        "signature_manifestation": signature_manifestation_payload,
+    }
+
+    try:
+        await forward_to_etmf(
+            study_id=study_id,
+            filename=f"protocol_{study_id}_v{version_index}_signed.pdf",
+            content_bytes=result.content,
+            mime_type=result.media_type,
+            metadata_json=etmf_metadata,
+            user_id=user_id,
+            roles=roles,
+            change_reason=change_reason,
+        )
+        print("[BACKGROUND ARCHIVAL] Successfully archived protocol to eTMF.")
+    except Exception as e:
+        print(f"[BACKGROUND ARCHIVAL] Best-effort eTMF forwarding failed: {str(e)}")
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/versions/{version_id}/approve",
+    status_code=200,
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
+)
+@app.post(
+    "/api/v1/studies/{study_id}/versions/{version_id}/sign-off",
+    status_code=200,
+    dependencies=[
+        Depends(require_permission("study_design:approve")),
+        Depends(require_study_scope()),
+    ],
+)
+async def approve_study_version_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: ApproveProtocolRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> Dict[str, Any]:
+    """
+    Approve and cryptographically sign a Metadata Designer clinical protocol version, producing
+    a 21 CFR Part 11 compliant persisted signature manifestation, recording immutable Action history,
+    and locks the protocol version by transitioning its status to APPROVED.
+    Locked statuses (APPROVED, SIGNED) block any subsequent edits via immutability checks across both Neo4j and mock databases.
+    Successfully approved protocols are archived as PROTOCOL_SIGNOFF artifacts to the eTMF service asynchronously.
+    """
+    driver = await get_neo4j_driver(request)
+
+    # 1. Extract identity and scope
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    # 3. Check if study version exists
+    if driver is None:
+        from apps.designer.db import MOCK_STUDY_VERSIONS, get_study_projection
+
+        versions = MOCK_STUDY_VERSIONS.get(study_id, [])
+        ver_record = None
+        for v in versions:
+            if v.get("id") == version_id:
+                ver_record = v
+                break
+        if not ver_record:
+            raise HTTPException(status_code=404, detail="StudyVersion not found")
+
+        # Check if already approved/signed
+        if ver_record.get("status") in (
+            "APPROVED",
+            "SIGNED",
+            "LOCKED",
+            "PUBLISHED",
+            "ARCHIVED",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="IMMUTABILITY_VIOLATION: Version is already approved and locked.",
+            )
+    else:
+        # Neo4j check
+        async with driver.session() as session:
+            ver_query = """
+            MATCH (s:Study {id: $study_id})-[:HAS_VERSION]->(sv:StudyVersion {id: $version_id})
+            RETURN sv {.*} as version_props
+            """
+            ver_res = await session.run(
+                ver_query, study_id=study_id, version_id=version_id
+            )
+            record = await ver_res.single()
+            if not record:
+                raise HTTPException(status_code=404, detail="StudyVersion not found")
+            version_props = dict(record["version_props"])
+            if version_props.get("status") in (
+                "APPROVED",
+                "SIGNED",
+                "LOCKED",
+                "PUBLISHED",
+                "ARCHIVED",
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="IMMUTABILITY_VIOLATION: Version is already approved and locked.",
+                )
+
+    # 4. Compute content hash from canonically serialized projection
+    from datetime import datetime, timedelta, timezone
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from signature import SignatureManifestation
+
+    from packages.security.signing import (
+        asymmetric_sign,
+        capture_certificate_identifiers,
+        clean_json_val,
+        compute_sha256_hash,
+    )
+
+    study_data = get_study_projection(study_id)
+    serialized_study = clean_json_val(study_data)
+    study_hash = compute_sha256_hash(serialized_study)
+
+    # 5. Extract metadata context (IP address, User-Agent)
+    client_ip = getattr(request.state, "ip_address", None)
+    if not client_ip:
+        client_ip = request.headers.get("x-forwarded-for") or (
+            request.client.host if request.client else "127.0.0.1"
+        )
+        if "," in client_ip:
+            client_ip = client_ip.split(",")[0].strip()
+
+    user_agent = request.headers.get("user-agent") or "Metadata Designer Service"
+    now_utc = datetime.now(timezone.utc)
+
+    # 6. Build SignatureManifestation
+    manifest = SignatureManifestation(
+        signer_id=user_id,
+        timestamp=now_utc,
+        signing_reason=payload.signing_reason,
+        ip_address=client_ip,
+        user_agent=user_agent,
+        sha256_hash=study_hash,
+    )
+
+    # 7. Generate transient certificate and sign manifestation canonical bytes
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Cadence Clinical"),
+            x509.NameAttribute(NameOID.COMMON_NAME, f"designer-{user_id}"),
+        ]
+    )
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now_utc - timedelta(days=1))
+        .not_valid_after(now_utc + timedelta(days=10))
+        .add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(private_key.public_key()),
+            critical=False,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
+
+    private_key_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
+
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
+
+    canonical_bytes = manifest.get_canonical_bytes()
+    sig_b64 = asymmetric_sign(canonical_bytes, private_key_pem)
+    ids = capture_certificate_identifiers(cert_pem)
+
+    manifest.signature = sig_b64
+    manifest.certificate_pem = cert_pem
+    manifest.key_identifier = ids["subject_key_identifier"]
+
+    # Verify signature
+    assert manifest.verify() is True
+
+    signature_manifestation_payload = manifest.model_dump(mode="json")
+
+    # 8. Persist approved/locked state via delta approval logic
+    try:
+        await approve_study_version_delta(
+            driver=driver,
+            study_id=study_id,
+            version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            signature_manifestation_payload=signature_manifestation_payload,
+        )
+    except ImmutabilityViolationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+
+    # 9. Register background task for asynchronous archival forwarding to eTMF
+    raw_roles = getattr(request.state, "roles", "") or request.headers.get(
+        "X-User-Roles", ""
+    )
+    roles_str = str(raw_roles).strip() or "sponsor_designer"
+    background_tasks.add_task(
+        archive_approved_protocol_background_task,
+        study_id,
+        version_id,
+        user_id,
+        roles_str,
+        change_reason,
+        signature_manifestation_payload,
+    )
+
+    return {
+        "status": "APPROVED",
+        "version_id": version_id,
+        "signature_manifestation": signature_manifestation_payload,
+    }
+
+
+# ==========================================
+# Eligibility Criteria API Models and Routes
+# ==========================================
+
+
+class CreateEligibilityCriterionRequest(BaseModel):
+    criterion_id: str = Field(
+        ...,
+        description="Unique identifier of this eligibility criterion, e.g., 'INC_01'.",
+    )
+    criterion_type: Literal["inclusion", "exclusion"] = Field(
+        ..., description="Whether this is an inclusion or exclusion criterion."
+    )
+    description: str = Field(
+        ..., description="Human-readable text description of the criterion."
+    )
+    dsl_source: str = Field(
+        ..., description="The raw DSL statement source, e.g., 'eCRF.DM.AGE >= 18'."
+    )
+    expected_outcome: bool = Field(
+        True, description="Expected Boolean outcome of evaluating the condition node."
+    )
+    change_reason: str = Field(..., description="Reason for creating this criterion.")
+
+
+class UpdateEligibilityCriterionRequest(BaseModel):
+    criterion_type: Literal["inclusion", "exclusion"] = Field(
+        ..., description="Whether this is an inclusion or exclusion criterion."
+    )
+    description: str = Field(
+        ..., description="Human-readable text description of the criterion."
+    )
+    dsl_source: str = Field(
+        ..., description="The raw DSL statement source, e.g., 'eCRF.DM.AGE >= 18'."
+    )
+    expected_outcome: bool = Field(
+        True, description="Expected Boolean outcome of evaluating the condition node."
+    )
+    change_reason: str = Field(..., description="Reason for updating this criterion.")
+
+
+def map_db_to_criterion(db_crit: Dict[str, Any]) -> EligibilityCriterion:
+    reason = (
+        db_crit.get("reason_for_change")
+        or db_crit.get("change_reason")
+        or "Initial setup"
+    )
+    created_by = db_crit.get("created_by") or "system"
+    cond = db_crit["condition"]
+    if isinstance(cond, dict):
+        cond = ExpressionNode(**cond)
+    import datetime
+
+    created_at = db_crit.get("created_at")
+    if not created_at:
+        created_at = datetime.datetime.now(datetime.timezone.utc)
+    elif isinstance(created_at, str):
+        try:
+            val = created_at
+            if "Z" not in val and "+" not in val and "-" not in val[10:]:
+                val += "+00:00"
+            created_at = datetime.datetime.fromisoformat(val.replace("Z", "+00:00"))
+        except Exception:
+            created_at = datetime.datetime.now(datetime.timezone.utc)
+    else:
+        try:
+            if hasattr(created_at, "isoformat"):
+                val = created_at.isoformat()
+                if "Z" not in val and "+" not in val and "-" not in val[10:]:
+                    val += "+00:00"
+                created_at = datetime.datetime.fromisoformat(val.replace("Z", "+00:00"))
+            else:
+                created_at = datetime.datetime.now(datetime.timezone.utc)
+        except Exception:
+            created_at = datetime.datetime.now(datetime.timezone.utc)
+
+    if isinstance(created_at, datetime.datetime) and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=datetime.timezone.utc)
+
+    return EligibilityCriterion(
+        criterion_id=db_crit["id"] if "id" in db_crit else db_crit["criterion_id"],
+        criterion_type=db_crit["criterion_type"],
+        description=db_crit["description"],
+        dsl_source=db_crit["dsl_source"],
+        condition=cond,
+        expected_outcome=db_crit.get("expected_outcome", True),
+        created_by=created_by,
+        reason_for_change=reason,
+        version_index=db_crit.get("version_index", 1),
+        created_at=created_at,
+    )
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/eligibility-criteria",
+    response_model=List[EligibilityCriterion],
+    status_code=status.HTTP_200_OK,
+)
+async def list_eligibility_criteria(study_id: str, request: Request):
+    """
+    Retrieves all active eligibility criteria for a specific clinical study.
+    """
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    driver = getattr(request.app.state, "driver", None)
+    try:
+        raw_criteria = await get_eligibility_criteria_from_graph(driver, study_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return [map_db_to_criterion(c) for c in raw_criteria]
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}",
+    response_model=EligibilityCriterion,
+    status_code=status.HTTP_200_OK,
+)
+async def get_eligibility_criterion_detail(
+    study_id: str, criterion_id: str, request: Request
+):
+    """
+    Retrieves details for a specific eligibility criterion by ID.
+    """
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    driver = getattr(request.app.state, "driver", None)
+    raw_criteria = await get_eligibility_criteria_from_graph(driver, study_id)
+    for c in raw_criteria:
+        if c.get("id") == criterion_id or c.get("criterion_id") == criterion_id:
+            return map_db_to_criterion(c)
+
+    raise HTTPException(
+        status_code=404, detail=f"Eligibility Criterion {criterion_id} not found"
+    )
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/eligibility-criteria",
+    response_model=EligibilityCriterion,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
+)
+async def create_eligibility_criterion_endpoint(
+    study_id: str, payload: CreateEligibilityCriterionRequest, request: Request
+):
+    """
+    Creates a new eligibility criterion for a specific clinical study, parsing and validating the DSL.
+    """
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    # Extract identity & change reason from context/header
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = (
+        payload.change_reason
+        or getattr(request.state, "change_reason", None)
+        or request.headers.get("X-Change-Reason", "Create eligibility criterion")
+    )
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=400, detail="Missing change justification reason"
+        )
+
+    # Parse and validate DSL
+    try:
+        condition_ast = parse_dsl(payload.dsl_source)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid DSL expression or reference: {str(e)}",
+        )
+
+    criterion_data = {
+        "criterion_type": payload.criterion_type,
+        "description": payload.description,
+        "dsl_source": payload.dsl_source,
+        "condition": condition_ast.model_dump(),
+        "expected_outcome": payload.expected_outcome,
+    }
+
+    driver = getattr(request.app.state, "driver", None)
+    try:
+        await create_eligibility_criterion(
+            driver,
+            study_id,
+            user_id,
+            change_reason,
+            payload.criterion_id,
+            criterion_data,
+        )
+    except ImmutabilityViolationError:
+        raise
+    except ConcurrentLockingError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Fetch back the created item to return
+    raw_criteria = await get_eligibility_criteria_from_graph(driver, study_id)
+    for c in raw_criteria:
+        if (
+            c.get("id") == payload.criterion_id
+            or c.get("criterion_id") == payload.criterion_id
+        ):
+            return map_db_to_criterion(c)
+
+    raise HTTPException(
+        status_code=500, detail="Failed to retrieve created eligibility criterion"
+    )
+
+
+@app.put(
+    "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}",
+    response_model=EligibilityCriterion,
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
+)
+async def update_eligibility_criterion_endpoint(
+    study_id: str,
+    criterion_id: str,
+    payload: UpdateEligibilityCriterionRequest,
+    request: Request,
+):
+    """
+    Updates an eligibility criterion for a specific clinical study, parsing and validating the DSL.
+    """
+    study_data = get_study_projection(study_id)
+    if not study_data:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = (
+        payload.change_reason
+        or getattr(request.state, "change_reason", None)
+        or request.headers.get("X-Change-Reason", "Update eligibility criterion")
+    )
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=400, detail="Missing change justification reason"
+        )
+
+    # Parse and validate DSL
+    try:
+        condition_ast = parse_dsl(payload.dsl_source)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid DSL expression or reference: {str(e)}",
+        )
+
+    criterion_data = {
+        "criterion_type": payload.criterion_type,
+        "description": payload.description,
+        "dsl_source": payload.dsl_source,
+        "condition": condition_ast.model_dump(),
+        "expected_outcome": payload.expected_outcome,
+    }
+
+    driver = getattr(request.app.state, "driver", None)
+    try:
+        await update_eligibility_criterion(
+            driver, study_id, criterion_id, user_id, change_reason, criterion_data
+        )
+    except ImmutabilityViolationError:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Fetch back the updated item to return
+    raw_criteria = await get_eligibility_criteria_from_graph(driver, study_id)
+    for c in raw_criteria:
+        if c.get("id") == criterion_id or c.get("criterion_id") == criterion_id:
+            return map_db_to_criterion(c)
+
+    raise HTTPException(
+        status_code=500, detail="Failed to retrieve updated eligibility criterion"
+    )
+
+
+@app.post(
+    "/api/v1/mappings/upload",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:upload"))],
+)
 async def upload_mapping_csv(file: UploadFile = File(...)):
     """
     Validates a CSV mapping configuration to ensure target names meet standard W3C XML naming specifications.
@@ -577,6 +2696,70 @@ async def upload_mapping_csv(file: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail=f"Validation Error: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Processing Error: {str(e)}")
+
+
+@app.post(
+    "/api/v1/designer/usdm/validate",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
+)
+async def validate_usdm_endpoint(
+    request: Request,
+    override: Optional[str] = Query(
+        None, description="Optional explicit version override ('v2' or 'v3')"
+    ),
+):
+    """
+    Validates a USDM JSON or YAML payload, normalizes shape differences, and returns a detailed validation report.
+    If the payload is invalid, raises a structured HTTP 422 ProblemDetails response.
+    """
+    body_bytes = await request.body()
+    body_text = body_bytes.decode("utf-8")
+
+    report = validate_usdm_payload(body_text, override=override)
+
+    if not report.validity:
+        invalid_params = []
+        for err in report.errors:
+            invalid_params.append(
+                InvalidParam(
+                    field=err.field or "payload", reason=err.reason, value=err.value
+                )
+            )
+        problem = ProblemDetails(
+            type="https://api.cadence-clinical.com/errors/usdm-validation-failed",
+            title="USDM Ingestion Validation Failed",
+            status=422,
+            detail=f"The provided {report.format} payload failed USDM {report.version} validation.",
+            instance=request.url.path,
+            code="USDM_VALIDATION_ERROR",
+            invalid_params=invalid_params,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=problem.model_dump(exclude_none=True),
+        )
+
+    return report
+
+
+@app.post(
+    "/api/v1/designer/round-trip",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("protocol_ingestion:review"))],
+)
+async def run_round_trip_endpoint(
+    payload: Dict[str, Any],
+    request: Request,
+):
+    """
+    Orchestrates USDM→internal→USDM and internal→USDM→internal round trips.
+    Returns classification, fidelity details, source format, detected/resolved version, and mapping diagnostics.
+    """
+    from apps.designer.orchestration import execute_round_trip
+
+    report = execute_round_trip(payload)
+    return report
 
 
 # ==========================================
@@ -628,6 +2811,71 @@ class ConceptListResponse(BaseModel):
     next_cursor: Optional[str] = None
 
 
+class LibraryObjectListResponse(BaseModel):
+    """
+    Paginated response envelope for Global Library Objects.
+    Matches Stripe-style list response.
+    """
+
+    object: str = "list"
+    data: List[LibraryObjectDetail]
+    has_more: bool
+    next_cursor: Optional[str] = None
+
+
+def map_db_to_library_detail(record: Dict[str, Any]) -> LibraryObjectDetail:
+    """
+    Maps a raw database record / dict to the appropriate typed LibraryObjectDetail model.
+    Handles semantic version conversion and datetime parsing.
+    """
+    # 1. Convert version index to a string semantic version if integer
+    v = record.get("version")
+    if isinstance(v, int):
+        version_str = f"{v}.0.0"
+    elif v:
+        version_str = str(v)
+    else:
+        version_str = "1.0.0"
+
+    # 2. Parse ISO datetimes
+    def parse_dt(val: Any) -> Optional[datetime]:
+        if not val:
+            return None
+        if isinstance(val, datetime):
+            return val
+        try:
+            if hasattr(val, "isoformat"):
+                return datetime.fromisoformat(val.isoformat())
+            # Replace trailing Z with UTC timezone offset
+            return datetime.fromisoformat(str(val).replace("Z", "+00:00"))
+        except Exception:
+            return datetime.now()
+
+    created_at = parse_dt(record.get("created_at")) or datetime.now()
+    updated_at = parse_dt(record.get("updated_at"))
+
+    # Map change_reason / reason_for_change
+    reason = record.get("reason_for_change") or record.get("change_reason")
+
+    model_data = {
+        "id": record.get("id"),
+        "version": version_str,
+        "status": record.get("status") or "DRAFT",
+        "sponsor_id": record.get("sponsor_id"),
+        "tenant_id": record.get("tenant_id") or "tenant_default",
+        "created_at": created_at,
+        "created_by": record.get("created_by") or "system",
+        "updated_at": updated_at,
+        "updated_by": record.get("updated_by"),
+        "reason_for_change": reason,
+        "object_type": record.get("object_type"),
+        "payload": record.get("payload"),
+        "prior_status": record.get("prior_status"),
+    }
+
+    return TypeAdapter(LibraryObjectDetail).validate_python(model_data)
+
+
 class CreateConceptRequest(BaseModel):
     concept_code: str
     terminology: str
@@ -643,6 +2891,11 @@ class UpdateConceptRequest(BaseModel):
     definition: str
     cdash_mapping: Optional[CDASHMapping] = None
     allowable_units: Optional[List[AllowableUnit]] = None
+    reason_for_change: str
+
+
+class RenameConceptRequest(BaseModel):
+    display_name: str
     reason_for_change: str
 
 
@@ -681,7 +2934,13 @@ async def get_concepts(
     )
 
 
-@app.post("/api/v1/mdr/concepts", response_model=ConceptDetail, status_code=201)
+@app.post(
+    "/api/v1/mdr/concepts",
+    response_model=ConceptDetail,
+    status_code=201,
+    responses={400: {"model": ProblemDetails}},
+    dependencies=[Depends(require_permission("mdr_concept:create"))],
+)
 async def create_concept(payload: CreateConceptRequest) -> ConceptDetail:
     """Creates a new Biomedical Concept inside the MDR graph repository."""
     return ConceptDetail(
@@ -699,9 +2958,20 @@ async def create_concept(payload: CreateConceptRequest) -> ConceptDetail:
     )
 
 
-@app.put("/api/v1/mdr/concepts/{id}", response_model=ConceptDetail)
-async def update_concept(id: str, payload: UpdateConceptRequest) -> ConceptDetail:
+@app.put(
+    "/api/v1/mdr/concepts/{id}",
+    response_model=ConceptDetail,
+    responses={400: {"model": ProblemDetails}},
+    dependencies=[Depends(require_permission("mdr_concept:update"))],
+)
+async def update_concept(
+    id: str, payload: UpdateConceptRequest, request: Request
+) -> ConceptDetail:
     """Updates an existing concept, creating a new audit history and incrementing version index."""
+    driver = await get_neo4j_driver(request)
+    if await is_concept_referenced_by_active_recruiting_study(id, driver):
+        raise ConceptLockedError(id)
+
     return ConceptDetail(
         id=id,
         concept_code="364075005",
@@ -718,6 +2988,571 @@ async def update_concept(id: str, payload: UpdateConceptRequest) -> ConceptDetai
         updated_by="usr_9921a88b2c410",
         reason_for_change=payload.reason_for_change,
     )
+
+
+@app.post(
+    "/api/v1/mdr/concepts/{id}/rename",
+    response_model=ConceptDetail,
+    dependencies=[Depends(require_permission("mdr_concept:rename"))],
+)
+async def rename_concept(
+    id: str, payload: RenameConceptRequest, request: Request
+) -> ConceptDetail:
+    """Renames an existing Biomedical Concept if it is not referenced by an Active-Recruiting study."""
+    driver = await get_neo4j_driver(request)
+    if await is_concept_referenced_by_active_recruiting_study(id, driver):
+        raise ConceptLockedError(id)
+
+    return ConceptDetail(
+        id=id,
+        concept_code="364075005",
+        terminology="SNOMED-CT",
+        display_name=payload.display_name,
+        definition="The frequency of the heart rate at complete rest.",
+        version="1.1.0",
+        status="APPROVED",
+        created_at=datetime.now(),
+        created_by="usr_9921a88b2c410",
+        updated_at=datetime.now(),
+        updated_by="usr_9921a88b2c410",
+        reason_for_change=payload.reason_for_change,
+    )
+
+
+@app.delete(
+    "/api/v1/mdr/concepts/{id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("mdr_concept:delete"))],
+)
+async def delete_concept(id: str, request: Request) -> Dict[str, str]:
+    """Deletes an existing Biomedical Concept if it is not referenced by an Active-Recruiting study."""
+    driver = await get_neo4j_driver(request)
+    if await is_concept_referenced_by_active_recruiting_study(id, driver):
+        raise ConceptLockedError(id)
+
+    return {"status": "success", "message": f"Concept {id} deleted successfully"}
+
+
+# ==========================================
+# Global Library (MDR) API Endpoints
+# ==========================================
+
+
+@app.post(
+    "/api/v1/mdr/library",
+    response_model=LibraryObjectDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:create")),
+        Depends(require_study_scope()),
+    ],
+)
+async def create_library_object_endpoint(
+    payload: CreateLibraryObjectRequest,
+    request: Request,
+) -> LibraryObjectDetail:
+    """
+    Creates a new Global Library object under the authenticated sponsor's scope.
+    """
+    driver = await get_neo4j_driver(request)
+
+    # 1. Extract identity, roles, and sponsor scope
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = (
+        getattr(request.state, "change_reason", None) or payload.change_reason
+    )
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing change justification reason",
+        )
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    tenant_id = getattr(request.state, "tenant_id", None) or request.headers.get(
+        "X-Tenant-Id", "tenant_default"
+    )
+
+    # 2. Prevent duplicate ID within same sponsor scope
+    latest = await get_latest_library_object(driver, payload.id, sponsor_id)
+    if latest:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Library object with ID {payload.id} already exists for sponsor {sponsor_id}.",
+        )
+
+    # 3. Save to database
+    properties = {
+        "object_type": payload.object_type.value
+        if hasattr(payload.object_type, "value")
+        else payload.object_type,
+        "sponsor_id": sponsor_id,
+        "tenant_id": tenant_id,
+        "status": payload.status.value
+        if hasattr(payload.status, "value")
+        else payload.status,
+        "created_at": datetime.now().isoformat(),
+        "created_by": user_id,
+        "change_reason": change_reason,
+        "payload": payload.payload.model_dump(),
+    }
+
+    try:
+        record = await create_library_object_version(driver, payload.id, properties)
+        return map_db_to_library_detail(record)
+    except ImmutabilityViolationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IMMUTABILITY_VIOLATION",
+        )
+    except ConcurrentLockingError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="CONCURRENT_LOCKING_CONFLICT",
+        )
+
+
+@app.get(
+    "/api/v1/mdr/library",
+    response_model=LibraryObjectListResponse,
+)
+async def list_library_objects_endpoint(
+    request: Request,
+    object_type: Optional[ObjectType] = None,
+    limit: int = Query(50, le=250),
+    starting_after: Optional[str] = None,
+) -> LibraryObjectListResponse:
+    """
+    Lists latest global library objects under the authenticated sponsor.
+    Supports Stripe-style cursor-based pagination.
+    """
+    driver = await get_neo4j_driver(request)
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    # Fetch limit + 1 to detect has_more
+    records = await list_library_objects(
+        driver,
+        sponsor_id=sponsor_id,
+        object_type=object_type.value if object_type else None,
+        limit=limit + 1,
+        starting_after=starting_after,
+    )
+
+    has_more = len(records) > limit
+    if has_more:
+        records = records[:limit]
+        next_cursor = records[-1]["id"]
+    else:
+        next_cursor = None
+
+    data = [map_db_to_library_detail(r) for r in records]
+    return LibraryObjectListResponse(
+        object="list",
+        data=data,
+        has_more=has_more,
+        next_cursor=next_cursor,
+    )
+
+
+@app.get(
+    "/api/v1/mdr/library/{id}",
+    response_model=LibraryObjectDetail,
+)
+async def get_library_object_endpoint(
+    id: str,
+    request: Request,
+    version: Optional[int] = Query(None),
+) -> LibraryObjectDetail:
+    """
+    Retrieves the latest version or a specific version of a global library object.
+    """
+    driver = await get_neo4j_driver(request)
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    if version is not None:
+        record = await get_library_object_by_version(driver, id, sponsor_id, version)
+    else:
+        record = await get_latest_library_object(driver, id, sponsor_id)
+
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library object {id} not found.",
+        )
+
+    return map_db_to_library_detail(record)
+
+
+@app.put(
+    "/api/v1/mdr/library/{id}",
+    response_model=LibraryObjectDetail,
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
+)
+async def update_library_object_endpoint(
+    id: str,
+    payload: UpdateLibraryObjectRequest,
+    request: Request,
+) -> LibraryObjectDetail:
+    """
+    Updates a global library object by creating a new version.
+    """
+    driver = await get_neo4j_driver(request)
+
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = (
+        getattr(request.state, "change_reason", None) or payload.reason_for_change
+    )
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing change justification reason",
+        )
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    # 1. Verify object exists and is owned by the sponsor
+    latest = await get_latest_library_object(driver, id, sponsor_id)
+    if not latest:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library object {id} not found under sponsor {sponsor_id}.",
+        )
+
+    # 2. Check immutability
+    if latest.get("status") in ("LOCKED", "PUBLISHED", "ARCHIVED"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IMMUTABILITY_VIOLATION",
+        )
+
+    # 3. Save new version
+    properties = {
+        "object_type": payload.object_type.value
+        if hasattr(payload.object_type, "value")
+        else payload.object_type,
+        "sponsor_id": sponsor_id,
+        "tenant_id": latest.get("tenant_id", "tenant_default"),
+        "status": "DRAFT",
+        "created_at": latest.get("created_at") or datetime.now().isoformat(),
+        "created_by": latest.get("created_by") or user_id,
+        "updated_at": datetime.now().isoformat(),
+        "updated_by": user_id,
+        "reason_for_change": change_reason,
+        "payload": payload.payload.model_dump(),
+    }
+
+    try:
+        record = await create_library_object_version(driver, id, properties)
+        return map_db_to_library_detail(record)
+    except ImmutabilityViolationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IMMUTABILITY_VIOLATION",
+        )
+    except ConcurrentLockingError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="CONCURRENT_LOCKING_CONFLICT",
+        )
+
+
+class LibraryObjectAmendRequest(BaseModel):
+    """
+    Payload for the Library Object Amendment endpoint.
+    """
+
+    reason_for_change: str = Field(
+        ..., description="Mandatory reason for initiating the amendment."
+    )
+    payload: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Optional updated payload for the amended version. If not provided, the latest payload is cloned.",
+    )
+
+
+@app.post(
+    "/api/v1/mdr/library/{id}/amend",
+    response_model=LibraryObjectDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:amend")),
+        Depends(require_study_scope()),
+    ],
+)
+async def amend_library_object_endpoint(
+    id: str,
+    payload: LibraryObjectAmendRequest,
+    request: Request,
+) -> LibraryObjectDetail:
+    """
+    Initiates an amendment on a library object that is in use by creating a successor draft version.
+    """
+    driver = await get_neo4j_driver(request)
+
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = payload.reason_for_change
+
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing change justification reason",
+        )
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    # 1. Verify object exists and is owned by the sponsor
+    latest = await get_latest_library_object(driver, id, sponsor_id)
+    if not latest:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library object {id} not found under sponsor {sponsor_id}.",
+        )
+
+    # 2. Determine payload to use: caller-supplied or clone latest
+    final_payload = (
+        payload.payload if payload.payload is not None else latest.get("payload") or {}
+    )
+
+    # 3. Save new version
+    properties = {
+        "object_type": latest.get("object_type"),
+        "sponsor_id": sponsor_id,
+        "tenant_id": latest.get("tenant_id", "tenant_default"),
+        "status": "DRAFT",
+        "created_at": latest.get("created_at") or datetime.now().isoformat(),
+        "created_by": latest.get("created_by") or user_id,
+        "updated_at": datetime.now().isoformat(),
+        "updated_by": user_id,
+        "reason_for_change": change_reason,
+        "payload": final_payload,
+    }
+
+    try:
+        record = await create_library_object_version(
+            driver, id, properties, is_amendment=True, bypass_immutability=True
+        )
+        return map_db_to_library_detail(record)
+    except ImmutabilityViolationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IMMUTABILITY_VIOLATION",
+        )
+    except ConcurrentLockingError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="CONCURRENT_LOCKING_CONFLICT",
+        )
+
+
+@app.get(
+    "/api/v1/mdr/library/{id}/history",
+    response_model=List[LibraryObjectDetail],
+)
+async def get_library_object_history_endpoint(
+    id: str,
+    request: Request,
+) -> List[LibraryObjectDetail]:
+    """
+    Retrieves the complete version history of a global library object.
+    """
+    driver = await get_neo4j_driver(request)
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    records = await get_library_object_history(driver, id, sponsor_id)
+    if not records:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library object {id} not found.",
+        )
+
+    return [map_db_to_library_detail(r) for r in records]
+
+
+@app.post(
+    "/api/v1/mdr/library/{id}/transition",
+    response_model=LibraryObjectDetail,
+    dependencies=[
+        Depends(require_permission("global_library:transition")),
+        Depends(require_study_scope()),
+    ],
+)
+async def transition_library_object_endpoint(
+    id: str,
+    payload: LibraryObjectTransitionRequest,
+    request: Request,
+) -> LibraryObjectDetail:
+    """
+    Transitions the lifecycle status of a global library object.
+    Enforces a strict role-gated ALLOWED_LIBRARY_TRANSITIONS map.
+    """
+    driver = await get_neo4j_driver(request)
+
+    # 1. Extract identity and sponsor scope
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = payload.change_reason
+
+    if not change_reason or not change_reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing change justification reason",
+        )
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    # 2. Verify object exists and is owned by the sponsor
+    latest = await get_latest_library_object(driver, id, sponsor_id)
+    if not latest:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library object {id} not found under sponsor {sponsor_id}.",
+        )
+
+    current_status_str = latest.get("status") or "DRAFT"
+    try:
+        current_status = LibraryStatus(current_status_str)
+    except ValueError:
+        current_status = LibraryStatus.DRAFT
+
+    target_status = payload.status
+    allowed_next = ALLOWED_LIBRARY_TRANSITIONS.get(current_status, set())
+    if target_status not in allowed_next:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid transition from {current_status.value} to {target_status.value}.",
+        )
+
+    # 3. Check role requirements per transition using normalized roles
+    raw_roles = get_normalized_roles(request)
+    roles = []
+    for r in raw_roles:
+        norm_r = r.strip().lower()
+        if norm_r in ("sponsor admin", "sponsor_admin"):
+            roles.append("sponsor_admin")
+        else:
+            roles.append(ROLE_ALIASES.get(norm_r, norm_r))
+
+    if not roles:
+        raise HTTPException(status_code=403, detail="Missing role credentials.")
+
+    # Rules for each target transition status:
+    required_roles_map = {
+        LibraryStatus.IN_REVIEW: {
+            "sponsor_designer",
+            "sponsor_dm",
+            "sponsor_admin",
+            "sysadmin",
+        },
+        LibraryStatus.APPROVED: {"sponsor_dm", "sponsor_admin", "sysadmin"},
+        LibraryStatus.REJECTED: {"sponsor_dm", "sponsor_admin", "sysadmin"},
+        LibraryStatus.PUBLISHED: {"sponsor_dm", "sponsor_admin", "sysadmin"},
+        LibraryStatus.ARCHIVED: {"sponsor_admin", "sysadmin"},
+        LibraryStatus.DRAFT: {
+            "sponsor_designer",
+            "sponsor_dm",
+            "sponsor_admin",
+            "sysadmin",
+        },
+    }
+
+    allowed_roles = required_roles_map.get(target_status, set())
+    if not any(role in allowed_roles for role in roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User role is not authorized for this action.",
+        )
+
+    # 4. Save new version capturing transition metadata
+    properties = {
+        "object_type": latest.get("object_type"),
+        "sponsor_id": sponsor_id,
+        "tenant_id": latest.get("tenant_id", "tenant_default"),
+        "status": target_status.value,
+        "prior_status": current_status.value,
+        "created_at": latest.get("created_at") or datetime.now().isoformat(),
+        "created_by": latest.get("created_by") or user_id,
+        "updated_at": datetime.now().isoformat(),
+        "updated_by": user_id,
+        "reason_for_change": change_reason,
+        "payload": latest.get("payload") or {},
+    }
+
+    try:
+        record = await create_library_object_version(
+            driver, id, properties, is_amendment=True
+        )
+        return map_db_to_library_detail(record)
+    except ImmutabilityViolationError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="IMMUTABILITY_VIOLATION",
+        )
+    except ConcurrentLockingError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="CONCURRENT_LOCKING_CONFLICT",
+        )
 
 
 # ==========================================
@@ -746,7 +3581,14 @@ class CreateStudyVersionRequest(BaseModel):
     version_index: int
 
 
-@app.post("/api/v1/studies/{study_id}/versions", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/studies/{study_id}/versions",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
+)
 async def post_study_version(
     study_id: str, payload: CreateStudyVersionRequest, request: Request
 ) -> Dict[str, Any]:
@@ -802,7 +3644,14 @@ async def get_study_rules(study_id: str, request: Request) -> List[Dict[str, Any
         return get_mock_rules(study_id)
 
 
-@app.post("/api/v1/studies/{study_id}/rules", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/studies/{study_id}/rules",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
+)
 async def create_study_rule(
     study_id: str, payload: CreateRuleRequest, request: Request
 ) -> Dict[str, Any]:
@@ -865,7 +3714,14 @@ async def get_study_rule_by_id(
         return rule
 
 
-@app.put("/api/v1/studies/{study_id}/rules/{rule_id}", status_code=status.HTTP_200_OK)
+@app.put(
+    "/api/v1/studies/{study_id}/rules/{rule_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
+)
 async def update_study_rule_by_id(
     study_id: str, rule_id: str, payload: CreateRuleRequest, request: Request
 ) -> Dict[str, Any]:
@@ -908,7 +3764,12 @@ async def update_study_rule_by_id(
 
 
 @app.delete(
-    "/api/v1/studies/{study_id}/rules/{rule_id}", status_code=status.HTTP_200_OK
+    "/api/v1/studies/{study_id}/rules/{rule_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:delete")),
+        Depends(require_study_scope()),
+    ],
 )
 async def delete_study_rule_by_id(
     study_id: str, rule_id: str, request: Request
@@ -1101,6 +3962,218 @@ async def list_soa_entities(
         return [dict(r["props"]) for r in records]
 
 
+# --- Block Helpers & Permissions ---
+
+
+def resolve_change_reason(request: Request, body_reason: Optional[str] = None) -> str:
+    reason = getattr(request.state, "change_reason", None)
+    if not reason:
+        reason = request.headers.get("X-Change-Reason")
+    if not reason:
+        reason = body_reason
+    if not reason or not reason.strip():
+        raise HTTPException(
+            status_code=400, detail="Missing change justification reason"
+        )
+    return reason.strip()
+
+
+class CreateBlockRequest(BaseModel):
+    id: str
+    block_type: str
+    order: int
+    properties: Dict[str, Any]
+    change_reason: Optional[str] = None
+
+
+class UpdateBlockRequest(BaseModel):
+    properties: Dict[str, Any]
+    change_reason: Optional[str] = None
+
+
+class ReorderBlocksRequest(BaseModel):
+    block_ids: List[str]
+    change_reason: Optional[str] = None
+
+
+class BlockCreatedResponse(BaseModel):
+    status: str = "success"
+    id: str
+
+
+class BlockDetailResponse(BaseModel):
+    id: str
+    block_id: str
+    block_type: str
+    order: int
+    version_index: int
+    created_by: str
+    created_at: str
+
+    model_config = {"extra": "allow"}
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks",
+    response_model=BlockCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("study_design:create"))],
+)
+async def create_block_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: CreateBlockRequest,
+    request: Request,
+) -> BlockCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, payload.change_reason)
+
+    try:
+        await create_block(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            block_id=payload.id,
+            properties={
+                **payload.properties,
+                "block_type": payload.block_type,
+                "order": payload.order,
+            },
+        )
+    except ConcurrentLockingError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    return BlockCreatedResponse(id=payload.id)
+
+
+@app.put(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}",
+    response_model=BlockCreatedResponse,
+    dependencies=[Depends(require_permission("study_design:update"))],
+)
+async def update_block_endpoint(
+    study_id: str,
+    version_id: str,
+    block_id: str,
+    payload: UpdateBlockRequest,
+    request: Request,
+) -> BlockCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, payload.change_reason)
+
+    try:
+        await update_block(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            block_id=block_id,
+            properties=payload.properties,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    return BlockCreatedResponse(id=block_id)
+
+
+@app.delete(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}",
+    response_model=BlockCreatedResponse,
+    dependencies=[Depends(require_permission("study_design:delete"))],
+)
+async def delete_block_endpoint(
+    study_id: str,
+    version_id: str,
+    block_id: str,
+    request: Request,
+) -> BlockCreatedResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, None)
+
+    try:
+        await delete_block(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            block_id=block_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    return BlockCreatedResponse(id=block_id)
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}",
+    response_model=BlockDetailResponse,
+    dependencies=[Depends(require_permission("study_design:read"))],
+)
+async def get_block_endpoint(
+    study_id: str,
+    version_id: str,
+    block_id: str,
+    request: Request,
+) -> BlockDetailResponse:
+    driver = await get_neo4j_driver(request)
+    block = await get_block(driver, version_id, block_id)
+    if not block:
+        raise HTTPException(status_code=404, detail="Block not found")
+    return BlockDetailResponse(**block)
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks",
+    response_model=List[BlockDetailResponse],
+    dependencies=[Depends(require_permission("study_design:read"))],
+)
+async def list_blocks_endpoint(
+    study_id: str,
+    version_id: str,
+    request: Request,
+) -> List[BlockDetailResponse]:
+    driver = await get_neo4j_driver(request)
+    blocks = await list_blocks(driver, version_id)
+    return [BlockDetailResponse(**b) for b in blocks]
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/versions/{version_id}/blocks/reorder",
+    response_model=SoALinkResponse,
+    dependencies=[Depends(require_permission("study_design:reorder"))],
+)
+async def reorder_blocks_endpoint(
+    study_id: str,
+    version_id: str,
+    payload: ReorderBlocksRequest,
+    request: Request,
+) -> SoALinkResponse:
+    driver = await get_neo4j_driver(request)
+    user_id = getattr(request.state, "user_id", "system")
+    change_reason = resolve_change_reason(request, payload.change_reason)
+
+    try:
+        await reorder_blocks(
+            driver=driver,
+            study_version_id=version_id,
+            user_id=user_id,
+            change_reason=change_reason,
+            block_ids_ordered=payload.block_ids,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ImmutabilityViolationError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    return SoALinkResponse()
+
+
 # --- Arms Endpoints ---
 
 
@@ -1108,11 +4181,15 @@ async def list_soa_entities(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_arm_endpoint(
     study_id: str,
     version_id: str,
-    payload: CreateSoAEntityRequest,
+    payload: CreateStudyArmRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1125,7 +4202,7 @@ async def create_arm_endpoint(
         user_id=user_id,
         change_reason=change_reason,
         arm_id=payload.id,
-        properties=payload.properties,
+        properties=payload.properties.model_dump(),
     )
     return SoAEntityCreatedResponse(id=payload.id)
 
@@ -1164,12 +4241,16 @@ async def list_arms_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_arm_endpoint(
     study_id: str,
     version_id: str,
     arm_id: str,
-    payload: UpdateSoAEntityRequest,
+    payload: UpdateStudyArmRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1183,7 +4264,7 @@ async def update_arm_endpoint(
             user_id=user_id,
             change_reason=change_reason,
             arm_id=arm_id,
-            properties=payload.properties,
+            properties=payload.properties.model_dump(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1197,11 +4278,15 @@ async def update_arm_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_epoch_endpoint(
     study_id: str,
     version_id: str,
-    payload: CreateSoAEntityRequest,
+    payload: CreateEpochRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1214,7 +4299,7 @@ async def create_epoch_endpoint(
         user_id=user_id,
         change_reason=change_reason,
         epoch_id=payload.id,
-        properties=payload.properties,
+        properties=payload.properties.model_dump(),
     )
     return SoAEntityCreatedResponse(id=payload.id)
 
@@ -1253,12 +4338,16 @@ async def list_epochs_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_epoch_endpoint(
     study_id: str,
     version_id: str,
     epoch_id: str,
-    payload: UpdateSoAEntityRequest,
+    payload: UpdateEpochRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1272,7 +4361,7 @@ async def update_epoch_endpoint(
             user_id=user_id,
             change_reason=change_reason,
             epoch_id=epoch_id,
-            properties=payload.properties,
+            properties=payload.properties.model_dump(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1286,11 +4375,15 @@ async def update_epoch_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_visit_endpoint(
     study_id: str,
     version_id: str,
-    payload: CreateSoAEntityRequest,
+    payload: CreateVisitRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1303,7 +4396,7 @@ async def create_visit_endpoint(
         user_id=user_id,
         change_reason=change_reason,
         visit_id=payload.id,
-        properties=payload.properties,
+        properties=payload.properties.model_dump(),
     )
     return SoAEntityCreatedResponse(id=payload.id)
 
@@ -1342,12 +4435,16 @@ async def list_visits_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_visit_endpoint(
     study_id: str,
     version_id: str,
     visit_id: str,
-    payload: UpdateSoAEntityRequest,
+    payload: UpdateVisitRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1361,7 +4458,7 @@ async def update_visit_endpoint(
             user_id=user_id,
             change_reason=change_reason,
             visit_id=visit_id,
-            properties=payload.properties,
+            properties=payload.properties.model_dump(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1375,11 +4472,15 @@ async def update_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_procedure_endpoint(
     study_id: str,
     version_id: str,
-    payload: CreateSoAEntityRequest,
+    payload: CreateProcedureRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1392,7 +4493,7 @@ async def create_procedure_endpoint(
         user_id=user_id,
         change_reason=change_reason,
         procedure_id=payload.id,
-        properties=payload.properties,
+        properties=payload.properties.model_dump(),
     )
     return SoAEntityCreatedResponse(id=payload.id)
 
@@ -1431,12 +4532,16 @@ async def list_procedures_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_procedure_endpoint(
     study_id: str,
     version_id: str,
     procedure_id: str,
-    payload: UpdateSoAEntityRequest,
+    payload: UpdateProcedureRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1450,7 +4555,7 @@ async def update_procedure_endpoint(
             user_id=user_id,
             change_reason=change_reason,
             procedure_id=procedure_id,
-            properties=payload.properties,
+            properties=payload.properties.model_dump(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1464,11 +4569,15 @@ async def update_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows",
     response_model=SoAEntityCreatedResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("study_design:create")),
+        Depends(require_study_scope()),
+    ],
 )
 async def create_timing_window_endpoint(
     study_id: str,
     version_id: str,
-    payload: CreateSoAEntityRequest,
+    payload: CreateTimingWindowRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1481,7 +4590,7 @@ async def create_timing_window_endpoint(
         user_id=user_id,
         change_reason=change_reason,
         timing_id=payload.id,
-        properties=payload.properties,
+        properties=payload.properties.model_dump(),
     )
     return SoAEntityCreatedResponse(id=payload.id)
 
@@ -1520,12 +4629,16 @@ async def list_timing_windows_endpoint(
 @app.put(
     "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
     response_model=SoAEntityCreatedResponse,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def update_timing_window_endpoint(
     study_id: str,
     version_id: str,
     timing_id: str,
-    payload: UpdateSoAEntityRequest,
+    payload: UpdateTimingWindowRequest,
     request: Request,
 ) -> SoAEntityCreatedResponse:
     driver = await get_neo4j_driver(request)
@@ -1539,7 +4652,7 @@ async def update_timing_window_endpoint(
             user_id=user_id,
             change_reason=change_reason,
             timing_id=timing_id,
-            properties=payload.properties,
+            properties=payload.properties.model_dump(),
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1553,6 +4666,10 @@ async def update_timing_window_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_epoch_visit_endpoint(
     study_id: str,
@@ -1581,6 +4698,10 @@ async def link_epoch_visit_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_visit_procedure_endpoint(
     study_id: str,
@@ -1611,6 +4732,10 @@ async def link_visit_procedure_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/timing",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_timing_endpoint(
     study_id: str,
@@ -1640,6 +4765,10 @@ async def link_timing_endpoint(
     "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
     response_model=SoALinkResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("study_design:update")),
+        Depends(require_study_scope()),
+    ],
 )
 async def link_arm_applicability_endpoint(
     study_id: str,
@@ -1681,3 +4810,321 @@ async def get_soa_projection_endpoint(
     driver = await get_neo4j_driver(request)
     matrix = await get_soa_matrix_projection(driver, version_id)
     return SoAMatrixView(**matrix)
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/versions/diff",
+    response_model=VersionDiffResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_versions_diff_endpoint(
+    study_id: str,
+    version_id1: str = Query(..., description="The old version ID"),
+    version_id2: str = Query(..., description="The new version ID"),
+    request: Request = None,
+) -> VersionDiffResponse:
+    """
+    Exposes graph-native, form-level version-diff API.
+    Identifies additions, modifications, and deletions of forms.
+    Returns HTTP 400 Bad Request if either version is nonexistent or unrelated.
+    """
+    driver = await get_neo4j_driver(request)
+    try:
+        diff_dict = await compute_graph_diff(driver, study_id, version_id1, version_id2)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    added = [
+        DifferenceResult(
+            field=node["key"],
+            old_value=None,
+            new_value=node["xform_definition_xml"],
+        )
+        for node in diff_dict["added_nodes"]
+    ]
+    modified = [
+        DifferenceResult(
+            field=node["key"],
+            old_value=node["old_value"],
+            new_value=node["new_value"],
+        )
+        for node in diff_dict["modified_nodes"]
+    ]
+    deleted = [
+        DifferenceResult(
+            field=node["key"],
+            old_value=node["xform_definition_xml"],
+            new_value=None,
+        )
+        for node in diff_dict["deleted_nodes"]
+    ]
+
+    return VersionDiffResponse(
+        added_nodes=added,
+        modified_nodes=modified,
+        deleted_nodes=deleted,
+    )
+
+
+# ==========================================
+# Library Object Instantiation API Models
+# ==========================================
+
+
+class InstantiateLibraryObjectRequest(BaseModel):
+    library_object_id: str = Field(
+        ..., description="Stable, unique global library ID to instantiate."
+    )
+    version: Optional[int] = Field(
+        None,
+        description="The specific version of the library object to instantiate. Defaults to latest if not specified.",
+    )
+
+
+class InstantiatedFromDetail(BaseModel):
+    library_object_id: str
+    version: int
+    sponsor_id: str
+
+
+class LibraryInstanceResponse(BaseModel):
+    id: str
+    study_id: str
+    object_type: str
+    payload: Dict[str, Any]
+    created_at: str
+    created_by: str
+    instantiated_from: InstantiatedFromDetail
+
+
+@app.post(
+    "/api/v1/studies/{study_id}/library-instances",
+    response_model=LibraryInstanceResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permission("global_library:instantiate")),
+        Depends(require_study_scope()),
+    ],
+)
+async def instantiate_library_object_endpoint(
+    study_id: str,
+    payload: InstantiateLibraryObjectRequest,
+    request: Request,
+) -> LibraryInstanceResponse:
+    """
+    Instantiates a specific version (or latest) of a Global Library object into a study-scoped instance.
+    Enforces that the library object and study both belong to/are accessible by the authenticated sponsor.
+    """
+    driver = await get_neo4j_driver(request)
+
+    # 1. Retrieve sponsor scope & user id
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    user_id = getattr(request.state, "user_id", "system")
+
+    # 2. Call the delta manager to run checks and instantiation
+    try:
+        instance = await instantiate_library_object_in_study(
+            driver=driver,
+            study_id=study_id,
+            library_object_id=payload.library_object_id,
+            version=payload.version,
+            sponsor_id=sponsor_id,
+            user_id=user_id,
+        )
+        return LibraryInstanceResponse(**instance)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        # Check if "not found" is for study or library object
+        err_msg = str(e)
+        if "Study" in err_msg or "Library object" in err_msg or "not found" in err_msg:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=err_msg,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err_msg,
+        )
+
+
+class UpdateLibraryInstanceRequest(BaseModel):
+    payload: Dict[str, Any] = Field(
+        ..., description="The complete updated payload of the library instance."
+    )
+
+
+@app.put(
+    "/api/v1/studies/{study_id}/library-instances/{instance_id}",
+    response_model=LibraryInstanceResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[
+        Depends(require_permission("global_library:update")),
+        Depends(require_study_scope()),
+    ],
+)
+async def update_library_instance_endpoint(
+    study_id: str,
+    instance_id: str,
+    payload: UpdateLibraryInstanceRequest,
+    request: Request,
+) -> LibraryInstanceResponse:
+    """
+    Updates the payload of an instantiated library object inside a study.
+    Verifies that target study belongs to or is accessible by the authenticated sponsor,
+    leaving the global library source immutable.
+    """
+    driver = await get_neo4j_driver(request)
+
+    # 1. Retrieve sponsor scope & user id
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    user_id = getattr(request.state, "user_id", "system")
+
+    # 2. Call delta manager to apply payload updates
+    try:
+        updated_instance = await update_library_instance_in_study(
+            driver=driver,
+            study_id=study_id,
+            instance_id=instance_id,
+            payload=payload.payload,
+            sponsor_id=sponsor_id,
+            user_id=user_id,
+        )
+        return LibraryInstanceResponse(**updated_instance)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+
+@app.get(
+    "/api/v1/studies/{study_id}/library-instances/{instance_id}/diff",
+    response_model=List[DifferenceResult],
+    status_code=status.HTTP_200_OK,
+)
+async def get_library_instance_diff_endpoint(
+    study_id: str,
+    instance_id: str,
+    request: Request,
+) -> List[DifferenceResult]:
+    """
+    Returns field-level dot-notated differences between the library instance payload and its linked source version.
+    """
+    driver = await get_neo4j_driver(request)
+
+    sponsor_id = getattr(request.state, "sponsor_id", None) or request.headers.get(
+        "X-Sponsor-Id"
+    )
+    if not sponsor_id or not isinstance(sponsor_id, str) or not sponsor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Missing authenticated sponsor scope",
+        )
+    sponsor_id = sponsor_id.strip()
+
+    try:
+        instance = await get_library_instance_in_study(
+            driver=driver,
+            study_id=study_id,
+            instance_id=instance_id,
+            sponsor_id=sponsor_id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+    inst_from = instance.get("instantiated_from")
+    if not inst_from:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instance does not have a linked source library object.",
+        )
+
+    source_obj_id = inst_from.get("library_object_id")
+    source_version = inst_from.get("version")
+    source_sponsor_id = inst_from.get("sponsor_id")
+
+    source_obj = await get_library_object_by_version(
+        driver=driver,
+        object_id=source_obj_id,
+        sponsor_id=source_sponsor_id,
+        version=source_version,
+    )
+    if not source_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Source library object {source_obj_id} version {source_version} not found.",
+        )
+
+    source_payload = source_obj.get("payload") or {}
+    instance_payload = instance.get("payload") or {}
+
+    def flatten_dict(d: Any, parent_key: str = "", sep: str = ".") -> Dict[str, Any]:
+        """
+        Recursively flatten a nested dictionary or list into a flat dictionary.
+        """
+        items: List[Tuple[str, Any]] = []
+        if isinstance(d, dict):
+            for k, v in d.items():
+                new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                items.extend(flatten_dict(v, new_key, sep=sep).items())
+        elif isinstance(d, list):
+            for i, v in enumerate(d):
+                new_key = f"{parent_key}{sep}[{i}]" if parent_key else f"[{i}]"
+                items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((parent_key, d))
+        return dict(items)
+
+    flat_source = flatten_dict(source_payload)
+    flat_instance = flatten_dict(instance_payload)
+
+    all_keys = set(flat_source.keys()).union(set(flat_instance.keys()))
+    differences = []
+
+    for key in sorted(all_keys):
+        val1 = flat_source.get(key)
+        val2 = flat_instance.get(key)
+        if val1 != val2:
+            differences.append(
+                DifferenceResult(field=key, old_value=val1, new_value=val2)
+            )
+
+    return differences

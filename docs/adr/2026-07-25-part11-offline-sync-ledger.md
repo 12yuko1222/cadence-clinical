@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-25
-* **Authors:** @google-labs-jules
+* **Authors:** @fderuiter
 * **Deciders:** @fderuiter
 
 ---
@@ -10,6 +10,8 @@
 ## 1. Context & Problem Statement
 In clinical trials, data integrity, traceability, and regulatory compliance are paramount. Previously, clinical discrepancy query updates were stored in volatile client-side memory, causing critical query changes to be lost on page reloads or network drops. This directly violates FDA 21 CFR Part 11 guidelines and compromises clinical data collection.
 To meet GxP and FDA 21 CFR Part 11 requirements, we must implement an offline-capable local ledger that persists transaction blocks locally, gates high-security actions with active re-authenticated digital signatures, and synchronizes transactions asynchronously and reliably to the backend clinical sync gateway.
+
+This decision implements requirements under Trace-1.
 
 ## 2. Decision Drivers & Constraints
 * **Compliance:** Strict compliance with FDA 21 CFR Part 11 and EU Annex 11.

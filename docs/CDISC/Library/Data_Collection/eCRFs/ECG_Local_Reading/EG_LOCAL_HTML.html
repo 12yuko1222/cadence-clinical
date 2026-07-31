@@ -1,0 +1,93 @@
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>"Form EG - Local Reading [EG_LOCAL]" Form Preview
+
+      </title>
+   </head>
+   <body link="#6666aa" vlink="#8888ff" alink="#8888ff" style="margin: 0em 1em">
+      <form action="javascript:">
+         <table width="100%" align="center" cellspacing="0" cellpadding="4" bgcolor="#bad8eb" style="clear: right; color: #000000; margin-top: 1em">
+            <tr bgcolor="#0090b2" align="left" valign="top" style="font-size: 1em; color: #ffffff; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="100%" nowrap>Form EG - Local Reading</td>
+            </tr>
+            <tr bgcolor="#bad8eb" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="2"><b>EG - Local Reading</b></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Was an ECG performed?</td>
+               <td width="75%"><input type="radio" name="IT.EGPERF" title="Field Name: IT.EGPERF" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.EGPERF" title="Field Name: IT.EGPERF" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the date of the ECG?</td>
+               <td width="75%">
+                  <table border="0" cellspacing="0" cellpadding="0" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+                     <tr>
+                        <td width="35"><input type="submit" name="IT.EGDAT" value="Set Date" title="Field Name: IT.EGDAT" style="background-color: #d5e7f3; color: #000000"></td>
+                        <td><font color="#d5e7f3">&nbsp;</font>01 Jan 2000
+                        </td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the method used for the ECG?</td>
+               <td width="75%"><input type="radio" name="IT.EGMETHOD" title="Field Name: IT.EGMETHOD" value="12 LEAD STANDARD">12 LEAD STANDARD<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.EGMETHOD" title="Field Name: IT.EGMETHOD" value="HOLTER CONTINUOUS ECG RECORDING">HOLTER CONTINUOUS ECG RECORDING<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the position of the subject during the ECG
+                  measurement?
+               </td>
+               <td width="75%"><select id="IT.EGPOS" name="IT.EGPOS" title="Field Name: IT.EGPOS">
+                     <option value="" title="Field Name: IT.EGPOS">Choose</option>
+                     <option value="SITTING">Sitting</option>
+                     <option value="STANDING">Standing</option>
+                     <option value="SUPINE">Supine</option>
+                     <option value="SEMI-RECUMBENT">Semi-Recumbent</option>
+                     <option value="SEMI-FOWLERS">Semi-Fowler's</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">ECG Mean Heart Rate Result</td>
+               <td width="75%"><input type="text" name="IT.EGORRES" size="20" title="Field Name: IT.EGORRES"><font color="#d5e7f3">&nbsp;</font>beats/min
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">QRS Duration, Aggregate Result</td>
+               <td width="75%"><input type="text" name="IT.EGORRES_QRS DURATION" size="20" title="Field Name: IT.EGORRES_QRS DURATION"><font color="#d5e7f3">&nbsp;</font>msec
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">PR Interval, Single Beat Result</td>
+               <td width="75%"><input type="text" name="IT.EGORRES_PR INTERVAL" size="20" title="Field Name: IT.EGORRES_PR INTERVAL"><font color="#d5e7f3">&nbsp;</font>msec
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">QT Interval, Aggregate Result</td>
+               <td width="75%"><input type="text" name="IT.EGORRES_QT INTERVAL" size="20" title="Field Name: IT.EGORRES_QT INTERVAL"><font color="#d5e7f3">&nbsp;</font>msec
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">QTca Interval, Aggregate Result</td>
+               <td width="75%"><input type="text" name="IT.EGORRES_QTc" size="20" title="Field Name: IT.EGORRES_QTc"><font color="#d5e7f3">&nbsp;</font>msec
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Interpretation</td>
+               <td width="75%"><input type="radio" name="IT.EGORRES_INTERPRETATION" title="Field Name: IT.EGORRES_INTERPRETATION" value="NORMAL">Normal<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.EGORRES_INTERPRETATION" title="Field Name: IT.EGORRES_INTERPRETATION" value="ABNORMAL">Abnormal<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Was the ECG clinically significant?</td>
+               <td width="75%"><input type="radio" name="IT.EGCLSIG" title="Field Name: IT.EGCLSIG" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.EGCLSIG" title="Field Name: IT.EGCLSIG" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+         </table>
+         <table width="100%" align="center">
+            <tr style="font-size: 8pt; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td><font color="red">*</font> Mandatory field
+               </td>
+            </tr>
+         </table>
+      </form>
+   </body>
+</html>

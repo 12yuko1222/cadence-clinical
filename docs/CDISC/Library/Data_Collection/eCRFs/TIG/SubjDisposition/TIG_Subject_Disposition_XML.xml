@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-22T16:49:50"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_DISP"
+                  Name="Tobacco Implementation Guide -Disposition"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collected dispostion at the end of each epoch of a trial. Additionally, the CRF is used to collect information on the next epoch entered for adminstrative reason and this data is  not submitted.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_DISP" Mandatory="Yes" OrderNumber="1"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_DISP" Name="Disposition" Repeating="No">
+            <ItemRef ItemOID="DS_TIG_DISP.DSCAT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="DS_TIG_DISP.EPOCH" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="DS_TIG_DISP.DSDECOD" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="DS_TIG_DISP.DSTERM" Mandatory="No" OrderNumber="4"/>
+            <ItemRef ItemOID="DS_TIG_DISP.DSSTDAT" Mandatory="No" OrderNumber="5"/>
+            <ItemRef ItemOID="DS_TIG_DISP.DSCONT" Mandatory="No" OrderNumber="6"/>
+            <ItemRef ItemOID="DS_TIG_DISP.DSNEXT" Mandatory="No" OrderNumber="7"/>
+         </ItemGroupDef>
+         <ItemDef OID="DS_TIG_DISP.DSCAT"
+                  Name="DSCAT"
+                  DataType="text"
+                  Length="80"
+                  SDSVarName="DSCAT">
+            <Question>
+               <TranslatedText>What was the category of the disposition?</TranslatedText>
+            </Question>
+            <Alias Name="PROTOCOAL MILESTONE" Context="pre-filled"/>
+            <Alias Name="If collected on the CRF, the applicant provides instructions to ensure the data is entered as intended."
+                   Context="completionInstructions"/>
+            <Alias Name="Dispostion Category" Context="prompt"/>
+            <Alias Name="DACAT" Context="SDTM"/>
+            <Alias Name="DSDCAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.DSCONT"
+                  Name="DSCONT"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Will the subject continue into the next epoch?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="DSCONT" Context="CDASH"/>
+            <Alias Name="NOT SUBMITTED" Context="SDTM"/>
+            <Alias Name="Record if the subject will be continuing to the next study period of this study."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.DSDECOD"
+                  Name="DSDECOD"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="DSDECODE">
+            <Question>
+               <TranslatedText>What was the subject's status?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="T_11"/>
+            <Alias Name="DSDECOD" Context="SDTM"/>
+            <Alias Name="Status" Context="prompt"/>
+            <Alias Name="Document the subject's status for the study or study period. If the subject discontinued prematurely, record the primary reason for discontinuation."
+                   Context="completionInstructions"/>
+            <Alias Name="DSDECOD can be used as the standardized coded list with DSTERM used to capture any &#34;Specify, Other&#34; information, or DSDECOD can be used on its own. For Sponsor- and/or study-specific reasons for discontinuation, it is recommended that these reasons be preprinted on the CRF, as subcategories of the appropriate standardized DSDECOD item. However, it is recommended to limit the use of sponsor and study-specific reasons in order to promote consistent use of terminology and hence permit the combination of data across multiple sponsors. Either DSTERM or DSDECOD must be on the CRF. Both may be used if DSTERM is used as a &#34;Specify, Other&#34; field.  "
+                   Context="implementationNotes"/>
+            <Alias Name="DSDECOD" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.DSNEXT"
+                  Name="DSNEXT"
+                  DataType="text"
+                  Length="40">
+            <Question>
+               <TranslatedText>What is the next epoch the subject will continue to enter?</TranslatedText>
+            </Question>
+            <Alias Name="NOT SUBMITTED" Context="SDTM"/>
+            <Alias Name="Record the planned subsequent study epoch in which the subject intends to participate."
+                   Context="completionInstructions"/>
+            <Alias Name="DSNEXT" Context="CDASH"/>
+            <Alias Name="Next Epoch" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.DSSTDAT"
+                  Name="DSSTDAT"
+                  DataType="date"
+                  SDSVarName="DSSTDTC">
+            <Description>
+               <TranslatedText xml:lang="en">DSSTDAT</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What was the completion/discontinuation date?</TranslatedText>
+            </Question>
+            <Alias Name="Disposition Date" Context="prompt"/>
+            <Alias Name="DSSTDTC" Context="SDTM"/>
+            <Alias Name="Record the date that the subject completed the study or study period  using this format. If the subject did not complete the study or study period, record the date that the subject discontinued."
+                   Context="completionInstructions"/>
+            <Alias Name="Define in the protocol and/or CRF completion instructions the criteria for completion of each protocol milestone or disposition event for which a disposition CRF will be provided. Only collect the date of each protocol milestone or disposition event once. For example, if the date of the last dose is defined to mark the end of the Treatment Phase epoch, and is collected on the Exposure form, then this field would not be collected on the Disposition CRF module. If not collected elsewhere, this field should be collected on the Disposition CRF module."
+                   Context="implementationNotes"/>
+            <Alias Name="DSSTDAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.DSTERM"
+                  Name="DSTERM"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="DSTERM">
+            <Description>
+               <TranslatedText xml:lang="en">DSTERM</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What was the verbatim reason for the subject status?</TranslatedText>
+            </Question>
+            <Alias Name="If Adverse Experiences, Death, Protocol Deviation or Other is selected from the Status list, provide the verbatim reason."
+                   Context="completionInstructions"/>
+            <Alias Name="DSTERM" Context="CDASH"/>
+            <Alias Name="Specify" Context="prompt"/>
+            <Alias Name="DSTERM" Context="SDTM"/>
+            <Alias Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. The SDTMIG variables DSDECOD and DSTERM must be populated in SDTM. If DSTERM was collected as an &#34;Other, Specify&#34; free text, populate the SDTMIG variable DSTERM with the free text and populate DSDECOD with the sponsor-defined standardized text. If DSDECOD was collected with no free text, populate DSTERM and DSDECOD in the SDTM-based dataset with the DSDECOD value that was collected."
+                   Context="mappingInstructions"/>
+            <Alias Name="Free text verbatim description of the subject's status. This field would only be used in conjunction with DSDECOD. Allows details to be collected about the subject status."
+                   Context="implementationNotes"/>
+         </ItemDef>
+         <ItemDef OID="DS_TIG_DISP.EPOCH"
+                  Name="EPOCH"
+                  DataType="text"
+                  Length="60"
+                  SDSVarName="EPOCH">
+            <Question>
+               <TranslatedText>What is the study epoch for this disposition event?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_EPOCH"/>
+            <Alias Name="EPOCH" Context="SDTM"/>
+            <Alias Name="EPOCH" Context="CDASH"/>
+            <Alias Name="Epoch" Context="prompt"/>
+            <Alias Name="Select the study epoch for which disposition is being recorded"
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="T_11"
+                   Name="TIG-TOB COMPLETION/REASON FOR NON-COMPLETIONS"
+                   DataType="text">
+            <Description>
+               <TranslatedText>The status of a subjects completion of a study or segment of the study or the reason the subject discontinued the study or segment of the study. (USED FOR TOBACOO STUDIES)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="COMPLETED" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Completed</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="ADVERSE EXPERIENCE" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Adverse Experience</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="DEATH" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Death</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="LOST TO FOLLOW-UP" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Lost To Follow-up</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PROTOCOL DEVIATION" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Protocol Deviation</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="SCREEN FAILURE" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Screen Failure</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="SITE TERMINATED BY APPLICANT" OrderNumber="7">
+               <Decode>
+                  <TranslatedText>Site Terminated by Applicant</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="WITHDRAWAL BY SUBJECT" OrderNumber="8">
+               <Decode>
+                  <TranslatedText>Withdrawal by Subject</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="STUDY TERMINATED BY APPLICANT" OrderNumber="9">
+               <Decode>
+                  <TranslatedText>Study Terminated by Applicant</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="OTHER" OrderNumber="10">
+               <Decode>
+                  <TranslatedText>Other</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_EPOCH" Name="TIG_EPOCH" DataType="text">
+            <CodeListItem CodedValue="SCREENING" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Screening</TranslatedText>
+               </Decode>
+               <Alias Name="C48262" Context="nci:ExtCodeID"/>
+               <Description/>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRODUCT EXPOURE EPOCH" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Product Exposure</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="FOLLOW-UP" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Follow-up</TranslatedText>
+               </Decode>
+               <Alias Name="C99158" Context="nci:ExtCodeID"/>
+               <Description/>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

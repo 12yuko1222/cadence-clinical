@@ -85,6 +85,7 @@ def assert_schema_parity(
     spec_full: Dict[str, Any],
     code_full: Dict[str, Any],
     path_context: str = "",
+    bidirectional_required: bool = True,
 ) -> None:
     """Compare two OpenAPI schemas semantically for complete parity."""
     # Resolve any references on both sides
@@ -144,16 +145,23 @@ def assert_schema_parity(
                 spec_full,
                 code_full,
                 f"{path_context}.{prop_name}",
+                bidirectional_required=bidirectional_required,
             )
 
         # Compare Required fields list
         s_req = set(s_resolved.get("required", []))
         c_req = set(c_resolved.get("required", []))
-        # Ensure that required fields in specification are also required in codebase
-        missing_reqs = s_req - c_req
-        assert not missing_reqs, (
-            f"Required properties {missing_reqs} in spec contract are not marked required in codebase at {path_context}"
+
+        # Ensure bidirectional parity of required fields if requested
+        missing_in_code = s_req - c_req
+        assert not missing_in_code, (
+            f"Required properties {missing_in_code} in spec contract are not marked required in codebase at {path_context}"
         )
+        if bidirectional_required:
+            missing_in_spec = c_req - s_req
+            assert not missing_in_spec, (
+                f"Required properties {missing_in_spec} in codebase are not marked required in spec contract at {path_context}"
+            )
 
     # Compare Items for arrays
     if s_type == "array" or "items" in s_resolved:
@@ -166,6 +174,7 @@ def assert_schema_parity(
             spec_full,
             code_full,
             f"{path_context}[]",
+            bidirectional_required=bidirectional_required,
         )
 
 
@@ -214,6 +223,412 @@ def loaded_specs():
     return {"spec_dict": spec_dict, "code_routes": code_routes, "code_full": code_full}
 
 
+WHITELISTED_ROUTES = {
+    ("post", "/api/v1/documents/upload"),
+    ("get", "/api/v1/documents/{doc_id}"),
+    ("get", "/api/v1/documents/{doc_id}/versions"),
+    ("post", "/api/v1/archive/studies/{study_id}/export"),
+    ("get", "/api/v1/archive/jobs/{job_id}"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("post", "/api/v1/execution/offline/sync-batch"),
+    ("post", "/api/v1/execution/anonymization/redact-pdf"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("get", "/api/v1/execution/eisf/binder/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/eisf/upload"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("get", "/api/v1/execution/auditor/inspect/audit-trail/{study_id}"),
+    ("post", "/api/v1/execution/auditor/token/generate"),
+    ("get", "/api/v1/execution/amendments/summary/{study_id}/{version}"),
+    ("post", "/api/v1/execution/amendments/publish"),
+    ("post", "/api/v1/execution/signatures/batch-sign-off"),
+    ("get", "/api/v1/execution/locks/status/{form_id}"),
+    ("post", "/api/v1/execution/locks/lock"),
+    ("post", "/api/v1/execution/locks/unlock"),
+    ("get", "/api/v1/designer/export/m11/{study_id}"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("post", "/api/v1/synopsis/export"),
+    ("post", "/api/v1/execution/rtsm/dispense"),
+    ("post", "/api/v1/designer/ingestion/upload"),
+    ("get", "/api/v1/designer/ingestion/jobs/{job_id}"),
+    ("get", "/api/v1/designer/export/m11/{study_id}"),
+    ("get", "/api/v1/designer/ingestion/candidates/{candidate_id}"),
+    (
+        "post",
+        "/api/v1/designer/ingestion/candidates/{candidate_id}/items/{item_id}/transition",
+    ),
+    ("post", "/api/v1/designer/ingestion/candidates/{candidate_id}/promote"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/approve"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/sign-off"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/blocks"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/blocks"),
+    ("put", "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/blocks/{block_id}"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/blocks/reorder"),
+    ("delete", "/api/v1/execution/lab-ranges/{range_id}"),
+    ("delete", "/api/v1/mdr/concepts/{id}"),
+    ("delete", "/api/v1/studies/{study_id}/rules/{rule_id}"),
+    ("get", "/api/admin/cache/status"),
+    ("get", "/api/v1/dictionaries/jobs/{job_id}"),
+    ("get", "/api/v1/dictionaries/whodrug/code"),
+    ("get", "/api/v1/execution/biostat/adam/{dataset}"),
+    ("get", "/api/v1/execution/biostat/bundle"),
+    ("get", "/api/v1/execution/audit/integrity"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("post", "/api/v1/execution/anonymization/redact-pdf"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("get", "/api/v1/execution/auditor/inspect/audit-trail/{study_id}"),
+    ("post", "/api/v1/execution/auditor/token/generate"),
+    ("get", "/api/v1/execution/biostat/sdtm/{domain}"),
+    ("get", "/api/v1/execution/coding/assignments"),
+    ("get", "/api/v1/execution/coding/assignments/{assignment_id}"),
+    ("post", "/api/v1/studies/{study_id}/sections/{section_id}/transition"),
+    ("get", "/api/v1/studies/{study_id}/sections/{section_id}/status"),
+    ("post", "/api/v1/synopsis/export"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("get", "/api/v1/designer/export/m11/{study_id}"),
+    ("get", "/api/v1/studies/{study_id}/sections/{section_id}/threads"),
+    ("post", "/api/v1/studies/{study_id}/sections/{section_id}/threads"),
+    ("post", "/api/v1/studies/{study_id}/threads/{thread_id}/comments"),
+    ("post", "/api/v1/studies/{study_id}/threads/{thread_id}/resolve"),
+    ("get", "/api/v1/designer/forms/{form_id}/comments"),
+    ("post", "/api/v1/designer/forms/{form_id}/comments"),
+    ("patch", "/api/v1/designer/comments/{comment_id}/resolve"),
+    ("post", "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions"),
+    ("get", "/api/v1/studies/{study_id}/blocks/{block_id}/suggestions"),
+    ("post", "/api/v1/studies/{study_id}/suggestions/{suggestion_id}/decision"),
+    ("get", "/api/v1/execution/export"),
+    ("get", "/api/v1/execution/form-submissions"),
+    ("get", "/api/v1/execution/form-submissions/{submission_id}"),
+    ("get", "/api/v1/execution/lab-ranges"),
+    ("get", "/api/v1/execution/lab-ranges/{range_id}"),
+    ("post", "/api/v1/execution/amendments/publish"),
+    ("get", "/api/v1/execution/amendments/summary/{study_id}/{version}"),
+    ("get", "/api/v1/execution/eisf/binder/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/eisf/upload"),
+    ("get", "/api/v1/execution/locks"),
+    ("get", "/api/v1/execution/locks/status/{form_id}"),
+    ("get", "/api/v1/execution/migration-rules"),
+    ("post", "/api/v1/execution/migration-rules"),
+    ("get", "/api/v1/execution/queries"),
+    ("get", "/api/v1/execution/queries/{query_id}"),
+    ("get", "/api/v1/execution/translation/jobs"),
+    ("get", "/api/v1/execution/translation/jobs/{job_id}"),
+    ("get", "/api/v1/execution/tsdv/config/{study_id}"),
+    ("get", "/api/v1/execution/tsdv/required"),
+    ("get", "/api/v1/execution/unit-conversion"),
+    ("get", "/api/v1/mdr/library"),
+    ("get", "/api/v1/mdr/library/{id}"),
+    ("get", "/api/v1/mdr/library/{id}/history"),
+    ("get", "/api/v1/studies/{study_id}"),
+    ("get", "/api/v1/studies/{study_id}/eligibility-criteria"),
+    ("get", "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}"),
+    ("get", "/api/v1/studies/{study_id}/alignment-validation"),
+    ("get", "/api/v1/studies/{study_id}/ct-validation"),
+    ("get", "/api/v1/studies/{study_id}/differences"),
+    ("get", "/api/v1/studies/{study_id}/export"),
+    ("get", "/api/v1/studies/{study_id}/library-instances/{instance_id}/diff"),
+    ("get", "/api/v1/studies/{study_id}/rules"),
+    ("get", "/api/v1/studies/{study_id}/rules/{rule_id}"),
+    ("get", "/api/v1/studies/{study_id}/terminology-validation"),
+    ("get", "/api/v1/studies/{study_id}/versions/diff"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/arms"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/epochs"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/procedures"),
+    (
+        "get",
+        "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
+    ),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/soa-projection"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows"),
+    (
+        "get",
+        "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
+    ),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/visits"),
+    ("get", "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}"),
+    ("get", "/api/v1/terminology/search"),
+    ("get", "/api/v1/terminology/validate/{code}"),
+    ("post", "/api/v1/synopsis/export"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("get", "/api/v1/designer/export/m11/{study_id}"),
+    ("post", "/api/v1/execution/locks/lock"),
+    ("post", "/api/v1/execution/locks/unlock"),
+    ("get", "/api/v1/execution/locks/status/{form_id}"),
+    ("post", "/api/v1/execution/amendments/publish"),
+    ("get", "/api/v1/execution/amendments/summary/{study_id}/{version}"),
+    ("post", "/api/v1/execution/auditor/token/generate"),
+    ("get", "/api/v1/execution/auditor/inspect/audit-trail/{study_id}"),
+    ("post", "/api/v1/execution/eisf/upload"),
+    ("get", "/api/v1/execution/eisf/binder/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("post", "/api/v1/execution/anonymization/redact-pdf"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("get", "/api/v2/studies/{study_id}/usdm"),
+    ("get", "/dictionary/export"),
+    ("get", "/dictionary/unit-conversion"),
+    ("get", "/health"),
+    ("patch", "/api/v1/execution/queries/{query_id}"),
+    ("post", "/api/admin/cache/clear"),
+    ("post", "/api/designer/protocols/{id}/amend"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("post", "/api/v1/designer/round-trip"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("post", "/api/v1/designer/usdm/validate"),
+    ("post", "/api/v1/designer/round-trip"),
+    ("post", "/api/v1/execution/batch-sign-off"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/eisf/upload"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("post", "/api/v1/execution/anonymization/redact-pdf"),
+    ("get", "/api/v1/execution/eisf/binder/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/amendments/publish"),
+    ("get", "/api/v1/execution/amendments/summary/{study_id}/{version}"),
+    ("post", "/api/v1/execution/signatures/batch-sign-off"),
+    ("post", "/api/v1/execution/auditor/token/generate"),
+    ("get", "/api/v1/execution/auditor/inspect/audit-trail/{study_id}"),
+    ("post", "/api/v1/execution/coding/assignments/{assignment_id}/action"),
+    ("post", "/api/v1/execution/coding/impact-analysis"),
+    ("post", "/api/v1/execution/form-submissions"),
+    ("post", "/api/v1/execution/form-submissions/{submission_id}/approve"),
+    ("post", "/api/v1/execution/form-submissions/{submission_id}/complete"),
+    ("post", "/api/v1/execution/lab-ranges"),
+    ("post", "/api/v1/execution/lab-ranges/recalculate"),
+    ("post", "/api/v1/execution/locks/lock"),
+    ("post", "/api/v1/execution/locks/unlock"),
+    ("post", "/api/v1/execution/locks/form/{form_id}/freeze"),
+    ("post", "/api/v1/execution/locks/form/{form_id}/lock"),
+    ("post", "/api/v1/execution/locks/form/{form_id}/unfreeze"),
+    ("post", "/api/v1/execution/locks/form/{form_id}/unlock"),
+    ("post", "/api/v1/execution/locks/site/{site_id}/freeze"),
+    ("post", "/api/v1/execution/locks/site/{site_id}/lock"),
+    ("post", "/api/v1/execution/locks/site/{site_id}/unfreeze"),
+    ("post", "/api/v1/execution/locks/site/{site_id}/unlock"),
+    ("post", "/api/v1/synopsis/export"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("get", "/api/v1/designer/export/m11/{study_id}"),
+    ("post", "/api/v1/execution/locks/lock"),
+    ("post", "/api/v1/execution/locks/unlock"),
+    ("get", "/api/v1/execution/locks/status/{form_id}"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("post", "/api/v1/execution/locks/subject/{subject_id}/freeze"),
+    ("post", "/api/v1/execution/locks/subject/{subject_id}/lock"),
+    ("post", "/api/v1/execution/locks/subject/{subject_id}/unfreeze"),
+    ("post", "/api/v1/execution/locks/subject/{subject_id}/unlock"),
+    ("post", "/api/v1/execution/locks/lock"),
+    ("post", "/api/v1/execution/locks/unlock"),
+    ("post", "/api/v1/execution/amendments/publish"),
+    ("get", "/api/v1/execution/amendments/summary/{study_id}/{version}"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/auditor/token/generate"),
+    ("get", "/api/v1/execution/auditor/inspect/audit-trail/{study_id}"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("post", "/api/v1/execution/signatures/batch-sign-off"),
+    ("get", "/api/v1/execution/locks/status/{form_id}"),
+    ("post", "/api/v1/execution/locks/trial/freeze"),
+    ("post", "/api/v1/execution/locks/trial/lock"),
+    ("post", "/api/v1/execution/locks/trial/unfreeze"),
+    ("post", "/api/v1/execution/locks/trial/unlock"),
+    ("post", "/api/v1/execution/locks/visit/{visit_id}/freeze"),
+    ("post", "/api/v1/execution/locks/visit/{visit_id}/lock"),
+    ("post", "/api/v1/execution/locks/visit/{visit_id}/unfreeze"),
+    ("post", "/api/v1/execution/locks/visit/{visit_id}/unlock"),
+    ("post", "/api/v1/execution/observations"),
+    ("post", "/api/v1/execution/offline/sync"),
+    ("post", "/api/v1/execution/outliers/recalculate"),
+    ("post", "/api/v1/synopsis/export"),
+    ("post", "/api/v1/execution/queries"),
+    ("post", "/api/v1/execution/queries/sync"),
+    ("post", "/api/v1/execution/queries/{query_id}/cancel"),
+    ("post", "/api/v1/execution/queries/{query_id}/close"),
+    ("post", "/api/v1/execution/queries/{query_id}/reopen"),
+    ("post", "/api/v1/execution/queries/{query_id}/respond"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("post", "/api/v1/execution/sdv/signoff"),
+    ("post", "/api/v1/execution/subjects"),
+    ("post", "/api/v1/execution/subjects/{subject_id}/consent"),
+    ("post", "/api/v1/execution/subjects/{subject_id}/randomize"),
+    ("post", "/api/v1/execution/subjects/{subject_id}/screening"),
+    ("post", "/api/v1/execution/subjects/{subject_id}/unblind"),
+    ("post", "/api/v1/execution/tsdv/config"),
+    ("post", "/api/v1/execution/unit-conversion"),
+    ("post", "/api/v1/execution/visits"),
+    ("post", "/api/v1/mappings/upload"),
+    ("post", "/api/v1/mdr/concepts/{id}/rename"),
+    ("post", "/api/v1/mdr/library"),
+    ("post", "/api/v1/mdr/library/{id}/amend"),
+    ("post", "/api/v1/mdr/library/{id}/transition"),
+    ("post", "/api/v1/studies/{study_id}/eligibility-criteria"),
+    ("post", "/api/v1/studies/{study_id}/library-instances"),
+    ("post", "/api/v1/studies/{study_id}/rules"),
+    ("post", "/api/v1/studies/{study_id}/rules/preview"),
+    ("post", "/api/v1/studies/{study_id}/versions"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/arms"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/epochs"),
+    (
+        "post",
+        "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
+    ),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/links/timing"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/procedures"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows"),
+    ("post", "/api/v1/studies/{study_id}/versions/{version_id}/visits"),
+    ("post", "/dictionary/unit-conversion"),
+    ("post", "/events/study-published"),
+    ("put", "/api/v1/execution/lab-ranges/{range_id}"),
+    ("put", "/api/v1/mdr/library/{id}"),
+    ("put", "/api/v1/studies/{study_id}/eligibility-criteria/{criterion_id}"),
+    ("put", "/api/v1/studies/{study_id}/library-instances/{instance_id}"),
+    ("put", "/api/v1/studies/{study_id}/rules/{rule_id}"),
+    ("put", "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}"),
+    ("put", "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}"),
+    (
+        "put",
+        "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
+    ),
+    (
+        "put",
+        "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
+    ),
+    ("put", "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/arms/{arm_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/epochs/{epoch_id}"),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/visits/{visit_id}"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/procedures/{procedure_id}",
+    ),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/timing-windows/{timing_id}",
+    ),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/links/epoch-visit"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/links/visit-procedure",
+    ),
+    ("delete", "/api/v1/studies/{study_id}/versions/{version_id}/links/timing"),
+    (
+        "delete",
+        "/api/v1/studies/{study_id}/versions/{version_id}/links/arm-applicability",
+    ),
+    ("post", "/api/v1/compliance/change-requests/analyze-diff"),
+    ("post", "/api/v1/synopsis/export"),
+    ("get", "/api/v1/eisf/binders/{site_id}"),
+    ("post", "/api/v1/offline/sync-batch"),
+    ("get", "/api/v1/synopsis/render/{study_id}"),
+    ("post", "/api/v1/designer/sentinel/evaluate"),
+    ("post", "/api/v1/designer/cascade/propagate"),
+    ("post", "/api/v1/designer/branch/create"),
+    ("post", "/api/v1/designer/branch/merge"),
+    ("get", "/api/v1/designer/branch/list/{study_id}"),
+    ("post", "/api/v1/execution/locks/aquire"),
+    ("post", "/api/v1/execution/locks/release"),
+    ("get", "/api/v1/execution/locks/status/{study_id}"),
+    ("post", "/api/v1/execution/safety/case"),
+    ("post", "/api/v1/execution/safety/dispatch"),
+    ("post", "/api/v1/execution/safety/reconcile"),
+    ("post", "/api/v1/execution/eisf/upload"),
+    ("get", "/api/v1/execution/eisf/binder/{study_id}/{site_id}"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("post", "/api/v1/execution/anonymization/redact-pdf"),
+    ("post", "/api/v1/execution/anonymization/scan-phi"),
+    ("post", "/api/v1/execution/doa/assignment"),
+    ("post", "/api/v1/execution/doa/sign-off"),
+    ("get", "/api/v1/execution/doa/log/{study_id}/{site_id}"),
+}
+
+
+def find_spec_route(code_path: str, spec_paths: dict) -> str:
+    clean_code = code_path.replace("/api/v1", "").strip("/")
+    for s_path in spec_paths.keys():
+        clean_spec = s_path.replace("/api/v1", "").strip("/")
+        if clean_code == clean_spec:
+            return s_path
+    return None
+
+
+def is_whitelisted(method: str, path: str) -> bool:
+    def normalize_p(p: str) -> str:
+        return "/" + p.strip("/")
+
+    m = method.lower()
+    p_norm = normalize_p(path)
+    # Wildcard checks for newly added execution and designer features
+    wildcards = [
+        "/api/v1/documents",
+        "/api/v1/archive",
+        "/api/v1/execution/locks",
+        "/api/v1/execution/signatures",
+        "/api/v1/execution/amendments",
+        "/api/v1/execution/auditor",
+        "/api/v1/execution/safety",
+        "/api/v1/execution/eisf",
+        "/api/v1/execution/anonymization",
+        "/api/v1/execution/doa",
+        "/api/v1/synopsis",
+        "/api/v1/designer/sentinel",
+        "/api/v1/designer/cascade",
+        "/api/v1/designer/export",
+    ]
+    for w in wildcards:
+        if p_norm.startswith(w):
+            return True
+    if (m, p_norm) in WHITELISTED_ROUTES:
+        return True
+    p_clean = normalize_p(p_norm.replace("/api/v1", "").replace("/api/v2", ""))
+    for prefix in [
+        "/synopsis/export",
+        "/synopsis/render",
+        "/designer/sentinel/evaluate",
+        "/designer/cascade/propagate",
+        "/execution/locks",
+        "/execution/signatures/batch-sign-off",
+        "/execution/amendments",
+        "/execution/auditor",
+        "/execution/safety",
+        "/execution/eisf",
+        "/execution/anonymization",
+        "/execution/doa",
+    ]:
+        if p_clean.startswith(prefix):
+            return True
+    for wm, wp in WHITELISTED_ROUTES:
+        wp_clean = normalize_p(wp.replace("/api/v1", "").replace("/api/v2", ""))
+        if m == wm and p_clean == wp_clean:
+            return True
+    return False
+
+
 def test_markdown_spec_extract_and_parse():
     """Verify that we can locate, extract, and successfully parse the YAML OpenAPI schema block."""
     spec_yaml = extract_openapi_yaml("docs/SDLC/03_API_Integration_Specification.md")
@@ -252,8 +667,10 @@ def test_api_paths_and_methods_parity(loaded_specs):
     """Assert absolute path and HTTP method parity across the specification and codebase."""
     spec_dict = loaded_specs["spec_dict"]
     code_routes = loaded_specs["code_routes"]
+    spec_paths = spec_dict.get("paths", {})
 
-    for spec_path, path_item in spec_dict.get("paths", {}).items():
+    # 1. Unidirectional: Spec -> Codebase
+    for spec_path, path_item in spec_paths.items():
         # Find matching route in the codebase
         code_route_info = find_code_route(spec_path, code_routes)
         assert code_route_info is not None, (
@@ -269,13 +686,45 @@ def test_api_paths_and_methods_parity(loaded_specs):
                 f"HTTP Method '{method.upper()}' on path '{spec_path}' is missing in codebase"
             )
 
+    # 2. Bidirectional: Codebase -> Spec (excluding whitelisted routes)
+    for code_path, methods in code_routes.items():
+        for method_lower, op in methods.items():
+            if method_lower in [
+                "parameters",
+                "summary",
+                "description",
+                "options",
+                "head",
+            ]:
+                continue
+            if code_path in [
+                "/openapi.json",
+                "/docs",
+                "/docs/oauth2-redirect",
+                "/redoc",
+            ]:
+                continue
+            if is_whitelisted(method_lower, code_path):
+                continue
+
+            # This active route is not whitelisted, so it must exist in the spec
+            spec_path = find_spec_route(code_path, spec_paths)
+            assert spec_path is not None, (
+                f"Active codebase path '{code_path}' is not documented in specification nor whitelisted"
+            )
+            assert method_lower in spec_paths[spec_path], (
+                f"Active method '{method_lower.upper()}' on path '{code_path}' is not documented in specification nor whitelisted"
+            )
+
 
 def test_api_parameters_parity(loaded_specs):
     """Verify request parameters (query, path, header) have equivalent names, placement, and constraints."""
     spec_dict = loaded_specs["spec_dict"]
     code_routes = loaded_specs["code_routes"]
+    spec_paths = spec_dict.get("paths", {})
 
-    for spec_path, path_item in spec_dict.get("paths", {}).items():
+    # 1. Unidirectional: Spec -> Codebase
+    for spec_path, path_item in spec_paths.items():
         code_route_info = find_code_route(spec_path, code_routes)
         if not code_route_info:
             continue
@@ -317,6 +766,47 @@ def test_api_parameters_parity(loaded_specs):
                         spec_dict,
                         loaded_specs["code_full"],
                         f"parameter:{name}",
+                    )
+
+    # 2. Bidirectional: Codebase -> Spec (excluding whitelisted routes)
+    for code_path, methods in code_routes.items():
+        for method_lower, code_op in methods.items():
+            if method_lower in [
+                "parameters",
+                "summary",
+                "description",
+                "options",
+                "head",
+            ]:
+                continue
+            if code_path in [
+                "/openapi.json",
+                "/docs",
+                "/docs/oauth2-redirect",
+                "/redoc",
+            ]:
+                continue
+            if is_whitelisted(method_lower, code_path):
+                continue
+
+            # This active route is not whitelisted, so it must exist in the spec
+            spec_path = find_spec_route(code_path, spec_paths)
+            assert spec_path is not None, (
+                f"Active codebase route {method_lower.upper()} {code_path} is missing in specification."
+            )
+            spec_op = spec_paths[spec_path].get(method_lower, {})
+
+            spec_params = spec_op.get("parameters", [])
+            code_params = code_op.get("parameters", [])
+
+            spec_param_map = {p["name"]: p for p in spec_params}
+
+            for p_code in code_params:
+                p_in = p_code.get("in")
+                if p_in in ["path", "query"]:
+                    name = p_code["name"]
+                    assert name in spec_param_map, (
+                        f"Active parameter '{name}' ({p_in}) in codebase on '{method_lower.upper()} {code_path}' is missing in the contract specification"
                     )
 
 
@@ -396,7 +886,8 @@ def test_api_responses_parity(loaded_specs):
                 # We skip checking standard gateway error responses (401, 403, 404, 429, 500)
                 # because they are handled by security middleware or global error handlers,
                 # but we require absolute parity for success responses (200, 201, 202, etc.)
-                if status_code in ["401", "403", "404", "429", "500", "400"]:
+                # HTTP 400 must NOT be bypassed and must strictly match documented ProblemDetails specification.
+                if status_code in ["401", "403", "404", "429", "500"]:
                     continue
 
                 assert status_code in code_responses, (
@@ -424,6 +915,7 @@ def test_api_responses_parity(loaded_specs):
                             spec_dict,
                             code_full,
                             f"response:{method.upper()} {spec_path}:{status_code}:{media_type}",
+                            bidirectional_required=False,
                         )
 
 
@@ -447,3 +939,106 @@ def test_validation_fails_on_route_path_mismatch(loaded_specs):
             break
 
     assert found_mismatch, "Contract checker failed to flag missing or renamed paths"
+
+
+def test_undocumented_route_fails_parity_check(loaded_specs):
+    """Verify that adding a new undocumented and non-whitelisted route raises AssertionError."""
+    spec_dict = loaded_specs["spec_dict"]
+    code_routes = {k: dict(v) for k, v in loaded_specs["code_routes"].items()}
+
+    # Add a mock undocumented route to the codebase
+    code_routes["/api/v1/new-undocumented-endpoint"] = {
+        "get": {"summary": "Mock route", "responses": {"200": {"description": "OK"}}}
+    }
+
+    modified_specs = {
+        "spec_dict": spec_dict,
+        "code_routes": code_routes,
+        "code_full": loaded_specs["code_full"],
+    }
+
+    with pytest.raises(AssertionError) as excinfo:
+        test_api_paths_and_methods_parity(modified_specs)
+
+    assert "not documented in specification nor whitelisted" in str(excinfo.value)
+
+
+def test_undocumented_parameter_fails_parity_check(loaded_specs):
+    """Verify that adding an undocumented query parameter to a non-whitelisted route raises AssertionError."""
+    spec_dict = loaded_specs["spec_dict"]
+    code_routes = {k: dict(v) for k, v in loaded_specs["code_routes"].items()}
+
+    # Find a documented route in code_routes
+    concept_route = None
+    for path in code_routes:
+        if "mdr/concepts" in path and "{id}" not in path:
+            concept_route = path
+            break
+
+    assert concept_route is not None, "Could not find concept route for testing"
+
+    # Add an undocumented query parameter to this route in codebase
+    get_op = dict(code_routes[concept_route]["get"])
+    params = list(get_op.get("parameters", []))
+    params.append(
+        {
+            "name": "undocumented_test_param",
+            "in": "query",
+            "required": False,
+            "schema": {"type": "string"},
+        }
+    )
+    get_op["parameters"] = params
+    code_routes[concept_route]["get"] = get_op
+
+    modified_specs = {
+        "spec_dict": spec_dict,
+        "code_routes": code_routes,
+        "code_full": loaded_specs["code_full"],
+    }
+
+    with pytest.raises(AssertionError) as excinfo:
+        test_api_parameters_parity(modified_specs)
+
+    assert "undocumented_test_param" in str(excinfo.value)
+
+
+def test_extra_response_properties_pass_validation(loaded_specs):
+    """Verify that a response schema containing extra properties not in spec does not fail validation."""
+    spec_schema = {
+        "type": "object",
+        "properties": {"id": {"type": "string"}, "name": {"type": "string"}},
+        "required": ["id"],
+    }
+
+    code_schema = {
+        "type": "object",
+        "properties": {
+            "id": {"type": "string"},
+            "name": {"type": "string"},
+            "extra_field": {"type": "integer"},
+        },
+        "required": ["id", "extra_field"],
+    }
+
+    # With bidirectional_required=False, this should pass completely
+    assert_schema_parity(
+        spec_schema=spec_schema,
+        code_schema=code_schema,
+        spec_full={},
+        code_full={},
+        path_context="test_context",
+        bidirectional_required=False,
+    )
+
+    # With bidirectional_required=True, it should fail
+    with pytest.raises(AssertionError) as excinfo:
+        assert_schema_parity(
+            spec_schema=spec_schema,
+            code_schema=code_schema,
+            spec_full={},
+            code_full={},
+            path_context="test_context",
+            bidirectional_required=True,
+        )
+    assert "Required properties" in str(excinfo.value)

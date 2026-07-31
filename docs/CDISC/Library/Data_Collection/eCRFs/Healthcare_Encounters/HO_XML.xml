@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Healthcare Encounters" FileType="Snapshot" CreationDateTime="2021-03-10T11:30:03-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Healthcare Encounters">
+		<GlobalVariables>
+			<StudyName>Healthcare Encounters CRF</StudyName>
+			<StudyDescription>Healthcare Encounters CRF</StudyDescription>
+			<ProtocolName>Healthcare Encounters CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Healthcare Encounters CRF" Name="Healthcare Encounters">
+			<FormDef OID="HO" Name="Form HO - Healthcare Encounters" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">HO - Healthcare Encounters</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_12" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_12" Name="HO - Healthcare Encounters" Repeating="No" Domain="HO">
+				<Description>
+					<TranslatedText xml:lang="en">HO - Healthcare Encounters</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.HOYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.HODECOD" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.HOTERM" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.HOSTDAT" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.HOENDAT" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.HOONGO" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.HOREAS" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.HOAENO" Mandatory="No" OrderNumber="8"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.HOENDAT" Name="HOENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">HOENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the [healthcare encounter/HOTERM] [end/discharge]     date?</TranslatedText>
+					<TranslatedText xml:lang="en">Discharge Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[End/Discharge] Date"/>
+				<Alias Context="completionInstructions" Name="Record the end date of the healthcare encounter using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The preferred method is to collect a complete end date. Partial dates (e.g., providing year only, month and year only) may be acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable HOENDTC in ISO 8601 format."/>
+				<Alias Name="HOENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HODECOD" Name="HODECOD" DataType="text" Length="30">
+				<Description>
+					<TranslatedText xml:lang="en">HODECOD</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">What was the healthcare encounter?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C171444.HODECOD"/>
+				<Alias Context="prompt" Name="(Standardized) Healthcare Encounter (Term)"/>
+				<Alias Context="completionInstructions" Name="Select the healthcare encounter."/>
+				<Alias Context="implementationNotes" Name="If collected on the CRF, sponsors must use either HODECOD or HOTERM and in some cases, both may be used. If the CRF is collecting healthcare encounters using a standardized sponsor defined code list (e.g., INPATIENT ER, ICU, SURGERY, GENERAL WARD, PROVIDER OFFICE-PRIVATE, PROVIDER OFFICE-HOSPITAL, GASTROENTEROLOGIST), then HODECOD may be used to store the code list response. If the CRF collects &quot;Specify, Other&quot; or similar additional free text descriptions of code list items, then HOTERM may be used to store the detailed descriptive text. If HOTERM is entered only as free text, HODECOD would be populated through the sponsor&apos;s coding process."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="HODECOD" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOTERM" Name="HOTERM" DataType="text" Length="30">
+				<Description>
+					<TranslatedText xml:lang="en">HOTERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">If Other, specify</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Healthcare Encounter]; [Specify]"/>
+				<Alias Context="completionInstructions" Name="Record the healthcare encounter or if used with a HODECOD list, &quot;Other&quot; specify."/>
+				<Alias Context="implementationNotes" Name="If collected on the CRF, sponsors must use either HODECOD or HOTERM and in some cases, both may be used. If the CRF is collecting healthcare encounters using a standardized sponsor-defined code list (e.g., INPATIENT ER, ICU, SURGERY, GENERAL WARD, PROVIDER OFFICE - PRIVATE, PROVIDER OFFICE - HOSPITAL, GASTROENTEROLOGIST), then HODECOD may be used to store the code list response. If the CRF collects &quot;Specify, Other&quot; or similar additional free text descriptions of code list items, then HOTERM may be used to store the detailed descriptive text. If HOTERM is entered only as free text, HODECOD would be populated through the sponsor&apos;s coding process."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="HOTERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOONGO" Name="HOONGO" DataType="text" Length="30">
+				<Description>
+					<TranslatedText xml:lang="en">HOONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was the [healthcare encounter/HOTERM] ongoing (as of the [study-specific timepoint or period])?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing as of the [study-specific timepoint or period]</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing as of the[study-specific timepoint or period]"/>
+				<Alias Context="completionInstructions" Name="Record the healthcare encounter as ongoing (&apos;Y&apos;) if it has not stopped at[at the timepoint defined by the study]."/>
+				<Alias Context="implementationNotes" Name="Completed to indicate that the healthcare encounter has not ended at the time of data collection. It is expected that every reported encounter has either an End Date or the Ongoing field is populated, but not both. The purpose of collecting this field is to help with data cleaning and monitoring; this field provides further confirmation that the End Date was deliberately left blank. Often used as a tick/checkbox. See Section 3.7, Mapping Relative Times from Collection to Submissions, and SDTMIG v3.2 Section 4.1.4.7 for more information."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTM variable. May be used to populate a value into an SDTMIG relative timing variable such as HOENRF or HOENRTPT. When populating HOENRF, if the value of HOONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating HOENRTPT, if the value of HOONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When HOONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTMIG variable HOENRF should be populated. When HOONGO is compared to any other time point, the SDTMIG variables HOENRTPT and HOENTPT should be used.   Note: HOENRTPT must refer to a time point anchor described in HOENTPT."/>
+				<Alias Name="HOONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOAENO" Name="HOAENO" DataType="text" Length="30">
+				<Description>
+					<TranslatedText xml:lang="en">HOAENO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the identifier for the adverse event(s), which precipitated the [healthcare encounter/HOTERM]?</TranslatedText>
+					<TranslatedText xml:lang="en">Adverse Event Identifier</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Adverse Event Identifier"/>
+				<Alias Context="completionInstructions" Name="Record the identifier for the adverse event that precipitated this encounter."/>
+				<Alias Context="implementationNotes" Name="Intent is to establish a link between the healthcare encounter record and the AE that was the primary cause of the encounter. HOAENO can be used in RELREC to identify a relationship between records in HO dataset and records in the AE dataset. Other identifiers needed to create RELREC such as HOMHNO can be created as needed. See SDTMIG v3.2 Section 8.2 for information on RELREC."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission datasets, may be used to create RELREC to link this record with a record in the Adverse Events domain."/>
+				<Alias Name="HOAENO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOYN" Name="HOYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">HOYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were there any healthcare encounters?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Healthcare Encounters"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject experienced any healthcare encounters. If yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification if all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM Annotated CRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="HOYN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOSTDAT" Name="HOSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">HOSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the [healthcare encounter/HOTERM] [start/admission]
+    date?</TranslatedText>
+					<TranslatedText xml:lang="en">Admission Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Start/Admission] Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the healthcare encounter (e.g., date of admission) using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The preferred method is to collect a complete Start Date. Partial dates (e.g., providing year only, month and year only) may be acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable HOSTDTC in ISO 8601 format."/>
+				<Alias Name="HOSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.HOREAS" Name="HOREAS" DataType="text" Length="30">
+				<Description>
+					<TranslatedText xml:lang="en">HOREAS</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the reason for the [healthcare encounter/HOTERM]?</TranslatedText>
+					<TranslatedText xml:lang="en">Reason for the Healthcare Encounter</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Reason for the Healthcare Encounter"/>
+				<Alias Context="completionInstructions" Name="Provide the reason for the subject&apos;s Healthcare Encounters."/>
+				<Alias Context="implementationNotes" Name="To ensure data quality, it is recommended that the sponsor develop controlled terminology (e.g., LACK OF EFFICACY, ADVERSE EVENT, CHEMOTHERAPY, PHYSICAL THERAPY, INDICATION UNDER STUDY, NOT INDICATION UNDER STUDY). The sponsor may, however choose to collect this as free text or as a combination of preprinted options and free text in the form of &quot;Specify, Other&quot;."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. This information could be submitted in a SUPPHO dataset as the value of SUPPHO_QVAL where SUPPHO.QNAM =&quot;HOREAS&quot; and SUPPHO.QLABEL=&quot;Healthcare Encounter Reason&quot;. Refer to the current SDTM and SDTMIG for instructions on placement of non-standard variables in SDTM domains."/>
+				<Alias Name="HOREAS" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C171444.HODECOD" Name="Health Care Encounters Dictionary Derived Term" DataType="text">
+				<CodeListItem CodedValue="EMERGENCY ROOM VISIT" OrderNumber="1">
+					<Decode>
+						<TranslatedText>EMERGENCY ROOM VISIT</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="HOSPITAL STAY" OrderNumber="2">
+					<Decode>
+						<TranslatedText>HOSPITAL STAY</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="INTENSIVE CARE UNIT STAY" OrderNumber="3">
+					<Decode>
+						<TranslatedText>INTENSIVE CARE UNIT STAY</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="PRIMARY CARE PHYSICIAN&apos;S OFFICE VISIT" OrderNumber="4">
+					<Decode>
+						<TranslatedText>PRIMARY CARE PHYSICIAN&apos;S OFFICE VISIT</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SKILLED NURSING FACILITY STAY" OrderNumber="5">
+					<Decode>
+						<TranslatedText>SKILLED NURSING FACILITY STAY</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="OTHER" OrderNumber="6">
+					<Decode>
+						<TranslatedText>OTHER</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

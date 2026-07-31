@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 
@@ -243,3 +244,236 @@ def test_rendered_protocol_document_with_usdm_study():
     assert doc.source_study is not None
     assert str(doc.source_study.id) == study_id_uuid
     assert doc.source_study.name == "Study 2026-X"
+
+
+def get_sample_rendered_document():
+    meta = ExportMetadata(
+        creator="test_user",
+        change_reason="Routine update",
+        version_index=2,
+    )
+    synopsis = SynopsisView(
+        study_id="study_test",
+        protocol_title="Test Title 123",
+        protocol_number="PRT-999",
+        sponsor_name="Sponsor Corp",
+        phase="Phase III",
+        objectives=["Objective A", "Objective B"],
+        study_design_type="Parallel",
+        population="Healthy adults",
+        sample_size=100,
+        duration="6 Months",
+        interventions=["Intervention 1"],
+    )
+
+    # Narrative hierarchy
+    item1 = NarrativeItemView(id="n1", name="intro", text="Intro para text", order=1)
+    subsec = NarrativeSectionView(
+        section_id="s1_1",
+        section_number="1.1",
+        title="Background Information",
+        items=[item1],
+        order=1,
+    )
+    sec = NarrativeSectionView(
+        section_id="s1",
+        section_number="1.0",
+        title="Introduction Section Title",
+        items=[],
+        subsections=[subsec],
+        order=1,
+    )
+
+    # SoA
+    epoch = SoAHeaderEpoch(epoch_id="ep1", epoch_name="Screening", sequence=1)
+    encounter = SoAHeaderEncounter(
+        encounter_id="enc1", encounter_name="Visit 1", epoch_id="ep1", sequence=1
+    )
+    cell = SoACellView(
+        activity_id="act1",
+        encounter_id="enc1",
+        epoch_id="ep1",
+        is_applicable=True,
+        details="Vitals detail",
+    )
+    row = SoARowView(
+        activity_id="act1", activity_name="Vitals Collection", cells=[cell]
+    )
+    soa = SoAMatrixView(epochs=[epoch], encounters=[encounter], rows=[row])
+
+    from usdm_model import Study
+
+    usdm_study = Study(id=str(uuid.uuid4()), name="Test Study", instanceType="Study")
+
+    return RenderedProtocolDocument(
+        metadata=meta,
+        synopsis=synopsis,
+        narrative_sections=[sec],
+        soa_matrix=soa,
+        source_study=usdm_study,
+    )
+
+
+def test_render_protocol_to_html_combined():
+    """
+    Assert narrative sections and SoA table structure render correctly in combined output.
+    """
+    from bs4 import BeautifulSoup
+
+    from apps.designer.rendering import render_protocol_to_html
+
+    doc = get_sample_rendered_document()
+    html = render_protocol_to_html(doc, "combined")
+    soup = BeautifulSoup(html, "html.parser")
+
+    # General assertions
+    assert soup.find("title").text == "Test Title 123"
+
+    # Narrative ordering and structure assertions
+    headings = [h.text.strip() for h in soup.find_all(["h2", "h3", "h4"])]
+    assert "1.0 Introduction Section Title" in headings
+    assert "1.1 Background Information" in headings
+    # Assert hierarchy order: Introduction appears before Background Information
+    intro_idx = headings.index("1.0 Introduction Section Title")
+    bg_idx = headings.index("1.1 Background Information")
+    assert intro_idx < bg_idx
+
+    # Content assertions
+    items = [
+        div.text.strip()
+        for d in soup.find_all("div", class_="narrative-item")
+        for div in [d]
+    ]
+    assert "Intro para text" in items
+
+    # SoA Table and structures assertions
+    table = soup.find("table", class_="soa-table")
+    assert table is not None
+    headers = [th.text.strip() for th in table.find_all("th")]
+    assert "Activity / Procedure" in headers
+    assert "Screening" in headers
+    assert "Visit 1" in headers
+
+    row_data = [td.text.strip() for td in table.find_all("td")]
+    assert any("Vitals Collection" in r for r in row_data)
+    # Check cell applicability and detail rendering
+    applicable_cells = table.find_all("td", class_="applicable")
+    assert len(applicable_cells) == 1
+    assert "X" in applicable_cells[0].text
+    assert (
+        "Vitals detail" in applicable_cells[0].find("span", class_="cell-details").text
+    )
+
+
+def test_render_protocol_to_html_synopsis_only():
+    """
+    Assert gated output correctly includes synopsis but excludes other sections.
+    """
+    from bs4 import BeautifulSoup
+
+    from apps.designer.rendering import render_protocol_to_html
+
+    doc = get_sample_rendered_document()
+    html = render_protocol_to_html(doc, "synopsis")
+    soup = BeautifulSoup(html, "html.parser")
+
+    assert soup.find("h1", string=re.compile("1. PROTOCOL SYNOPSIS")) is not None
+    assert soup.find("h1", string=re.compile("2. STUDY NARRATIVE")) is None
+    assert soup.find("div", class_="soa-section") is None
+
+
+def test_render_protocol_to_html_narrative_only():
+    """
+    Assert gated output correctly includes narrative but excludes synopsis/SoA.
+    """
+    from bs4 import BeautifulSoup
+
+    from apps.designer.rendering import render_protocol_to_html
+
+    doc = get_sample_rendered_document()
+    html = render_protocol_to_html(doc, "narrative")
+    soup = BeautifulSoup(html, "html.parser")
+
+    assert soup.find("h1", string=re.compile("1. PROTOCOL SYNOPSIS")) is None
+    assert soup.find("h1", string=re.compile("2. STUDY NARRATIVE")) is not None
+    assert soup.find("div", class_="soa-section") is None
+
+
+def test_render_protocol_to_html_soa_only():
+    """
+    Assert gated output correctly includes SoA but excludes other sections.
+    """
+    from bs4 import BeautifulSoup
+
+    from apps.designer.rendering import render_protocol_to_html
+
+    doc = get_sample_rendered_document()
+    html = render_protocol_to_html(doc, "soa")
+    soup = BeautifulSoup(html, "html.parser")
+
+    assert soup.find("h1", string=re.compile("1. PROTOCOL SYNOPSIS")) is None
+    assert soup.find("h1", string=re.compile("2. STUDY NARRATIVE")) is None
+    assert soup.find("div", class_="soa-section") is not None
+
+
+def test_export_metadata_dual_fields():
+    """
+    Verify 21 CFR Part 11 compliant ExportMetadata synchronized/backward-compatible
+    fields behave correctly under bidirectional propagation.
+    """
+    # 1. Initialize with new-style created_by
+    meta1 = ExportMetadata(created_by="system_user")
+    assert meta1.created_by == "system_user"
+    assert meta1.creator == "system_user"
+    assert meta1.timestamp == meta1.created_at
+
+    # 2. Initialize with new-style reason_for_change and version_index > 1
+    meta2 = ExportMetadata(
+        created_by="system_user",
+        version_index=2,
+        reason_for_change="Corrected Section 1.2",
+    )
+    assert meta2.reason_for_change == "Corrected Section 1.2"
+    assert meta2.change_reason == "Corrected Section 1.2"
+
+    # 3. Validation failure when neither creator nor created_by is provided
+    with pytest.raises(ValidationError) as exc:
+        ExportMetadata(version_index=1)
+    assert "Field 'creator' or 'created_by' is required." in str(exc.value)
+
+
+def test_narrative_content_usdm_models():
+    """
+    Verify NarrativeContent and NarrativeContentItem can be constructed
+    properly conforming to CDISC USDM specification.
+    """
+    from protocol_render import NarrativeContent, NarrativeContentItem
+
+    # Create NarrativeContentItem
+    item = NarrativeContentItem(
+        id="item-abc-123",
+        name="objective_bullet_1",
+        text="To evaluate the efficacy of study treatment.",
+    )
+    assert item.id == "item-abc-123"
+    assert item.name == "objective_bullet_1"
+    assert item.text == "To evaluate the efficacy of study treatment."
+    assert item.instanceType == "NarrativeContentItem"
+
+    # Create NarrativeContent
+    section = NarrativeContent(
+        id="section-xyz-789",
+        name="objectives_section",
+        sectionNumber="1.1",
+        sectionTitle="Study Objectives",
+        displaySectionNumber=True,
+        displaySectionTitle=True,
+        childIds=["item-abc-123"],
+    )
+    assert section.id == "section-xyz-789"
+    assert section.sectionNumber == "1.1"
+    assert section.sectionTitle == "Study Objectives"
+    assert section.displaySectionNumber is True
+    assert section.displaySectionTitle is True
+    assert section.childIds == ["item-abc-123"]
+    assert section.instanceType == "NarrativeContent"

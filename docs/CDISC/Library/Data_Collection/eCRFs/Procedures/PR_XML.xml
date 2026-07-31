@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Procedures CRF" FileType="Snapshot" CreationDateTime="2021-02-17T15:04:40-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Procedures">
+		<GlobalVariables>
+			<StudyName>Procedures CRF</StudyName>
+			<StudyDescription>Procedures CRF</StudyDescription>
+			<ProtocolName>Procedures CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Procedures CRF" Name="Procedures" Description="Procedures">
+			<FormDef OID="PR" Name="Form PR - Procedures" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">PR - Procedures</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_6" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_6" Name="PR - Procedures" Repeating="No" Domain="PR">
+				<Description>
+					<TranslatedText xml:lang="en">PR - Procedures</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.PRYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.PRTRT" Mandatory="Yes" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.PRSTDAT" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.PRONGO" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.PRENDAT" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.PRINDC" Mandatory="No" OrderNumber="6"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.PRONGO" Name="PRONGO" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">PRONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was the procedure ongoing (as of the [study-specific timepoint or
+    period])?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing (as of the [study-specific timepoint or period])"/>
+				<Alias Context="completionInstructions" Name="Indicate if the procedure has not ended at the time of data collection and the end date should be left blank."/>
+				<Alias Context="implementationNotes" Name="Completed to indicate that the procedure has not stopped at the time point defined by the study. The purpose of collecting this field is to help with data cleaning and monitoring; this field provides further confirmation that the End Date was deliberately left blank. See Section 3.7, Mapping Relative Times from Collection to Submissions, and and SDTMIG v3.2 Section 4.1.4.7 for more information. for information about mapping relative times."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTM variable. May be used to populate a value into an SDTMIG relative timing variable such as PRENRF or PRENRTPT. When populating PRENRF, if the value of PRONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating PRENRTPT, if the value of PRONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When PRONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTM variable PRENRF should be populated. When PRONGO is used in conjunction with another time point, the SDTM variables PRENRTPT and PRENTPT should be used.   Note: PRENRTPT must refer to a time point anchor described in PRENTPT."/>
+				<Alias Name="PRONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PRINDC" Name="PRINDC" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">PRINDC</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>For what indication was the [PRTRT] performed?</TranslatedText>
+					<TranslatedText xml:lang="en">Indication</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Indication"/>
+				<Alias Context="completionInstructions" Name="Record the reason the procedure was performed based on clinical investigator&apos;s evaluation. If performed to treat a condition, and a diagnosis was made, the indication should be the diagnosis. If performed to treat a condition, and no diagnosis was made, the indication should be the signs and symptoms. If taken as prophylaxis, report as &quot;Prophylaxis for &quot; and include a description of the condition(s)."/>
+				<Alias Context="implementationNotes" Name="This additional information is collected on the CRF when the sponsor wants to capture the reason(s) why a procedure was performed. This information can then be used as deemed appropriate for coding, analysis (e.g., in the classification of procedures), for reconciling the procedures performed on a subject with their provided medical history, and/or AEs/SAEs as part of the data clean-up and monitoring process."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="PRINDC" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PRSTDAT" Name="PRSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">PRSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the procedure (start) date?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="(Start) Date"/>
+				<Alias Context="completionInstructions" Name="Record the date the procedure was started or performed using this format (DD-MON-YYYY). Procedures performed during the study are expected to have a complete start date. Prior procedures that are exclusionary should have both a start and end date."/>
+				<Alias Context="implementationNotes" Name="The preferred method is to collect a complete Start Date. Partial dates (e.g., providing year only) for procedures started a considerable amount of time prior to the start of study are acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable PRSTDTC in ISO 8601 format."/>
+				<Alias Name="PRSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PRYN" Name="PRYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">PRYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any surgical, therapeutic, or diagnostic procedures performed?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Procedures"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject had any surgical, therapeutic or diagnostic procedures. If &quot;Yes&quot;, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM aCRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="PRYN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PRTRT" Name="PRTRT" DataType="text" Length="10">
+				<Description>
+					<TranslatedText xml:lang="en">PRTRT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the procedure name?</TranslatedText>
+					<TranslatedText xml:lang="en">Procedure Name</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Procedure Name]; (Specify) Other"/>
+				<Alias Context="completionInstructions" Name="Record only one procedure per line."/>
+				<Alias Context="implementationNotes" Name="In most cases, the verbatim procedure names or therapy will be coded to a standard dictionary (e.g., MedDRA, SNOMED) after the data have been collected on the CRF."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="PRTRT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.PRENDAT" Name="PRENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">PRENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the procedure (end) date?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="(End) Date"/>
+				<Alias Context="completionInstructions" Name="Record the end date of the procedure using this format (DD-MON-YYYY). If the procedure has not ended, leave this field blank and populate PRONGO as &quot;Y&quot;."/>
+				<Alias Context="implementationNotes" Name="The assumption is that sponsors should either have an End Date or will indicate that the procedure was ongoing at the time of collection or at the end of the study. However, in cases where the End Date can be determined from dates collected elsewhere in the CRF it is not necessary to include an End Date in the CRF. For example, if the procedure is started and stopped within the same day, the End Date will be the same as the Start Date."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTM variable PRENDTC in ISO 8601 format."/>
+				<Alias Name="PRENDAT" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

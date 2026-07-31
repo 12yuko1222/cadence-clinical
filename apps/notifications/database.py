@@ -1,52 +1,13 @@
-from typing import Any, Optional
-
-from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from packages.database import RelationalDatabaseManager
 
 
-class NotificationsDatabaseManager:
+class NotificationsDatabaseManager(RelationalDatabaseManager):
     """
-    Manages the lifecycle of the Notifications service's database connections and sessions.
+    Service-specific relational database manager for the Notifications microservice.
     """
 
-    def __init__(self) -> None:
-        self.engine: Any = None
-        self.session_maker: Optional[async_sessionmaker[AsyncSession]] = None
-
-    def init_db(self, database_url: str, **kwargs: Any) -> None:
-        """
-        Initialize the async engine and session maker for the Notifications database.
-        """
-        self.engine = create_async_engine(database_url, **kwargs)
-
-        @event.listens_for(self.engine.sync_engine, "connect")
-        def set_sqlite_pragma(dbapi_connection, connection_record):
-            # If using sqlite, ensure foreign keys are enabled (if dialect is sqlite)
-            cursor = dbapi_connection.cursor()
-            try:
-                cursor.execute("PRAGMA foreign_keys=ON")
-            except Exception:
-                pass
-            finally:
-                cursor.close()
-
-        self.session_maker = async_sessionmaker(
-            bind=self.engine, class_=AsyncSession, expire_on_commit=False
-        )
-
-    async def close(self) -> None:
-        """Close database engine and cleanup sessions."""
-        if self.engine:
-            await self.engine.dispose()
-            self.engine = None
-            self.session_maker = None
-
-    def get_session_maker(self) -> async_sessionmaker[AsyncSession]:
-        if not self.session_maker:
-            raise Exception(
-                "Notifications database session manager is not initialized."
-            )
-        return self.session_maker
+    def __init__(self, service_name: str = "Notifications") -> None:
+        super().__init__(service_name=service_name)
 
 
 db_manager = NotificationsDatabaseManager()

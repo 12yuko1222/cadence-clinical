@@ -1,0 +1,202 @@
+{
+    "Summary": [
+        {
+            "Summary": "Property",
+            "Unnamed: 1": "Current value"
+        },
+        {
+            "Summary": "Name",
+            "Unnamed: 1": "Tobacco Implementation Guide"
+        },
+        {
+            "Summary": "Version",
+            "Unnamed: 1": "1"
+        },
+        {
+            "Summary": "Asset Group",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Summary": "Workflow State",
+            "Unnamed: 1": "Final"
+        },
+        {
+            "Summary": "Therapeutic Area",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Summary": "Client",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Summary": "Program",
+            "Unnamed: 1": NaN
+        }
+    ],
+    "Form Index": [
+        {
+            "Forms": "OID",
+            "Unnamed: 1": "Name",
+            "Unnamed: 2": "Description",
+            "Unnamed: 3": "Repeating",
+            "Unnamed: 4": "Aliases",
+            "Unnamed: 5": "Therapeutic Area",
+            "Unnamed: 6": "Clinical Stage"
+        },
+        {
+            "Forms": "TIG_DS_PROT_MILESTONES",
+            "Unnamed: 1": "Tobacco Implementation Guide - Protocol Milestones",
+            "Unnamed: 2": NaN,
+            "Unnamed: 3": "No",
+            "Unnamed: 4": NaN,
+            "Unnamed: 5": NaN,
+            "Unnamed: 6": NaN
+        }
+    ],
+    "TIG_DS_PROT_MILESTONES": [
+        {
+            "Section": "OID",
+            "Unnamed: 1": "Name",
+            "Unnamed: 2": "Repeating",
+            "Unnamed: 3": "Description",
+            "Unnamed: 4": "Order No.",
+            "Unnamed: 5": "Mandatory",
+            "Unnamed: 6": "Aliases",
+            "Unnamed: 7": "Condition",
+            "Unnamed: 8": "IsReferenceData",
+            "Unnamed: 9": "Repeating Information",
+            "Unnamed: 10": "SASDatasetName",
+            "Unnamed: 11": "Domain",
+            "Unnamed: 12": "Origin",
+            "Unnamed: 13": "Comment",
+            "Unnamed: 14": "Purpose",
+            "Unnamed: 15": NaN,
+            "Unnamed: 16": NaN,
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": NaN,
+            "Unnamed: 20": NaN,
+            "Unnamed: 21": NaN
+        },
+        {
+            "Section": "TIG_DS_MST_IC",
+            "Unnamed: 1": "Informed Consent",
+            "Unnamed: 2": "No",
+            "Unnamed: 3": NaN,
+            "Unnamed: 4": 1,
+            "Unnamed: 5": "No",
+            "Unnamed: 6": NaN,
+            "Unnamed: 7": NaN,
+            "Unnamed: 8": NaN,
+            "Unnamed: 9": NaN,
+            "Unnamed: 10": NaN,
+            "Unnamed: 11": NaN,
+            "Unnamed: 12": NaN,
+            "Unnamed: 13": NaN,
+            "Unnamed: 14": NaN,
+            "Unnamed: 15": NaN,
+            "Unnamed: 16": NaN,
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": NaN,
+            "Unnamed: 20": NaN,
+            "Unnamed: 21": NaN
+        },
+        {
+            "Section": "Questions",
+            "Unnamed: 1": NaN,
+            "Unnamed: 2": NaN,
+            "Unnamed: 3": NaN,
+            "Unnamed: 4": NaN,
+            "Unnamed: 5": NaN,
+            "Unnamed: 6": NaN,
+            "Unnamed: 7": NaN,
+            "Unnamed: 8": NaN,
+            "Unnamed: 9": NaN,
+            "Unnamed: 10": NaN,
+            "Unnamed: 11": NaN,
+            "Unnamed: 12": NaN,
+            "Unnamed: 13": NaN,
+            "Unnamed: 14": NaN,
+            "Unnamed: 15": NaN,
+            "Unnamed: 16": NaN,
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": NaN,
+            "Unnamed: 20": NaN,
+            "Unnamed: 21": NaN
+        },
+        {
+            "Section": "OID",
+            "Unnamed: 1": "Name",
+            "Unnamed: 2": "Text",
+            "Unnamed: 3": "DataType",
+            "Unnamed: 4": "Order No.",
+            "Unnamed: 5": "Mandatory",
+            "Unnamed: 6": "Terminology",
+            "Unnamed: 7": "Length",
+            "Unnamed: 8": "Significant Digits",
+            "Unnamed: 9": "Units",
+            "Unnamed: 10": "Description",
+            "Unnamed: 11": "Aliases",
+            "Unnamed: 12": "External",
+            "Unnamed: 13": "Range Checks",
+            "Unnamed: 14": "SASFieldName",
+            "Unnamed: 15": "SDSVarName",
+            "Unnamed: 16": "Condition",
+            "Unnamed: 17": "Method",
+            "Unnamed: 18": "Role",
+            "Unnamed: 19": "KeySequence",
+            "Unnamed: 20": "Origin",
+            "Unnamed: 21": "Comment"
+        },
+        {
+            "Section": "DS_TIG_PROT_MST_IC_DSCAT",
+            "Unnamed: 1": "DSCAT",
+            "Unnamed: 2": "What was the category of the disposition?",
+            "Unnamed: 3": "text",
+            "Unnamed: 4": 1,
+            "Unnamed: 5": "No",
+            "Unnamed: 6": NaN,
+            "Unnamed: 7": NaN,
+            "Unnamed: 8": NaN,
+            "Unnamed: 9": NaN,
+            "Unnamed: 10": NaN,
+            "Unnamed: 11": "DSCAT [CDASH]\nDisposition Category [Prompt]\nDSCAT=\"PROTOCOL MILESTONE\" where DSDECOD and DSTERM=\"INFORMED CONSENT OBTAINED\" [SDTM]\nIf collected on the CRF, the applicant provides instructions to ensure the\u00a0data is entered as intended. [completionInstructions]\nWhat was the category of the disposition? [implementationNotes]\nPROTOCOL MILESTONE [pre-filled]",
+            "Unnamed: 12": NaN,
+            "Unnamed: 13": NaN,
+            "Unnamed: 14": NaN,
+            "Unnamed: 15": "DSCAT",
+            "Unnamed: 16": NaN,
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": NaN,
+            "Unnamed: 20": NaN,
+            "Unnamed: 21": NaN
+        },
+        {
+            "Section": "DS_TIG_PROT_MST_IC_DSSTDAT",
+            "Unnamed: 1": "DSSTDAT",
+            "Unnamed: 2": "What was the informed consent date?",
+            "Unnamed: 3": "date",
+            "Unnamed: 4": 2,
+            "Unnamed: 5": "No",
+            "Unnamed: 6": NaN,
+            "Unnamed: 7": NaN,
+            "Unnamed: 8": NaN,
+            "Unnamed: 9": NaN,
+            "Unnamed: 10": NaN,
+            "Unnamed: 11": "DSSTDAT [CDASH]\nDSSTDTC [SDTM]\nRecord the date of informed consent as defined in the protocol and/or CRF completion instructions using this format [completionInstructions]",
+            "Unnamed: 12": NaN,
+            "Unnamed: 13": NaN,
+            "Unnamed: 14": NaN,
+            "Unnamed: 15": "DSSTDTC",
+            "Unnamed: 16": NaN,
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": NaN,
+            "Unnamed: 20": NaN,
+            "Unnamed: 21": NaN
+        }
+    ]
+}

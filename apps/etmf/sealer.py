@@ -9,29 +9,16 @@ from typing import Any, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.execution.trial_lock import TrialLockManager
+from apps.etmf.lock_client import trigger_global_trial_lock
+from packages.security.signing import (
+    compute_block_hash,
+    compute_merkle_root,
+)
 
 logger = logging.getLogger("etmf-sealer")
 
 _sealer_task: Optional[asyncio.Task] = None
 _should_run: bool = False
-
-
-def clean_json_val(val: Any) -> str:
-    """
-    Ensure consistent, deterministic serialization of JSON values for hashing.
-    """
-    if val is None:
-        return "null"
-    if isinstance(val, (dict, list)):
-        return json.dumps(val, sort_keys=True)
-    if isinstance(val, str):
-        try:
-            parsed = json.loads(val)
-            return json.dumps(parsed, sort_keys=True)
-        except Exception:
-            return json.dumps(val)
-    return json.dumps(val)
 
 
 async def execute_etmf_audit_sealing_cycle(
@@ -60,7 +47,7 @@ async def execute_etmf_audit_sealing_cycle(
     # 2. Fetch all unsealed audit records
     unsealed_query = await db.execute(
         text(
-            "SELECT id, timestamp, user_id, user_role, action, document_id, details "
+            "SELECT id, timestamp, user_id, user_role, action, document_id, details, reason_for_change "
             "FROM tmf_audit_logs WHERE cryptographic_seal IS NULL ORDER BY timestamp ASC, id ASC LIMIT :limit;"
         ),
         {"limit": limit},
@@ -91,18 +78,25 @@ async def execute_etmf_audit_sealing_cycle(
             else None,
             "details": str(rec.details),
         }
+        # Keep serialization byte-for-byte identical for legacy NULL/None rows
+        if hasattr(rec, "reason_for_change") and rec.reason_for_change is not None:
+            record_payload["reason_for_change"] = str(rec.reason_for_change)
+        elif (
+            "reason_for_change" in rec._mapping
+            and rec._mapping["reason_for_change"] is not None
+        ):
+            record_payload["reason_for_change"] = str(rec._mapping["reason_for_change"])
+
         serialized = json.dumps(record_payload, sort_keys=True).encode("utf-8")
         rec_hash = hashlib.sha256(serialized).hexdigest()
         record_hashes.append(rec_hash)
         record_ids.append(rec.id)
 
     # 3. Calculate Merkle Root of records
-    combined_records_payload = "".join(record_hashes).encode("utf-8")
-    merkle_root = hashlib.sha256(combined_records_payload).hexdigest()
+    merkle_root = compute_merkle_root(record_hashes)
 
     # 4. Calculate Block Hash
-    block_input = (previous_hash + merkle_root).encode("utf-8")
-    current_block_hash = hashlib.sha256(block_input).hexdigest()
+    current_block_hash = compute_block_hash(previous_hash, merkle_root)
 
     # 5. Insert Ledger Seal Record
     await db.execute(
@@ -171,7 +165,7 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
             # 2. Fetch all records associated with this seal
             records_query = await db.execute(
                 text(
-                    "SELECT id, timestamp, user_id, user_role, action, document_id, details "
+                    "SELECT id, timestamp, user_id, user_role, action, document_id, details, reason_for_change "
                     "FROM tmf_audit_logs WHERE cryptographic_seal = :seal ORDER BY timestamp ASC, id ASC;"
                 ),
                 {"seal": curr_hash_in_db},
@@ -202,13 +196,25 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
                     else None,
                     "details": str(rec.details),
                 }
+                if (
+                    hasattr(rec, "reason_for_change")
+                    and rec.reason_for_change is not None
+                ):
+                    record_payload["reason_for_change"] = str(rec.reason_for_change)
+                elif (
+                    "reason_for_change" in rec._mapping
+                    and rec._mapping["reason_for_change"] is not None
+                ):
+                    record_payload["reason_for_change"] = str(
+                        rec._mapping["reason_for_change"]
+                    )
+
                 serialized = json.dumps(record_payload, sort_keys=True).encode("utf-8")
                 rec_hash = hashlib.sha256(serialized).hexdigest()
                 record_hashes.append(rec_hash)
 
             # Recompute Merkle root
-            combined_records_payload = "".join(record_hashes).encode("utf-8")
-            computed_merkle_root = hashlib.sha256(combined_records_payload).hexdigest()
+            computed_merkle_root = compute_merkle_root(record_hashes)
 
             if computed_merkle_root != merkle_root_in_db:
                 raise ValueError(
@@ -217,8 +223,9 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
                 )
 
             # Recompute Block Hash
-            block_input = (expected_prev_hash + computed_merkle_root).encode("utf-8")
-            computed_block_hash = hashlib.sha256(block_input).hexdigest()
+            computed_block_hash = compute_block_hash(
+                expected_prev_hash, computed_merkle_root
+            )
 
             if computed_block_hash != curr_hash_in_db:
                 raise ValueError(
@@ -243,7 +250,9 @@ async def validate_etmf_ledger_integrity(db: AsyncSession) -> bool:
 
         return True
     except Exception as e:
-        TrialLockManager.lock_trial(reason=f"eTMF GxP Data Integrity Breach: {str(e)}")
+        await trigger_global_trial_lock(
+            reason=f"eTMF GxP Data Integrity Breach: {str(e)}"
+        )
         raise ValueError(f"eTMF GxP Data Integrity Breach: {str(e)}") from e
 
 

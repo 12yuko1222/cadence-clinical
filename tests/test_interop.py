@@ -6,6 +6,7 @@
 import time
 from datetime import datetime, timedelta, timezone
 
+import httpx
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -394,6 +395,34 @@ async def test_epro_submission_and_conflict_resolution():
     Verify ePRO submissions, device timestamp preservation, and offline sync conflict
     strategies (CLIENT_WINS, SERVER_WINS, MERGE).
     """
+    # Set up Instrument and Assignment to prevent structural conflicts
+    async_session = db_manager.get_session_maker()
+    async with async_session() as session:
+        inst = Instrument(
+            id="daily_pain_scale",
+            name="Daily Pain Scale",
+            items={},
+            response_types={},
+            scoring_metadata={},
+            created_by="admin",
+            reason_for_change="Initial setup",
+            version_index=1,
+        )
+        session.add(inst)
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        assign = SubjectAssignment(
+            subject_id="subj_abc",
+            instrument_id="daily_pain_scale",
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=1),
+            created_by="admin",
+            reason_for_change="Assign daily pain scale",
+            version_index=1,
+        )
+        session.add(assign)
+        await session.commit()
+
     client = TestClient(app)
     headers = get_auth_headers(roles="patient_user", change_reason="Submit ePRO diary")
 
@@ -488,6 +517,44 @@ async def test_bulk_offline_sync():
     """
     Test bulk mobile sync endpoint with offline queue reconciliation.
     """
+    # Set up Instrument and Assignment to prevent structural conflicts
+    async_session = db_manager.get_session_maker()
+    async with async_session() as session:
+        inst = Instrument(
+            id="q_pain",
+            name="Pain Questionnaire",
+            items={},
+            response_types={},
+            scoring_metadata={},
+            created_by="admin",
+            reason_for_change="Initial setup",
+            version_index=1,
+        )
+        session.add(inst)
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        assign1 = SubjectAssignment(
+            subject_id="subj_1",
+            instrument_id="q_pain",
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=1),
+            created_by="admin",
+            reason_for_change="Assign daily pain scale 1",
+            version_index=1,
+        )
+        assign2 = SubjectAssignment(
+            subject_id="subj_2",
+            instrument_id="q_pain",
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=1),
+            created_by="admin",
+            reason_for_change="Assign daily pain scale 2",
+            version_index=1,
+        )
+        session.add(assign1)
+        session.add(assign2)
+        await session.commit()
+
     client = TestClient(app)
     headers = get_auth_headers(roles="patient_user", change_reason="Bulk offline sync")
 
@@ -558,7 +625,46 @@ async def test_subject_role_authorization_and_identity_binding():
     - An authenticated Subject cannot submit/sync records for another subject (returns 403).
     - An authenticated Subject cannot access staff-only endpoints like FHIR prefill (returns 403).
     - Staff members can submit/sync for any subject without restriction.
+    # @req:Trace-8
     """
+    # Set up Instrument and Assignment to prevent structural conflicts
+    async_session = db_manager.get_session_maker()
+    async with async_session() as session:
+        inst = Instrument(
+            id="daily_pain_scale",
+            name="Daily Pain Scale",
+            items={},
+            response_types={},
+            scoring_metadata={},
+            created_by="admin",
+            reason_for_change="Initial setup",
+            version_index=1,
+        )
+        session.add(inst)
+
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        assign1 = SubjectAssignment(
+            subject_id="patient_alice",
+            instrument_id="daily_pain_scale",
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=1),
+            created_by="admin",
+            reason_for_change="Assign daily pain scale 1",
+            version_index=1,
+        )
+        assign2 = SubjectAssignment(
+            subject_id="patient_bob",
+            instrument_id="daily_pain_scale",
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=1),
+            created_by="admin",
+            reason_for_change="Assign daily pain scale 2",
+            version_index=1,
+        )
+        session.add(assign1)
+        session.add(assign2)
+        await session.commit()
+
     client = TestClient(app)
 
     # Case 1: Subject submitting their own record -> 201 Created
@@ -1081,6 +1187,7 @@ async def test_subject_content_submission_and_compliance_apis():
 @pytest.mark.asyncio
 async def test_notifications_and_reminders_lifecycle():
     """
+    # @req:Trace-10
     Test the complete lifecycle of Subject Reminders and Notification Inbox.
     Verifies:
     - Deterministic due reminder computation on demand from schedules.
@@ -1391,3 +1498,56 @@ async def test_compute_reminders_all_subjects_staff():
     )
     assert resp.status_code == 200
     assert resp.json()["created_count"] >= 4
+
+
+@pytest.mark.asyncio
+async def test_notification_router_transports(monkeypatch):
+    """
+    Verify that NotificationRouter correctly routes emails, SMS, webhooks, and in-app reminders.
+    Ensures that fail-soft behavior works correctly even if the downstream service is down/unavailable.
+    """
+    from apps.interop.main import NotificationRouter
+
+    router = NotificationRouter()
+
+    # Mock post to succeed with 201
+    class MockResponse:
+        def __init__(self, status_code):
+            self.status_code = status_code
+            self.text = "Mock Created"
+
+    async def mock_post_success(self_client, url, **kwargs):
+        return MockResponse(201)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post_success)
+
+    # 1. Test success pathways
+    assert await router.send_email("test@example.com", "Hello Email") is True
+    assert await router.send_sms("+1234567890", "Hello SMS") is True
+    assert (
+        await router.send_webhook("https://example.com/hook", {"data": "test"}) is True
+    )
+    assert await router.send_in_app("subject_alice", "Hello Portal") is True
+
+    # 2. Mock post to fail with 500 error but verify it behaves fail-soft
+    async def mock_post_fail(self_client, url, **kwargs):
+        return MockResponse(500)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post_fail)
+    assert await router.send_email("test@example.com", "Hello Email Fail") is False
+    assert await router.send_sms("+1234567890", "Hello SMS Fail") is False
+    assert (
+        await router.send_webhook("https://example.com/hook", {"data": "fail"}) is False
+    )
+
+    # 3. Mock post to raise an exception and verify fail-soft (returns True for stubbed delivery)
+    async def mock_post_exception(self_client, url, **kwargs):
+        raise httpx.RequestError("Network down")
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post_exception)
+    assert await router.send_email("test@example.com", "Hello Exception") is True
+    assert await router.send_sms("+1234567890", "Hello Exception") is True
+    assert (
+        await router.send_webhook("https://example.com/hook", {"data": "exception"})
+        is True
+    )

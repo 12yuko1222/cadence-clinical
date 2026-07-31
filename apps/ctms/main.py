@@ -1,7 +1,7 @@
 import os
-from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncGenerator, List, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -14,11 +14,13 @@ from apps.ctms.models import (
     BudgetLineItem,
     CRAAllocation,
     CTMSAuditLog,
+    CTMSClinicalQuery,
     CTMSStudy,
     GeneratedLetter,
     InvestigatorGrant,
     InvestigatorPayable,
     MonitoringVisit,
+    MonitoringVisitDefeated,
     MonitoringVisitFinding,
     PaymentMilestone,
     RecruitmentRecord,
@@ -26,54 +28,94 @@ from apps.ctms.models import (
     write_audit_log,
 )
 from apps.ctms.rendering import render_confirmation_letter, render_follow_up_letter
-from packages.database import DatabaseSessionDependency
+from apps.ctms.routers.doa import router as doa_router
+from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.rbac import Principal, get_principal, has_permission
 
 DATABASE_URL = os.getenv("CTMS_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Handle the lifespan events for the CTMS application.
-
-    Initializes the database session manager on startup and securely
-    cleans up connections on shutdown. Creates all tables if sqlite is used.
-    """
-    db_manager.init_db(DATABASE_URL)
-
-    # Automatically create tables for sqlite in-memory/file databases
-    if DATABASE_URL.startswith("sqlite"):
-        async with db_manager.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    yield
-
-    await db_manager.close()
 
 
 app = FastAPI(
     title="Cadence Clinical - CTMS",
     version="0.1.0",
-    lifespan=lifespan,
+    lifespan=get_relational_db_lifespan(
+        db_manager=db_manager,
+        database_url=DATABASE_URL,
+        base_metadata=Base.metadata,
+    ),
 )
 
 # Enforce secure gateway authentication middleware
 app.add_middleware(GatewayAuthMiddleware)
+
+# Include Delegation of Authority (DOA) router
+app.include_router(doa_router)
 
 
 # Dependable to obtain database session
 get_db_session = DatabaseSessionDependency(db_manager)
 
 
-# Helper to check roles case-insensitively
-def check_roles(roles_str: str, allowed_roles: List[str]) -> None:
-    roles_list = [r.strip().lower() for r in roles_str.split(",") if r.strip()]
-    if not any(r in allowed_roles for r in roles_list):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Forbidden: Access denied for roles: {roles_str}.",
-        )
+class ConflictStrategy(str, Enum):
+    """
+    Explicit validated conflict resolution strategies.
+    """
+
+    CLIENT_WINS = "CLIENT_WINS"
+    SERVER_WINS = "SERVER_WINS"
+    MERGE = "MERGE"
+
+
+class FindingCreate(BaseModel):
+    text: str = Field(..., description="The observation or action item text")
+    severity: str = Field(..., description="Finding severity (MINOR, MAJOR, CRITICAL)")
+    resolution_status: Optional[str] = Field("OPEN", description="Resolution status")
+
+
+class OfflineSyncMarkers(BaseModel):
+    """
+    Offline queue reconciliation and conflict resolution parameters.
+    """
+
+    sequence_number: int = Field(
+        ..., description="The queue order sequence from device"
+    )
+    client_id: str = Field(..., description="Unique identifier for the mobile device")
+    conflict_strategy: ConflictStrategy = Field(
+        ConflictStrategy.CLIENT_WINS,
+        description="Conflict strategy to resolve duplicate submissions. Supported: CLIENT_WINS, SERVER_WINS, MERGE",
+    )
+    signature: Optional[str] = Field(
+        None,
+        description="Optional HMAC-SHA256 signature of the payload for cryptographic integrity",
+    )
+    timestamps: Optional[Dict[str, datetime]] = Field(
+        None,
+        description="Optional per-field UTC timestamps indicating when each field in 'answers' was modified",
+    )
+
+
+class MonitoringVisitOfflineSync(BaseModel):
+    """
+    Offline synchronization payload for a site monitoring visit completion and findings.
+    """
+
+    visit_id: str = Field(..., description="Unique ID of the target MonitoringVisit")
+    study_id: Optional[str] = Field(None, description="Optional study ID")
+    site_id: Optional[str] = Field(None, description="Optional site ID")
+    actual_date: datetime = Field(
+        ..., description="Actual date/time when the visit was conducted"
+    )
+    findings: List[FindingCreate] = Field(
+        default=[], description="List of recorded findings"
+    )
+    device_timestamp: datetime = Field(
+        ..., description="ISO 8601 timestamp when the entry was created on device"
+    )
+    offline_sync_markers: OfflineSyncMarkers = Field(
+        ..., description="The offline sync queue conflict tracking parameters"
+    )
 
 
 # Pydantic models for CTMS Study
@@ -114,12 +156,6 @@ class MonitoringVisitCreate(BaseModel):
     scheduled_date: datetime = Field(
         ..., description="Scheduled date/time of the visit"
     )
-
-
-class FindingCreate(BaseModel):
-    text: str = Field(..., description="The observation or action item text")
-    severity: str = Field(..., description="Finding severity (MINOR, MAJOR, CRITICAL)")
-    resolution_status: Optional[str] = Field("OPEN", description="Resolution status")
 
 
 class MonitoringVisitComplete(BaseModel):
@@ -360,9 +396,10 @@ class InvestigatorPayableResponse(BaseModel):
     version_index: int
 
 
-def check_financial_write_roles(roles_str: str) -> None:
+def check_financial_write_roles(principal: Principal) -> None:
     """Enforces that financial writes are restricted to Grants Manager or Sponsor Admin."""
-    check_roles(roles_str, ["grants manager", "sponsor admin", "system"])
+    if not has_permission(principal, "ctms_financial:write"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
 
 def check_grant_mutable(grant: InvestigatorGrant) -> None:
@@ -455,16 +492,15 @@ async def create_study(
     request: Request,
     payload: CTMSStudyCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> CTMSStudyResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
     # RBAC: Only write-privileged roles can manage CTMS studies
-    check_roles(
-        user_roles,
-        ["monitor", "grants manager", "cra", "sponsor admin", "admin", "system"],
-    )
+    if not has_permission(principal, "ctms_study:create"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     study = CTMSStudy(
         study_id=payload.study_id,
@@ -501,24 +537,13 @@ async def create_study(
 async def list_studies(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[CTMSStudyResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "grants manager",
-            "cra",
-            "site investigator",
-            "sponsor admin",
-            "admin",
-            "auditor",
-            "anonymous",
-            "system",
-        ],
-    )
+    if not has_permission(principal, "ctms_study:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(CTMSStudy).order_by(CTMSStudy.created_at.desc())
     result = await session.execute(stmt)
@@ -551,14 +576,13 @@ async def list_studies(
 async def get_audit_trail(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[CTMSAuditLogResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["auditor", "sponsor admin", "admin", "monitor", "grants manager", "system"],
-    )
+    if not has_permission(principal, "ctms_audit_logs:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Log view action first
     await write_audit_log(
@@ -598,20 +622,19 @@ async def schedule_monitoring_visit(
     request: Request,
     payload: MonitoringVisitCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> MonitoringVisitResponse:
     """
     Schedules a clinical site monitoring visit and automatically generates/persists
     a corresponding confirmation letter.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
     # RBAC: Only CRA (or admin/sponsor admin/system) can schedule/create visits
-    check_roles(
-        user_roles,
-        ["cra", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_visit:create"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # 1. Validate active CRA allocation for study and site if one exists
     alloc_stmt = select(CRAAllocation).where(
@@ -704,20 +727,19 @@ async def complete_monitoring_visit(
     request: Request,
     payload: MonitoringVisitComplete,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> MonitoringVisitResponse:
     """
     Completes a scheduled monitoring visit, records findings and action items,
     and automatically generates/persists a follow-up letter.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
     # RBAC: Only CRA (or admin/sponsor admin/system) can record/complete visit content
-    check_roles(
-        user_roles,
-        ["cra", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_visit:update"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # 1. Retrieve the scheduled visit
     stmt = select(MonitoringVisit).where(MonitoringVisit.id == visit_id)
@@ -861,18 +883,17 @@ async def list_monitoring_visits(
     cra_id: Optional[str] = None,
     status: Optional[str] = None,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[MonitoringVisitResponse]:
     """
     Lists and filters clinical trial site monitoring visits.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
     # RBAC: Allow CRA, Monitor, Auditor, Admin, Sponsor Admin, System to list visits
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_visit:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(MonitoringVisit)
     if study_id:
@@ -923,18 +944,17 @@ async def get_monitoring_visit_letters(
     visit_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[GeneratedLetterResponse]:
     """
     Retrieves all generated letters associated with a specific monitoring visit.
     Guarantees no re-rendering of previously issued letters by returning stored content.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_letter:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(GeneratedLetter).where(GeneratedLetter.visit_id == visit_id)
     result = await session.execute(stmt)
@@ -972,18 +992,17 @@ async def get_monitoring_visit_letter_by_type(
     letter_type: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> GeneratedLetterResponse:
     """
     Retrieves a specific letter (e.g. CONFIRMATION or FOLLOW_UP) associated with a monitoring visit.
     Guarantees no re-rendering of previously issued letters by returning stored content.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_letter:read_type"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(GeneratedLetter).where(
         GeneratedLetter.visit_id == visit_id,
@@ -1026,19 +1045,18 @@ async def sign_off_monitoring_visit(
     visit_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> MonitoringVisitResponse:
     """
     Allows a clinical Monitor to perform a supervisory sign-off on a completed monitoring visit.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
     # RBAC: Only supervisory roles (Monitor, Admin, Sponsor Admin, System) can perform sign-off
-    check_roles(
-        user_roles,
-        ["monitor", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_monitoring_visit:sign_off"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # 1. Retrieve the visit
     stmt = select(MonitoringVisit).where(MonitoringVisit.id == visit_id)
@@ -1098,18 +1116,17 @@ async def record_recruitment(
     request: Request,
     payload: RecruitmentRecordCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> RecruitmentRecordResponse:
     """
     Record or update recruitment metrics for a site and study.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_roles(
-        user_roles,
-        ["cra", "monitor", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_recruitment:create"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     as_of = payload.as_of_date or datetime.utcnow()
 
@@ -1159,17 +1176,16 @@ async def list_recruitment_records(
     study_id: Optional[str] = None,
     site_id: Optional[str] = None,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[RecruitmentRecordResponse]:
     """
     List recorded recruitment metrics, optionally filtered by site and/or study.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system", "anonymous"],
-    )
+    if not has_permission(principal, "ctms_recruitment:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(RecruitmentRecord)
     if study_id:
@@ -1219,18 +1235,17 @@ async def create_site_milestone(
     request: Request,
     payload: SiteMilestoneCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> SiteMilestoneResponse:
     """
     Create a new site lifecycle milestone.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_roles(
-        user_roles,
-        ["cra", "monitor", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_site_milestone:create"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     milestone = SiteMilestone(
         site_id=payload.site_id,
@@ -1259,12 +1274,12 @@ async def create_site_milestone(
         site_id=milestone.site_id,
         study_id=milestone.study_id,
         milestone_type=milestone.milestone_type,
-        planned_date=milestone.planned_date.isoformat()
-        if milestone.planned_date
-        else None,
-        actual_date=milestone.actual_date.isoformat()
-        if milestone.actual_date
-        else None,
+        planned_date=(
+            milestone.planned_date.isoformat() if milestone.planned_date else None
+        ),
+        actual_date=(
+            milestone.actual_date.isoformat() if milestone.actual_date else None
+        ),
         status=milestone.status,
         created_at=milestone.created_at.isoformat(),
         created_by=milestone.created_by,
@@ -1282,18 +1297,17 @@ async def update_site_milestone(
     request: Request,
     payload: SiteMilestoneUpdate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> SiteMilestoneResponse:
     """
     Update site lifecycle milestones.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_roles(
-        user_roles,
-        ["cra", "monitor", "admin", "sponsor admin", "system"],
-    )
+    if not has_permission(principal, "ctms_site_milestone:update"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(SiteMilestone).where(SiteMilestone.id == milestone_id)
     result = await session.execute(stmt)
@@ -1327,12 +1341,12 @@ async def update_site_milestone(
         site_id=milestone.site_id,
         study_id=milestone.study_id,
         milestone_type=milestone.milestone_type,
-        planned_date=milestone.planned_date.isoformat()
-        if milestone.planned_date
-        else None,
-        actual_date=milestone.actual_date.isoformat()
-        if milestone.actual_date
-        else None,
+        planned_date=(
+            milestone.planned_date.isoformat() if milestone.planned_date else None
+        ),
+        actual_date=(
+            milestone.actual_date.isoformat() if milestone.actual_date else None
+        ),
         status=milestone.status,
         created_at=milestone.created_at.isoformat(),
         created_by=milestone.created_by,
@@ -1350,17 +1364,16 @@ async def list_site_milestones(
     study_id: Optional[str] = None,
     site_id: Optional[str] = None,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[SiteMilestoneResponse]:
     """
     List site milestones, optionally filtered by site and/or study.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system", "anonymous"],
-    )
+    if not has_permission(principal, "ctms_site_milestone:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(SiteMilestone)
     if study_id:
@@ -1410,17 +1423,19 @@ async def allocate_cra(
     request: Request,
     payload: CRAAllocationCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> CRAAllocationResponse:
     """
     Allocate or reallocate a CRA to a site and study.
     Restricted to Sponsor Admin.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
     # Restrict CRA allocation writes strictly to Sponsor Admin
-    check_roles(user_roles, ["sponsor admin"])
+    if not has_permission(principal, "ctms_cra_allocation:create"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Reassignment logic: deactivate any existing active allocations for this study and site
     stmt = select(CRAAllocation).where(
@@ -1476,9 +1491,11 @@ async def allocate_cra(
         study_id=allocation.study_id,
         status=allocation.status,
         effective_start_date=allocation.effective_start_date.isoformat(),
-        effective_end_date=allocation.effective_end_date.isoformat()
-        if allocation.effective_end_date
-        else None,
+        effective_end_date=(
+            allocation.effective_end_date.isoformat()
+            if allocation.effective_end_date
+            else None
+        ),
         created_at=allocation.created_at.isoformat(),
         created_by=allocation.created_by,
         reason_for_change=allocation.reason_for_change,
@@ -1495,16 +1512,18 @@ async def update_cra_allocation(
     request: Request,
     payload: CRAAllocationUpdate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> CRAAllocationResponse:
     """
     Update or reassign an existing CRA allocation.
     Restricted to Sponsor Admin.
     """
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_roles(user_roles, ["sponsor admin"])
+    if not has_permission(principal, "ctms_cra_allocation:update"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(CRAAllocation).where(CRAAllocation.id == allocation_id)
     result = await session.execute(stmt)
@@ -1542,9 +1561,11 @@ async def update_cra_allocation(
         study_id=allocation.study_id,
         status=allocation.status,
         effective_start_date=allocation.effective_start_date.isoformat(),
-        effective_end_date=allocation.effective_end_date.isoformat()
-        if allocation.effective_end_date
-        else None,
+        effective_end_date=(
+            allocation.effective_end_date.isoformat()
+            if allocation.effective_end_date
+            else None
+        ),
         created_at=allocation.created_at.isoformat(),
         created_by=allocation.created_by,
         reason_for_change=allocation.reason_for_change,
@@ -1563,17 +1584,16 @@ async def list_cra_allocations(
     cra_id: Optional[str] = None,
     status: Optional[str] = None,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[CRAAllocationResponse]:
     """
     List CRA allocations, optionally filtered.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system", "anonymous"],
-    )
+    if not has_permission(principal, "ctms_cra_allocation:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(CRAAllocation)
     if study_id:
@@ -1605,9 +1625,9 @@ async def list_cra_allocations(
             study_id=a.study_id,
             status=a.status,
             effective_start_date=a.effective_start_date.isoformat(),
-            effective_end_date=a.effective_end_date.isoformat()
-            if a.effective_end_date
-            else None,
+            effective_end_date=(
+                a.effective_end_date.isoformat() if a.effective_end_date else None
+            ),
             created_at=a.created_at.isoformat(),
             created_by=a.created_by,
             reason_for_change=a.reason_for_change,
@@ -1624,17 +1644,16 @@ async def list_cra_allocations(
 async def retrieve_workload_summaries(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[CRAWorkloadItem]:
     """
     Retrieve workload summaries reflecting active CRA allocations.
     """
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        ["monitor", "cra", "admin", "sponsor admin", "auditor", "system", "anonymous"],
-    )
+    if not has_permission(principal, "ctms_cra_workload:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Fetch active allocations
     stmt = select(CRAAllocation).where(CRAAllocation.status == "ACTIVE")
@@ -1687,12 +1706,13 @@ async def create_grant(
     request: Request,
     payload: InvestigatorGrantCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> InvestigatorGrantResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     grant = InvestigatorGrant(
         study_id=payload.study_id,
@@ -1738,23 +1758,13 @@ async def list_grants(
     study_id: Optional[str] = None,
     site_id: Optional[str] = None,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[InvestigatorGrantResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "cra",
-            "admin",
-            "sponsor admin",
-            "grants manager",
-            "auditor",
-            "system",
-            "anonymous",
-        ],
-    )
+    if not has_permission(principal, "ctms_financial:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(InvestigatorGrant)
     if study_id:
@@ -1799,23 +1809,13 @@ async def get_grant(
     grant_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> InvestigatorGrantResponse:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "cra",
-            "admin",
-            "sponsor admin",
-            "grants manager",
-            "auditor",
-            "system",
-            "anonymous",
-        ],
-    )
+    if not has_permission(principal, "ctms_financial:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
     result = await session.execute(stmt)
@@ -1855,12 +1855,13 @@ async def update_grant(
     request: Request,
     payload: InvestigatorGrantUpdate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> InvestigatorGrantResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
     result = await session.execute(stmt)
@@ -1879,6 +1880,31 @@ async def update_grant(
         grant.currency = payload.currency
     if payload.status is not None:
         if payload.status.upper() == "APPROVED" and grant.status != "APPROVED":
+            # Enforce step-up gating
+            from packages.security.middleware import (
+                downstream_replay_cache,
+                verify_sig_token,
+            )
+            from packages.security.regulated_actions import SemanticAction
+
+            sig_token = request.headers.get("X-Sig-Token") or request.headers.get(
+                "x-sig-token"
+            )
+            secret = os.getenv(
+                "GATEWAY_SECRET", "internal-gateway-secret-12345"
+            ).encode()
+
+            success, result = verify_sig_token(
+                sig_token=sig_token,
+                user_id=principal.user_id,
+                request_path=request.url.path,
+                secret=secret,
+                replay_cache=downstream_replay_cache,
+                expected_semantic_action=SemanticAction.GRANT_APPROVE,
+                check_replay=False,
+            )
+            if not success:
+                raise HTTPException(status_code=401, detail="REAUTHENTICATION_REQUIRED")
             grant.status = "APPROVED"
             trigger_approval = True
         else:
@@ -1933,12 +1959,13 @@ async def create_budget_line_item(
     request: Request,
     payload: BudgetLineItemCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> BudgetLineItemResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     # Fetch grant
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -1991,23 +2018,13 @@ async def list_budget_line_items(
     grant_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[BudgetLineItemResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "cra",
-            "admin",
-            "sponsor admin",
-            "grants manager",
-            "auditor",
-            "system",
-            "anonymous",
-        ],
-    )
+    if not has_permission(principal, "ctms_financial_budget:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Confirm grant exists
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -2060,12 +2077,13 @@ async def create_payment_milestone(
     request: Request,
     payload: PaymentMilestoneCreate,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> PaymentMilestoneResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     # Fetch grant
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -2129,23 +2147,13 @@ async def list_payment_milestones(
     grant_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[PaymentMilestoneResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "cra",
-            "admin",
-            "sponsor admin",
-            "grants manager",
-            "auditor",
-            "system",
-            "anonymous",
-        ],
-    )
+    if not has_permission(principal, "ctms_financial_milestone:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Confirm grant exists
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -2196,12 +2204,13 @@ async def trigger_manual_milestone(
     milestone_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> PaymentMilestoneResponse:
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     # Fetch grant
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -2295,13 +2304,14 @@ async def evaluate_grant_milestones(
     request: Request,
     condition: str = "STUDY_APPROVED",
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> dict:
     """Manually run the milestone evaluation engine for a specific condition."""
-    user_id = getattr(request.state, "user_id", "system")
-    user_roles = getattr(request.state, "roles", "system")
-    change_reason = getattr(request.state, "change_reason", "system_operation")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
+    change_reason = principal.change_reason or "system_operation"
 
-    check_financial_write_roles(user_roles)
+    check_financial_write_roles(principal)
 
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
     g_res = await session.execute(g_stmt)
@@ -2343,23 +2353,13 @@ async def list_investigator_payables(
     grant_id: str,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
 ) -> List[InvestigatorPayableResponse]:
-    user_id = getattr(request.state, "user_id", "anonymous")
-    user_roles = getattr(request.state, "roles", "anonymous")
+    user_id = principal.user_id
+    user_roles = ",".join(principal.raw_roles)
 
-    check_roles(
-        user_roles,
-        [
-            "monitor",
-            "cra",
-            "admin",
-            "sponsor admin",
-            "grants manager",
-            "auditor",
-            "system",
-            "anonymous",
-        ],
-    )
+    if not has_permission(principal, "ctms_financial_payable:read"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
 
     # Confirm grant exists
     g_stmt = select(InvestigatorGrant).where(InvestigatorGrant.id == grant_id)
@@ -2399,3 +2399,380 @@ async def list_investigator_payables(
         )
         for p in payables
     ]
+
+
+async def process_visit_sync(
+    session: AsyncSession, payload: MonitoringVisitOfflineSync, principal: Principal
+) -> Dict[str, Any]:
+    # 1. Look up the target MonitoringVisit using payload.visit_id
+    visit_stmt = select(MonitoringVisit).where(MonitoringVisit.id == payload.visit_id)
+    visit_res = await session.execute(visit_stmt)
+    visit = visit_res.scalars().first()
+
+    # 2. Pre-reconciliation checks: structural conflicts
+    if not visit:
+        # Create Clinical Query
+        query = CTMSClinicalQuery(
+            study_id=payload.study_id or "UNKNOWN",
+            site_id=payload.site_id or "UNKNOWN",
+            visit_id=payload.visit_id,
+            status="OPEN",
+            explanation=f"Structural conflict: target record (MonitoringVisit) is missing or deleted for Visit {payload.visit_id}.",
+            created_by=principal.user_id,
+            reason_for_change="SYSTEM SYNC EXCEPTION TRIGGERED",
+            version_index=1,
+        )
+        session.add(query)
+
+        # Archive to Defeated
+        defeated = MonitoringVisitDefeated(
+            visit_id=payload.visit_id,
+            actual_date=payload.actual_date,
+            findings={"findings": [f.model_dump() for f in payload.findings]},
+            device_timestamp=payload.device_timestamp,
+            offline_sync_markers=payload.offline_sync_markers.model_dump(mode="json"),
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated)
+        await session.flush()
+
+        # Write structural conflict audit log
+        await write_audit_log(
+            session=session,
+            user_id=principal.user_id,
+            user_role=",".join(principal.raw_roles),
+            action="MONITORING_VISIT_STRUCTURAL_CONFLICT",
+            details=f"Structural conflict on Visit '{payload.visit_id}': Target record missing or deleted. Reason: SYSTEM SYNC EXCEPTION TRIGGERED",
+        )
+
+        return {
+            "status": "STRUCTURAL_CONFLICT",
+            "query": {
+                "id": query.id,
+                "study_id": query.study_id,
+                "site_id": query.site_id,
+                "visit_id": query.visit_id,
+                "status": query.status,
+                "explanation": query.explanation,
+            },
+            "signature_validation": {
+                "status": "SKIPPED",
+                "detail": None,
+            },
+            "reconciliation_result": {
+                "status": "STRUCTURAL_CONFLICT",
+                "metadata": None,
+            },
+            "audit_details": {
+                "action": "MONITORING_VISIT_STRUCTURAL_CONFLICT",
+                "details": f"Structural conflict on Visit '{payload.visit_id}'.",
+            },
+        }
+
+    # 3. Verify the submitting principal's identity/allocation matches the visit's cra_id/site
+    from packages.security.rbac import can_access_site
+
+    if not (
+        principal.user_id == visit.cra_id or can_access_site(principal, visit.site_id)
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Forbidden: Submitting principal '{principal.user_id}' does not match CRA '{visit.cra_id}' or Site '{visit.site_id}' allocation.",
+        )
+
+    # 4. Idempotency Check: exact-duplicate replays
+    if visit.offline_sync_markers:
+        v_markers = visit.offline_sync_markers
+        if (
+            v_markers.get("client_id") == payload.offline_sync_markers.client_id
+            and v_markers.get("sequence_number")
+            == payload.offline_sync_markers.sequence_number
+        ):
+            return {
+                "status": "DUPLICATE_IGNORED",
+                "id": visit.id,
+                "actual_date": visit.actual_date.isoformat()
+                if visit.actual_date
+                else None,
+                "sync_status": visit.sync_status,
+                "version_index": visit.version_index,
+                "signature_validation": {
+                    "status": "SKIPPED",
+                    "detail": None,
+                },
+                "reconciliation_result": {
+                    "status": "DUPLICATE_IGNORED",
+                    "metadata": None,
+                },
+                "audit_details": {
+                    "action": "MONITORING_VISIT_RECONCILE",
+                    "details": "Exact duplicate sync payload ignored",
+                },
+            }
+
+    # 5. Build SyncRecord representation
+    from apps.interop.sync_engine import (
+        SignatureValidationError,
+        SyncMetadata,
+        SyncRecord,
+        reconcile_records,
+        verify_record_signature,
+    )
+
+    incoming_timestamps = payload.offline_sync_markers.timestamps or {}
+    timestamps = {}
+    for k in ["actual_date"]:
+        t_val = incoming_timestamps.get(k)
+        if t_val:
+            if isinstance(t_val, str):
+                timestamps[k] = datetime.fromisoformat(t_val)
+            else:
+                timestamps[k] = t_val
+        else:
+            timestamps[k] = payload.device_timestamp
+
+    metadata = SyncMetadata(
+        timestamps=timestamps,
+        modified_by=payload.offline_sync_markers.client_id,
+        signature=payload.offline_sync_markers.signature,
+    )
+
+    study_id = visit.study_id
+    site_id = visit.site_id
+    dedup_key = f"{study_id}:{site_id}:{payload.visit_id}"
+
+    incoming_record = SyncRecord(
+        deduplication_key=dedup_key,
+        data={
+            "actual_date": payload.actual_date.isoformat()
+            if isinstance(payload.actual_date, datetime)
+            else str(payload.actual_date)
+        },
+        metadata=metadata,
+    )
+
+    gateway_secret_str = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345")
+    secret_bytes = gateway_secret_str.encode("utf-8")
+
+    signature_status = "SKIPPED"
+    signature_detail = None
+
+    if payload.offline_sync_markers.signature is not None:
+        try:
+            if not verify_record_signature(incoming_record, secret_bytes):
+                raise SignatureValidationError(
+                    "Invalid signature on the incoming record."
+                )
+            signature_status = "VALID"
+        except SignatureValidationError as e:
+            signature_status = "FAILED"
+            signature_detail = str(e)
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # Reconstruct existing data & metadata if existing record exists
+    if visit.actual_date:
+        existing_markers = visit.offline_sync_markers or {}
+        existing_ts_raw = existing_markers.get("timestamps") or {}
+        existing_timestamps = {}
+        for k in ["actual_date"]:
+            t_val = existing_ts_raw.get(k)
+            if t_val:
+                if isinstance(t_val, str):
+                    existing_timestamps[k] = datetime.fromisoformat(t_val)
+                else:
+                    existing_timestamps[k] = t_val
+            else:
+                existing_timestamps[k] = visit.actual_date or visit.created_at
+
+        existing_metadata = SyncMetadata(
+            timestamps=existing_timestamps,
+            modified_by=existing_markers.get("client_id", "server"),
+            signature=existing_markers.get("signature"),
+        )
+        existing_data = {"actual_date": visit.actual_date.isoformat()}
+    else:
+        existing_data = {}
+        existing_metadata = None
+
+    # 6. Reconcile
+    strategy = payload.offline_sync_markers.conflict_strategy
+    if isinstance(strategy, ConflictStrategy):
+        strategy = strategy.value
+    strategy = strategy.upper()
+
+    res = reconcile_records(
+        existing_data=existing_data,
+        existing_metadata=existing_metadata,
+        incoming_record=incoming_record,
+        strategy=strategy,
+        secret=secret_bytes,
+        require_signature=False,
+    )
+
+    status = res["status"]
+    reconciled_metadata: SyncMetadata = res["metadata"]
+
+    markers_dict = payload.offline_sync_markers.model_dump(mode="json")
+    markers_dict["timestamps"] = {
+        k: v.isoformat() if isinstance(v, datetime) else str(v)
+        for k, v in reconciled_metadata.timestamps.items()
+    }
+    if reconciled_metadata.signature:
+        markers_dict["signature"] = reconciled_metadata.signature
+
+    change_reason = principal.change_reason or "SYSTEM OFFLINE SYNC"
+
+    if status in ("UPDATED_CLIENT_WINS", "MERGED", "CREATED"):
+        if status in ("UPDATED_CLIENT_WINS", "MERGED"):
+            # Archive existing to Defeated (before mutating)
+            existing_findings_stmt = select(MonitoringVisitFinding).where(
+                MonitoringVisitFinding.visit_id == visit.id
+            )
+            existing_findings_res = await session.execute(existing_findings_stmt)
+            existing_findings = existing_findings_res.scalars().all()
+            findings_list = [
+                {
+                    "text": f.text,
+                    "severity": f.severity,
+                    "resolution_status": f.resolution_status,
+                    "offline_sync_markers": f.offline_sync_markers,
+                }
+                for f in existing_findings
+            ]
+
+            defeated = MonitoringVisitDefeated(
+                visit_id=visit.id,
+                actual_date=visit.actual_date,
+                findings={"findings": findings_list},
+                device_timestamp=visit.actual_date or visit.created_at,
+                offline_sync_markers=visit.offline_sync_markers or {},
+                status="Defeated by online-merge conflict resolution",
+            )
+            session.add(defeated)
+
+        # Mutate target MonitoringVisit
+        winning_date_str = res["data"]["actual_date"]
+        visit.actual_date = datetime.fromisoformat(winning_date_str)
+        visit.status = "COMPLETED"
+        visit.offline_sync_markers = markers_dict
+        visit.sync_status = "RESOLVED"
+        visit.version_index += 1
+        visit.reason_for_change = change_reason
+        session.add(visit)
+
+        # Reconcile findings
+        for f in payload.findings:
+            f_stmt = select(MonitoringVisitFinding).where(
+                MonitoringVisitFinding.visit_id == visit.id,
+                MonitoringVisitFinding.text == f.text,
+            )
+            f_res = await session.execute(f_stmt)
+            existing_f = f_res.scalars().first()
+
+            if not existing_f:
+                new_finding = MonitoringVisitFinding(
+                    visit_id=visit.id,
+                    text=f.text,
+                    severity=f.severity.upper(),
+                    resolution_status=f.resolution_status or "OPEN",
+                    created_by=principal.user_id,
+                    reason_for_change=change_reason,
+                    version_index=1,
+                    offline_sync_markers=markers_dict,
+                    sync_status="RESOLVED",
+                )
+                session.add(new_finding)
+
+        await session.flush()
+
+        audit_details = f"Decision: {status}. Strategy applied: {strategy}. Version incremented to {visit.version_index}. Reason: {change_reason}"
+        await write_audit_log(
+            session=session,
+            user_id=principal.user_id,
+            user_role=",".join(principal.raw_roles),
+            action="MONITORING_VISIT_RECONCILE",
+            details=audit_details,
+        )
+
+    elif status == "IGNORED_SERVER_WINS":
+        # Archive incoming payload as defeated
+        defeated = MonitoringVisitDefeated(
+            visit_id=payload.visit_id,
+            actual_date=payload.actual_date,
+            findings={"findings": [f.model_dump() for f in payload.findings]},
+            device_timestamp=payload.device_timestamp,
+            offline_sync_markers=payload.offline_sync_markers.model_dump(mode="json"),
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated)
+        await session.flush()
+
+        audit_details = f"Decision: SERVER_WINS. Strategy applied: {strategy}. Version index is {visit.version_index}. Reason: {change_reason}"
+        await write_audit_log(
+            session=session,
+            user_id=principal.user_id,
+            user_role=",".join(principal.raw_roles),
+            action="MONITORING_VISIT_RECONCILE",
+            details=audit_details,
+        )
+
+    return {
+        "status": status,
+        "id": visit.id,
+        "actual_date": visit.actual_date.isoformat() if visit.actual_date else None,
+        "sync_status": visit.sync_status,
+        "version_index": visit.version_index,
+        "signature_validation": {
+            "status": signature_status,
+            "detail": signature_detail,
+        },
+        "reconciliation_result": {
+            "status": status,
+            "metadata": reconciled_metadata.model_dump(mode="json"),
+        },
+        "audit_details": {
+            "action": "MONITORING_VISIT_RECONCILE",
+            "details": audit_details,
+        },
+    }
+
+
+@app.post("/api/v1/ctms/monitoring-visits/sync", status_code=200)
+async def sync_monitoring_visit(
+    request: Request,
+    payload: MonitoringVisitOfflineSync,
+    session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> Dict[str, Any]:
+    """
+    Secure sync endpoint for offline monitoring visits completion and findings.
+    """
+    if not has_permission(principal, "ctms_monitoring_visit:sync"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
+
+    return await process_visit_sync(session, payload, principal)
+
+
+@app.post("/api/v1/ctms/monitoring-visits/bulk-sync", status_code=200)
+async def bulk_sync_monitoring_visits(
+    request: Request,
+    payloads: List[MonitoringVisitOfflineSync],
+    session: AsyncSession = Depends(get_db_session),
+    principal: Principal = Depends(get_principal),
+) -> Dict[str, Any]:
+    """
+    Secure bulk sync endpoint for offline monitoring visits completion and findings.
+    """
+    if not has_permission(principal, "ctms_monitoring_visit:sync"):
+        raise HTTPException(status_code=403, detail="Forbidden: Access denied.")
+
+    results = []
+    for payload in payloads:
+        res = await process_visit_sync(session, payload, principal)
+        results.append(res)
+
+    return {
+        "status": "success",
+        "processed_count": len(payloads),
+        "results": results,
+    }

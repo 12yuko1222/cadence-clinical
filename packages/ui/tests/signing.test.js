@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import { describe, it, expect } from "vitest";
 import {
   canonicalSerialize,
@@ -5,7 +6,9 @@ import {
   verifyCanonicalSignature,
   generateGatewaySignature,
   verifyGatewaySignature,
+  sha256,
 } from "../index.js";
+import { encryptAESGCM, decryptAESGCM, deriveSessionKey } from "../signing.js";
 
 describe("canonicalSerialize", () => {
   it("serializes primitives identically to Python", () => {
@@ -181,5 +184,120 @@ describe("generateGatewaySignature and verifyGatewaySignature", () => {
       secret
     );
     expect(isValid).toBe(false);
+  });
+});
+
+describe("sha256", () => {
+  it("computes a correct SHA-256 hex digest for empty string", async () => {
+    const hash = await sha256("");
+    expect(hash).toBe(
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" // pragma: allowlist secret
+    );
+  });
+
+  it("computes a correct SHA-256 hex digest for a known test message", async () => {
+    const hash = await sha256("Cadence Clinical Platform");
+    expect(hash).toBe(
+      "5789dd8ff2e10b9b13b3365112bf8b66027e43c59ae06110150617571c12f9a2" // pragma: allowlist secret
+    );
+  });
+});
+
+describe("cross-language parity", () => {
+  const getPythonOutput = (script) => {
+    const cwd = process.cwd();
+    const env = { ...process.env, PYTHONPATH: cwd };
+    const pyScript = script
+      .trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join("; ");
+    try {
+      return execSync(`uv run python -c "${pyScript}"`, { env, cwd })
+        .toString()
+        .trim();
+    } catch {
+      return execSync(`python3 -c "${pyScript}"`, { env, cwd })
+        .toString()
+        .trim();
+    }
+  };
+
+  it("JS can decrypt a Python-produced AES-GCM envelope", async () => {
+    const rawKey = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) rawKey[i] = i;
+    const hexKey = Array.from(rawKey)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const payload = { hello: "world", count: 42 };
+    const aad = "my_aad_data";
+
+    const pythonEnvelope = getPythonOutput(`
+from packages.security.encryption import encrypt
+key = bytes.fromhex('${hexKey}')
+payload = {'hello': 'world', 'count': 42}
+aad = '${aad}'.encode('utf-8')
+print(encrypt(payload, key, 1, aad))
+`);
+
+    const decrypted = await decryptAESGCM(
+      pythonEnvelope,
+      rawKey,
+      1,
+      new TextEncoder().encode(aad)
+    );
+    expect(decrypted).toEqual(payload);
+  });
+
+  it("Python can decrypt a JS-produced AES-GCM envelope", async () => {
+    const rawKey = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) rawKey[i] = i + 10;
+    const hexKey = Array.from(rawKey)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const payload = {
+      msg: "from javascript to python with love",
+      success: true,
+    };
+    const aad = "another_aad";
+
+    const jsEnvelope = await encryptAESGCM(
+      payload,
+      rawKey,
+      1,
+      new TextEncoder().encode(aad)
+    );
+
+    const pythonOutput = getPythonOutput(`
+import json
+from packages.security.encryption import decrypt
+key = bytes.fromhex('${hexKey}')
+aad = '${aad}'.encode('utf-8')
+decrypted = decrypt('${jsEnvelope}', key, 1, aad)
+print(json.dumps(decrypted))
+`);
+    const parsedOutput = JSON.parse(pythonOutput);
+    expect(parsedOutput).toEqual(payload);
+  });
+
+  it("HKDF key derivation matches Python exactly", async () => {
+    const material = "session_material_abc";
+    const salt = "salt_123";
+    const info = "info_456";
+
+    const jsDerived = await deriveSessionKey(material, salt, info);
+    const jsHex = Array.from(jsDerived)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const pythonHex = getPythonOutput(`
+from packages.security.encryption import derive_session_key
+derived = derive_session_key(b'${material}', b'${salt}', b'${info}')
+print(derived.hex())
+`);
+    expect(jsHex).toBe(pythonHex);
   });
 });

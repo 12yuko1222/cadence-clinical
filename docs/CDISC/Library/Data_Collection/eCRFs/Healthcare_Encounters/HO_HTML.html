@@ -1,0 +1,85 @@
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>"Form HO - Healthcare Encounters [HO]" Form Preview
+
+      </title>
+   </head>
+   <body link="#6666aa" vlink="#8888ff" alink="#8888ff" style="margin: 0em 1em">
+      <form action="javascript:">
+         <table width="100%" align="center" cellspacing="0" cellpadding="4" bgcolor="#bad8eb" style="clear: right; color: #000000; margin-top: 1em">
+            <tr bgcolor="#0090b2" align="left" valign="top" style="font-size: 1em; color: #ffffff; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="100%" nowrap>Form HO - Healthcare Encounters</td>
+            </tr>
+            <tr bgcolor="#bad8eb" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="2"><b>HO - Healthcare Encounters</b></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Were there any healthcare encounters?</td>
+               <td width="75%"><input type="radio" name="IT.HOYN" title="Field Name: IT.HOYN" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.HOYN" title="Field Name: IT.HOYN" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the healthcare encounter?</td>
+               <td width="75%"><select id="IT.HODECOD" name="IT.HODECOD" title="Field Name: IT.HODECOD">
+                     <option value="" title="Field Name: IT.HODECOD">Choose</option>
+                     <option value="EMERGENCY ROOM VISIT">EMERGENCY ROOM VISIT</option>
+                     <option value="HOSPITAL STAY">HOSPITAL STAY</option>
+                     <option value="INTENSIVE CARE UNIT STAY">INTENSIVE CARE UNIT STAY</option>
+                     <option value="PRIMARY CARE PHYSICIAN'S OFFICE VISIT">PRIMARY CARE PHYSICIAN'S OFFICE VISIT</option>
+                     <option value="SKILLED NURSING FACILITY STAY">SKILLED NURSING FACILITY STAY</option>
+                     <option value="OTHER">OTHER</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">If Other, specify</td>
+               <td width="75%"><input type="text" name="IT.HOTERM" size="20" title="Field Name: IT.HOTERM"></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the [healthcare encounter/HOTERM] [start/admission]
+                  date?
+               </td>
+               <td width="75%">
+                  <table border="0" cellspacing="0" cellpadding="0" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+                     <tr>
+                        <td width="35"><input type="submit" name="IT.HOSTDAT" value="Set Date" title="Field Name: IT.HOSTDAT" style="background-color: #d5e7f3; color: #000000"></td>
+                        <td><font color="#d5e7f3">&nbsp;</font>01 Jan 2000
+                        </td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the [healthcare encounter/HOTERM] [end/discharge]     date?</td>
+               <td width="75%">
+                  <table border="0" cellspacing="0" cellpadding="0" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+                     <tr>
+                        <td width="35"><input type="submit" name="IT.HOENDAT" value="Set Date" title="Field Name: IT.HOENDAT" style="background-color: #d5e7f3; color: #000000"></td>
+                        <td><font color="#d5e7f3">&nbsp;</font>01 Jan 2000
+                        </td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Was the [healthcare encounter/HOTERM] ongoing (as of the [study-specific timepoint or period])?</td>
+               <td width="75%"><input type="radio" name="IT.HOONGO" title="Field Name: IT.HOONGO" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.HOONGO" title="Field Name: IT.HOONGO" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the reason for the [healthcare encounter/HOTERM]?</td>
+               <td width="75%"><input type="text" name="IT.HOREAS" size="20" title="Field Name: IT.HOREAS"></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the identifier for the adverse event(s), which precipitated the [healthcare encounter/HOTERM]?</td>
+               <td width="75%"><input type="text" name="IT.HOAENO" size="20" title="Field Name: IT.HOAENO"></td>
+            </tr>
+         </table>
+         <table width="100%" align="center">
+            <tr style="font-size: 8pt; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td><font color="red">*</font> Mandatory field
+               </td>
+            </tr>
+         </table>
+      </form>
+   </body>
+</html>

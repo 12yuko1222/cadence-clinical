@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-14T16:08:11"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_AE_ADV_EXP"
+                  Name="Tobacco Implementation Guide-Adverse Experiences"
+                  Repeating="No">
+            <Description>
+               <TranslatedText xml:lang="en">This is an example CRF used to collect all adverse experiences that occurred after informed consent is obtained. Adverse experiences were collected using free-text. This CRF was designed to allow the sponsor to use either AEENRF or AEENRTPT to represent an event that was ongoing.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_AE_ANY" Mandatory="Yes" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_AE_DEtAILS" Mandatory="No" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_AE_DEtAILS" Name="Adverse Experiences" Repeating="Yes">
+            <ItemRef ItemOID="AE_TIG_DETAILS.AECAT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AESCAT" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AESPID" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AETERM" Mandatory="Yes" OrderNumber="4"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AESTDAT" Mandatory="Yes" OrderNumber="5"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEONGO" Mandatory="No" OrderNumber="6"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEENDAT" Mandatory="No" OrderNumber="7"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AESEV" Mandatory="No" OrderNumber="8"/>
+            <ItemRef ItemOID="AE_TIG_SAE" Mandatory="No" OrderNumber="9"/>
+            <ItemRef ItemOID="AE_TIG_SAE.AESDTH" Mandatory="No" OrderNumber="10"/>
+            <ItemRef ItemOID="AE_TIG_SAE.AESLIFE" Mandatory="No" OrderNumber="11"/>
+            <ItemRef ItemOID="AE_TIG_SAE_AESHOSP" Mandatory="No" OrderNumber="12"/>
+            <ItemRef ItemOID="AE_TIG_SAE_AESDISAB" Mandatory="No" OrderNumber="13"/>
+            <ItemRef ItemOID="AE_TIG_SAE_AESCONG" Mandatory="No" OrderNumber="14"/>
+            <ItemRef ItemOID="AE_TIG_SAE.AESMIE" Mandatory="No" OrderNumber="15"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEREL" Mandatory="Yes" OrderNumber="16"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEACN" Mandatory="No" OrderNumber="17"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEACNOTH" Mandatory="No" OrderNumber="18"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEACNDEV" Mandatory="No" OrderNumber="19"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AEOUT" Mandatory="No" OrderNumber="20"/>
+            <ItemRef ItemOID="AE_TIG_DETAILS.AERLDEV" Mandatory="No" OrderNumber="21"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_AE_ANY" Name="Any Adverse Experiences" Repeating="No">
+            <ItemRef ItemOID="AE_TIG_ANY.AEYN" Mandatory="Yes" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEACN"
+                  Name="AEACN"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="AEACN">
+            <Description>
+               <TranslatedText xml:lang="en">AEACN</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What action was taken with study product?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_TOB ACTION TAKEN FOR STUDY PRODUCT Study Product"/>
+            <Alias Name="Action Taken with Study Product" Context="prompt"/>
+            <Alias Name="AEACN" Context="CDASH"/>
+            <Alias Name="AEACN" Context="SDTM"/>
+            <Alias Name="Record changes made to the study product resulting from the adverse experience."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEACNDEV"
+                  Name="AEACNDEV"
+                  DataType="text"
+                  Length="39"
+                  SDSVarName="AEACNDEV">
+            <Question>
+               <TranslatedText>What was the action taken with a device?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="EMACNDEV"/>
+            <Alias Name="AEACNDEV" Context="SDTM"/>
+            <Alias Name="AEACNDEV" Context="CDASH"/>
+            <Alias Name="Record any action taken with a tobacco device as the result of the adverse experience. The device may or may not be a device under study."
+                   Context="completionInstructions"/>
+            <Alias Name="Action Taken with Device" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEACNOTH"
+                  Name="AEACNOTH"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="AEACNOTH">
+            <Description>
+               <TranslatedText>AEACNOTH</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What other action was taken?</TranslatedText>
+            </Question>
+            <Alias Name="AEACNOTH" Context="SDTM"/>
+            <Alias Name="Other Action Taken" Context="prompt"/>
+            <Alias Name="AEACNOTH" Context="CDASH"/>
+            <Alias Name="Record all other action(s) taken resulting from the adverse experience that are unrelated to study product given because of this adverse experience."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AECAT"
+                  Name="AECAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="AECAT">
+            <Question>
+               <TranslatedText>What is the category of the adverse experience?</TranslatedText>
+            </Question>
+            <Alias Name="AECAT" Context="CDASH"/>
+            <Alias Name="Record the adverse experience category, if not pre-printed on the CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="Applicant Defined" Context="pre-filled"/>
+            <Alias Name="AECAT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEENDAT"
+                  Name="AEENDAT"
+                  DataType="date"
+                  SDSVarName="AEENDTC">
+            <Description>
+               <TranslatedText xml:lang="en">AEENDAT</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What was the adverse experience end date?</TranslatedText>
+            </Question>
+            <Alias Name="Record the date that the AE resolved. If the AE is ongoing, leave the field blank."
+                   Context="completionInstructions"/>
+            <Alias Name="AEENDAT" Context="CDASH"/>
+            <Alias Name="End Date" Context="prompt"/>
+            <Alias Name="AEENDTC" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEONGO"
+                  Name="AEONGO"
+                  DataType="text"
+                  Length="3">
+            <Description>
+               <TranslatedText xml:lang="en">AEONGO</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>Ongoing</TranslatedText>
+               <TranslatedText xml:lang="(default)">Is the adverse experience ongoing ?</TranslatedText>
+            </Question>
+            <Alias Name="Indicate if the adverse event has not resolved at the time of data collection; leave the End Date blank."
+                   Context="completionInstructions"/>
+            <Alias Name="AEENRF or AEENRTPT" Context="SDTM"/>
+            <Alias Name="Ongoing" Context="prompt"/>
+            <Alias Name="AEONGO" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEOUT"
+                  Name="AEOUT"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="AEOUT">
+            <Question>
+               <TranslatedText>What was the outcome of this adverse experience?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66768.OUT"/>
+            <Alias Name="AEOUT" Context="SDTM"/>
+            <Alias Name="AEOUT" Context="CDASH"/>
+            <Alias Name="Record the appropriate outcome of the event in relation to the subject's status."
+                   Context="completionInstructions"/>
+            <Alias Name="Outcome" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AEREL"
+                  Name="AEREL"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="AEREL">
+            <Description>
+               <TranslatedText xml:lang="en">AEREL</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>Was this adverse experience related to study product?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_AERELS"/>
+            <Alias Name="AEREL" Context="CDASH"/>
+            <Alias Name="AEREL" Context="SDTM"/>
+            <Alias Name="Indicate if the cause of the adverse experience was related to the study product and cannot be reasonably explained by other factors (e.g., subject's clinical state, concomitant therapy, other interventions)."
+                   Context="(completionInstructions)"/>
+            <Alias Name="Relationship to Study Product" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AERLDEV"
+                  Name="AERLDEV"
+                  DataType="text"
+                  Length="20"
+                  SDSVarName="AERLDEV">
+            <Question>
+               <TranslatedText>Was this adverse experience related to a device?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_AERELS"/>
+            <Alias Name="AERLDEV" Context="SDTM"/>
+            <Alias Name="Relationship of Experience to Device" Context="prompt"/>
+            <Alias Name="Record the relationship of the adverse experience to Device"
+                   Context="completionInstructions"/>
+            <Alias Name="AERLDEV" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AESCAT"
+                  Name="AESCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="AESCAT">
+            <Question>
+               <TranslatedText>What is the subcategory of the adverse experience?</TranslatedText>
+            </Question>
+            <Alias Name="Applicant Defined" Context="pre-filled"/>
+            <Alias Name="Adverse Experience Subcategory" Context="prompt"/>
+            <Alias Name="AESCAT" Context="CDASH"/>
+            <Alias Name="AESCAT" Context="SDTM"/>
+            <Alias Name="Record the adverse experience subcategory, if not pre-printed on the CRF."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE_AESCONG"
+                  Name="AESCONG"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESCONG">
+            <Question>
+               <TranslatedText>Was the adverse experience associated with a congenital anomaly or birth defect?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="AESCONG" Context="CDASH"/>
+            <Alias Name="Record whether the serious adverse experience was associa"
+                   Context="completionInstructions"/>
+            <Alias Name="AESCONG" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE_AESDISAB"
+                  Name="AESDISAB"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESDISAB">
+            <Question>
+               <TranslatedText>Did the adverse experience result in disability or permanent damage?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="AESDISAB" Context="CDASH"/>
+            <Alias Name="Record whether the serious adverse experience resulted in a persistent or significant disability or incapacity."
+                   Context="completionInstructions"/>
+            <Alias Name="AESDISAB" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE.AESDTH"
+                  Name="AESDTH"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESDTH">
+            <Question>
+               <TranslatedText>Did the adverse experience result in death?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="AESDTH" Context="SDTM"/>
+            <Alias Name="Record whether the serious adverse experience resulted in death."
+                   Context="completionInstructions"/>
+            <Alias Name="AESDTH" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE"
+                  Name="AESER"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESER">
+            <Question>
+               <TranslatedText>Was the experience serious?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="Serious" Context="prompt"/>
+            <Alias Name="AESER" Context="SDTM"/>
+            <Alias Name="AESER" Context="CDASH"/>
+            <Alias Name="Assess if an adverse experience should be classified as serious based on the criteria defined in the protocol."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AESEV"
+                  Name="AESEV"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="AESEV">
+            <Description>
+               <TranslatedText xml:lang="en">AESEV</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What is the severity of the adverse experience?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66769.AESEV"/>
+            <Alias Name="The reporting physician/healthcare professional will assess the severity of the adverse experience using applicant-defined categories. This assessment is subjective and the reporting physician/healthcare professional should use medical judgment to compare the reported AE to similar type experiences observed in clinical practice. Severity is not equivalent to seriousness."
+                   Context="completionInstructions"/>
+            <Alias Name="AESEV" Context="CDASH"/>
+            <Alias Name="AESEV" Context="SDTM"/>
+            <Alias Name="Severity" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE_AESHOSP"
+                  Name="AESHOSP"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESHOSP">
+            <Question>
+               <TranslatedText>Did the adverse experience result in initial or prolonged hospitalization for the subject?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="AESHOSP" Context="SDTM"/>
+            <Alias Name="AESHOSP" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE.AESLIFE"
+                  Name="AESLIFE"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESLIFE">
+            <Question>
+               <TranslatedText>Was the adverse experience life threatening?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+            <Alias Name="Life Threatening" Context="prompt"/>
+            <Alias Name="AESLIFE" Context="SDTM"/>
+            <Alias Name="AESLIFE" Context="CDASH"/>
+            <Alias Name="Record whether the serious adverse event is life threatening."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_SAE.AESMIE"
+                  Name="AESMIE"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="AESMIE">
+            <Question>
+               <TranslatedText>Was the adverse experience a medically important event not covered by other "serious" criteria?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="AESMIE" Context="CDASH"/>
+            <Alias Name="Record whether the serious adverse experience is an important medical event, which may be defined in the protocol or in the investigator brochure."
+                   Context="completionInstructions"/>
+            <Alias Name="AESMIE" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AESPID"
+                  Name="AESPID"
+                  DataType="integer"
+                  Length="6"
+                  SDSVarName="AESPID">
+            <Question>
+               <TranslatedText>What is the adverse experience identifier?</TranslatedText>
+            </Question>
+            <Alias Name="AESPID" Context="CDASH"/>
+            <Alias Name="AE NUmber" Context="prompt"/>
+            <Alias Name="If collected on the CRF, the applicant may insert instructions to ensure each record has a unique identifier."
+                   Context="completionInstructions"/>
+            <Alias Name="AESPID" Context="mappingInstructions"/>
+            <Alias Name="AESPID" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AESTDAT"
+                  Name="AESTDAT"
+                  DataType="date"
+                  SDSVarName="AESTDTC">
+            <Question>
+               <TranslatedText>What is the adverse experience start date?</TranslatedText>
+            </Question>
+            <Alias Name="Record the start date of the AE using this format (DD-MON-YYYY)."
+                   Context="completionInstructions"/>
+            <Alias Name="AESTDTC" Context="SDTM"/>
+            <Alias Name="Start Date" Context="prompt"/>
+            <Alias Name="AESTDAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_DETAILS.AETERM"
+                  Name="AETERM"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="AETERM">
+            <Question>
+               <TranslatedText>What is the adverse experience term?</TranslatedText>
+            </Question>
+            <Alias Name="Record only 1 diagnosis, sign or symptom per line (e.g., nausea and vomiting should not be recorded in the same entry, but as 2 separate entries). Using accepted medical terminology, enter the diagnosis (if known); otherwise enter a sign or symptom."
+                   Context="completionInstructions"/>
+            <Alias Name="Adverse Experience" Context="prompt"/>
+            <Alias Name="AETERM" Context="SDTM"/>
+            <Alias Name="AETERM" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="AE_TIG_ANY.AEYN" Name="AEYN" DataType="text" Length="3">
+            <Question>
+               <TranslatedText>Were there any adverse experiences?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="NOT SUBMITTED" Context="SDTM"/>
+            <Alias Name="Any Adverse Experiences" Context="prompt"/>
+            <Alias Name="Indicate if the subject experienced any adverse experienes. If Yes, include the appropriate details where indicated on the CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="AEYN" Context="CDASH"/>
+         </ItemDef>
+         <CodeList OID="EMACNDEV" Name="ACTION TAKEN WITH DEVICE" DataType="text">
+            <CodeListItem CodedValue="DEVICE REPLACED" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Device Replaced</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BATTERY REPLACED" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Battery Replaced</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="CALIBRATION" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Calibration</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="REPROGRAMMING" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Reprogramming</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_AERELS"
+                   Name="Adverse Experience Relationship Scale"
+                   DataType="text">
+            <CodeListItem CodedValue="NOT RELATED" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Not-Related</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNLIKELY RELATED" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Unlikely Related</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="POSSIBLY RELATED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Possibly Related</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="RELATED" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Related</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+            <CodeListItem CodedValue="Y" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="N" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66768.OUT" Name="Outcome of Event" DataType="text">
+            <Description>
+               <TranslatedText>A condition or event that is attributed to the adverse event and is the result or conclusion of the adverse event. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="FATAL" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Fatal</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT RECOVERED/NOT RESOLVED" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Not Recovered or Not Resolved</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="RECOVERED/RESOLVED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Recovered or Resolved</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="RECOVERED/RESOLVED WITH SEQUELAE" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Recovered or Resolved with Sequelae</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="RECOVERING/RESOLVING" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Recovering or Resolving</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNKNOWN" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Unknown</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66769.AESEV"
+                   Name="Severity/Intensity Scale for Adverse Events"
+                   DataType="text">
+            <CodeListItem CodedValue="MILD" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Mild</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="MODERATE" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Moderate</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="SEVERE" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Severe</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_TOB ACTION TAKEN FOR STUDY PRODUCT Study Product"
+                   Name="TIG_TOB ACTION TAKEN FOR STUDY PRODUCT Study Product"
+                   DataType="text">
+            <Description>
+               <TranslatedText>Terminology specifying changes to the study product as a result of an adverse experience. (Used for Tobacoo Studies)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="PRODUCT INCREASED" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Product Increased</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRODUCT NOT CHANGED" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Product Not Changed</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRODUCT REDUCED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Product Reduced</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRODUCT INTERRUPTED" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Product Interrupted</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PRODUCT STOPPED" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Product Stopped</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT APPLICABLE" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Not Applicable</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

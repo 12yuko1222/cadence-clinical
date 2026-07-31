@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-20T17:54:02"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_NIC_DEP"
+                  Name="Tobacco Implementation Guide-Medications Used for Nicotine Dependency"
+                  Repeating="No">
+            <ItemGroupRef ItemGroupOID="TIG_NIC_DEP_ANY" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_NIC_DEP_DETAILS" Mandatory="No" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_NIC_DEP_DETAILS"
+                       Name="LAST ATTEMPT FOR EACH MEDICATION TYPE"
+                       Repeating="No">
+            <ItemRef ItemOID="CM_TIG_NIC_DEP_DETAILS.CMCAT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="CM_TIG_NIC_DEP_DETAILS.CMSCAT"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="CM_TIG_NIC_DEP_DETAILS.CMTRT"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="CM_TIG_NIC_DEP_DETAILS.CMCDUR"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+            <ItemRef ItemOID="CM_TIG_NIC_DEP_DETAILS.CMCDURU"
+                     Mandatory="No"
+                     OrderNumber="5"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_NIC_DEP_ANY" Name="Medications" Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF that collected information on previous medically recognized products used to reduce nicotine dependency at the baseline visit.</TranslatedText>
+            </Description>
+            <ItemRef ItemOID="CM_TIG_NIC_ANY.CMTRT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="CM_TIG_NIC_ANY.CMPRESP" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSAT_DEATILS.CMOCCUR"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="FA_TIG_NIC_ANY.FAORRES" Mandatory="No" OrderNumber="4"/>
+            <ItemRef ItemOID="FA_TIG_NIC_ANY.FACAT" Mandatory="No" OrderNumber="5"/>
+         </ItemGroupDef>
+         <ItemDef OID="CM_TIG_NIC_DEP_DETAILS.CMCAT"
+                  Name="CMCAT"
+                  DataType="text"
+                  Length="20"
+                  SDSVarName="CMCAT">
+            <Question>
+               <TranslatedText>What is the category of the medication/product the subject used to attempt to reduce nicotine dependency?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_NIC_DEP_MED_TYPE"/>
+            <Alias Name="Record  the category of the medication/product the subject used to attempt to reduce nicotine dependency."
+                   Context="completionInstructions"/>
+            <Alias Name="CMCAT" Context="SDTM"/>
+            <Alias Name="CMCAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_DEP_DETAILS.CMCDUR"
+                  Name="CMCDUR"
+                  DataType="float"
+                  Length="8"
+                  SignificantDigits="2"
+                  SDSVarName="CMDUR">
+            <Question>
+               <TranslatedText>What was the duration of the medication/product used to reduce nicotine dependency for the last attempt?</TranslatedText>
+            </Question>
+            <Alias Name="Provide the duration of the medication/product used."
+                   Context="completionInstructions"/>
+            <Alias Name="CMDUR" Context="SDTM"/>
+            <Alias Name="CMCDUR" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_DEP_DETAILS.CMCDURU"
+                  Name="CMCDURU"
+                  DataType="text"
+                  Length="25"
+                  SDSVarName="CMDUR">
+            <Question>
+               <TranslatedText>What was the duration unit of the medication/product used to reduce nicotine dependency for the last attempt?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_UNIT_DUR_NICDEP_MED"/>
+            <Alias Name="CMDURU" Context="CDASH"/>
+            <Alias Name="Select the appropriate duration unit of the medication/product used."
+                   Context="completionInstructions"/>
+            <Alias Name="CMDUR" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSAT_DEATILS.CMOCCUR"
+                  Name="CMOCCUR"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="CMOCCUR">
+            <Question>
+               <TranslatedText>Did the subject previously use the selected product for smoking cessation?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_NO/YES/NOTDONE"/>
+            <Alias Name="CMOCCUR" Context="CDASH"/>
+            <Alias Name="Indicate if the subject had used the selected smoking cessation product"
+                   Context="completionInstructions"/>
+            <Alias Name="Occurrence" Context="prompt"/>
+            <Alias Name="CMOCCUR" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_ANY.CMPRESP"
+                  Name="CMPRESP"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="CMPRESP">
+            <Question>
+               <TranslatedText>Pre-Specified Intervention</TranslatedText>
+            </Question>
+            <Alias Name="Pre-Specified Intervention" Context="Prompt"/>
+            <Alias Name="CMPRESP" Context="CDASH"/>
+            <Alias Name="CMPRESP" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_DEP_DETAILS.CMSCAT"
+                  Name="CMSCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="CMSCAT">
+            <Question>
+               <TranslatedText>What is the medication/product subcategory, if not pre-printed on the CRF.</TranslatedText>
+            </Question>
+            <Alias Name="LAST ATTEMPTED USE WITH THIS MEDICATION" Context="pre-filled"/>
+            <Alias Name="CMSCAT" Context="SDTM"/>
+            <Alias Name="CMSCAT" Context="CDASH"/>
+            <Alias Name="Record the medication/product subcategory, if not pre-printed on the CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="Medication Subcategory" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_DEP_DETAILS.CMTRT"
+                  Name="CMTRT"
+                  DataType="text"
+                  Length="75"
+                  SDSVarName="CMTRT">
+            <Question>
+               <TranslatedText>What was the name of the medication/product the subject used to reduce nicotine dependency?</TranslatedText>
+            </Question>
+            <Alias Name="CMTRT" Context="CDASH"/>
+            <Alias Name="CMTRT" Context="SDTM"/>
+            <Alias Name="Record only one medication/product per line. Provide the full trade or proprietary name of the medication/product; otherwise, record the generic name."
+                   Context="completionInstructions"/>
+            <Alias Name="GENERAL" Context="pre-filled"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_NIC_ANY.CMTRT"
+                  Name="CMTRTC"
+                  DataType="text"
+                  Length="30"
+                  SDSVarName="CMTRT">
+            <Question>
+               <TranslatedText>What was the medically recognized product name?</TranslatedText>
+            </Question>
+            <Alias Name="Medication" Context="Prompt"/>
+            <Alias Name="DRUG USED IN NICOTINE DEPENDENCE" Context="pre-filled"/>
+            <Alias Name="CMTRTC" Context="CDASH"/>
+            <Alias Name="CMTRT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="FA_TIG_NIC_ANY.FACAT"
+                  Name="FACAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="FACAT">
+            <Question>
+               <TranslatedText>Category</TranslatedText>
+            </Question>
+            <Alias Name="Category" Context="prompt"/>
+            <Alias Name="FACAT" Context="CDASH"/>
+            <Alias Name="FACAT" Context="SDTM"/>
+            <Alias Name="ATTEMPTS TO REDUCE NICOTINE DEPENDENCE" Context="pre-filled"/>
+         </ItemDef>
+         <ItemDef OID="FA_TIG_NIC_ANY.FAORRES"
+                  Name="FAORRES"
+                  DataType="integer"
+                  Length="3"
+                  SDSVarName="FAORRES">
+            <Question>
+               <TranslatedText>How many times did the subject attempt to use medically recognized products to attempt to reduce nicotine dependency?</TranslatedText>
+            </Question>
+            <Alias Name="Record the number of times a subject attempted to use medically recognized products to reduce nicotine dependency"
+                   Context="completionInstructions"/>
+            <Alias Name="FAORRES" Context="CDASH"/>
+            <Alias Name="FAORRES where FAOBJ =&#34;MEDICATION USED IN NICOTINE DEPENDENCE&#34; and FATEST= Total Number &#34;"
+                   Context="SDTM"/>
+         </ItemDef>
+         <CodeList OID="TIG_NIC_DEP_MED_TYPE"
+                   Name="NIC DEP MEDICATION TYPE"
+                   DataType="text">
+            <CodeListItem CodedValue="NICOTINE REPLACEMENT THERAPY" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Nicotine Replacement Therapy (NRT)</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT AN NRT" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Not a NRT</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_NO/YES/NOTDONE" Name="NO/YES/NOTDONE" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT DONE" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Not Done</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_UNIT_DUR_NICDEP_MED"
+                   Name="TIG_UNIT_DUR_NICDEP_MED"
+                   DataType="text">
+            <CodeListItem CodedValue="DAYS" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Days</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="MONTHS" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Month</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="YEARS" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Years</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

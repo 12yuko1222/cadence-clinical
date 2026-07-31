@@ -1,9 +1,9 @@
 import os
-from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+from eligibility import evaluate_eligibility
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -14,65 +14,49 @@ from apps.interop.auth import (
     require_staff_role,
     verify_subject_bulk_identity,
     verify_subject_identity,
+    subject_identity_guard,
 )
 from apps.interop.database import db_manager
+from apps.interop.designer_client import fetch_eligibility_criteria
 from apps.interop.fhir_adapter import FHIRAdapter
 from apps.interop.models import (
     Base,
+    ClinicalQuery,
     EPROSubmission,
+    EPROSubmissionDefeated,
     Instrument,
     InteropAuditLog,
     SubjectAssignment,
     SubjectNotification,
 )
+from apps.interop.sync_engine import (
+    SignatureValidationError,
+    SyncMetadata,
+    SyncRecord,
+    reconcile_records,
+    verify_record_signature,
+)
+from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.security.middleware import GatewayAuthMiddleware
 
 DATABASE_URL = os.getenv("INTEROP_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Handle the lifespan events for the Interop application.
-
-    Initializes the database session manager on startup, creates the required
-    schemas, and securely cleans up connections on shutdown.
-    """
-    db_manager.init_db(DATABASE_URL)
-
-    # Automatically create tables for sqlite in-memory/file databases
-    if DATABASE_URL.startswith("sqlite"):
-        async with db_manager.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    yield
-
-    await db_manager.close()
-
-
 app = FastAPI(
     title="Cadence Clinical - FHIR / eSource & eCOA Sync Gateway",
     version="0.1.0",
-    lifespan=lifespan,
+    lifespan=get_relational_db_lifespan(
+        db_manager=db_manager,
+        database_url=DATABASE_URL,
+        base_metadata=Base.metadata,
+    ),
 )
 
 # Enforce secure gateway authentication middleware
 app.add_middleware(GatewayAuthMiddleware)
 
 
-# Dependency to obtain database session
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency to yield an asynchronous database session.
-    """
-    session_maker = db_manager.get_session_maker()
-    async with session_maker() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+get_db_session = DatabaseSessionDependency(db_manager)
 
 
 # Helper to secure and log actions to the audit ledger
@@ -110,6 +94,47 @@ class FHIRPrefillRequest(BaseModel):
     )
 
 
+class FHIRPreScreenRequest(BaseModel):
+    """
+    Payload for advisory FHIR eligibility pre-screening.
+    """
+
+    study_id: str = Field(..., description="Unique identifier of the clinical study")
+    bundle: Dict[str, Any] = Field(
+        ..., description="The standard FHIR Bundle JSON payload"
+    )
+
+
+class CriterionExplanation(BaseModel):
+    criterion_id: str = Field(..., description="The ID of the criterion evaluated.")
+    criterion_type: str = Field(..., description="inclusion or exclusion.")
+    description: str = Field(..., description="Human-readable text of the criterion.")
+    is_met: bool = Field(
+        ..., description="Indicates if the subject satisfies this criterion."
+    )
+    is_indeterminate: bool = Field(
+        ..., description="Indicates if evaluation was indeterminate."
+    )
+
+
+class FHIRPreScreenResponse(BaseModel):
+    eligible: Optional[bool] = Field(
+        None,
+        description="Aggregated eligibility. True if all criteria met, False if any failed, None if indeterminate.",
+    )
+    failed_criteria: List[str] = Field(
+        default_factory=list, description="List of criterion IDs that failed."
+    )
+    indeterminate_criteria: List[str] = Field(
+        default_factory=list,
+        description="List of criterion IDs that were indeterminate.",
+    )
+    criteria_explanations: List[CriterionExplanation] = Field(
+        default_factory=list,
+        description="Detailed list of criterion-level explanations.",
+    )
+
+
 class ConflictStrategy(str, Enum):
     """
     Explicit validated conflict resolution strategies.
@@ -132,6 +157,14 @@ class OfflineSyncMarkers(BaseModel):
     conflict_strategy: ConflictStrategy = Field(
         ConflictStrategy.CLIENT_WINS,
         description="Conflict strategy to resolve duplicate submissions. Supported: CLIENT_WINS, SERVER_WINS, MERGE",
+    )
+    signature: Optional[str] = Field(
+        None,
+        description="Optional HMAC-SHA256 signature of the payload for cryptographic integrity",
+    )
+    timestamps: Optional[Dict[str, datetime]] = Field(
+        None,
+        description="Optional per-field UTC timestamps indicating when each field in 'answers' was modified",
     )
 
 
@@ -167,11 +200,76 @@ class BulkSyncPayload(BaseModel):
 async def resolve_and_save_submission(
     session: AsyncSession,
     payload: EPROSubmissionPayload,
+    user_id: str = "system",
+    user_role: str = "system",
+    change_reason: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Save a new ePRO submission or reconcile existing ones based on conflict strategy.
+    Detects structural conflicts and turn them into auditable clinical queries.
+    Delegates logic to apps/interop/sync_engine.py.
     """
-    # Look for an existing submission with same subject_id and diary_id
+    # 1. Setup signature and timestamps for the SyncRecord representation
+    incoming_timestamps = payload.offline_sync_markers.timestamps or {}
+    timestamps = {}
+    for k in payload.answers.keys():
+        t_val = incoming_timestamps.get(k)
+        if t_val:
+            if isinstance(t_val, str):
+                timestamps[k] = datetime.fromisoformat(t_val)
+            else:
+                timestamps[k] = t_val
+        else:
+            timestamps[k] = payload.device_timestamp
+
+    metadata = SyncMetadata(
+        timestamps=timestamps,
+        modified_by=payload.offline_sync_markers.client_id,
+        signature=payload.offline_sync_markers.signature,
+    )
+    incoming_record = SyncRecord(
+        deduplication_key=f"{payload.subject_id}:{payload.diary_id}",
+        data=payload.answers,
+        metadata=metadata,
+    )
+
+    # Decode GATEWAY_SECRET for signature verification
+    gateway_secret_str = os.getenv("GATEWAY_SECRET", "internal-gateway-secret-12345")
+    secret_bytes = gateway_secret_str.encode("utf-8")
+
+    signature_status = "SKIPPED"
+    signature_detail = None
+
+    # Perform signature verification beforehand if a signature is present
+    if payload.offline_sync_markers.signature is not None:
+        try:
+            if not verify_record_signature(incoming_record, secret_bytes):
+                raise SignatureValidationError(
+                    "Invalid signature on the incoming record."
+                )
+            signature_status = "VALID"
+        except SignatureValidationError as e:
+            signature_status = "FAILED"
+            signature_detail = str(e)
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # 2. Check for missing target records (structural conflict)
+    # Check if Instrument exists
+    stmt_inst = select(Instrument).where(Instrument.id == payload.diary_id)
+    res_inst = await session.execute(stmt_inst)
+    inst = res_inst.scalars().first()
+
+    # Check if SubjectAssignment exists
+    stmt_assign = select(SubjectAssignment).where(
+        SubjectAssignment.subject_id == payload.subject_id,
+        SubjectAssignment.instrument_id == payload.diary_id,
+    )
+    res_assign = await session.execute(stmt_assign)
+    assign = res_assign.scalars().first()
+
+    target_exists = inst is not None and assign is not None
+
+    # 3. Normal / Conflict flow: Check for existing EPROSubmission
     stmt = (
         select(EPROSubmission)
         .where(EPROSubmission.subject_id == payload.subject_id)
@@ -184,24 +282,137 @@ async def resolve_and_save_submission(
     if isinstance(strategy, ConflictStrategy):
         strategy = strategy.value
     strategy = strategy.upper()
-    if strategy not in ("CLIENT_WINS", "SERVER_WINS", "MERGE"):
-        strategy = "CLIENT_WINS"
 
-    markers_dict = payload.offline_sync_markers.model_dump(mode="json")
+    # Reconstruct existing data & metadata if existing record exists
+    if existing:
+        existing_markers = existing.offline_sync_markers or {}
+        existing_ts_raw = existing_markers.get("timestamps") or {}
+        existing_timestamps = {}
+        for k in existing.answers.keys():
+            t_val = existing_ts_raw.get(k)
+            if t_val:
+                if isinstance(t_val, str):
+                    existing_timestamps[k] = datetime.fromisoformat(t_val)
+                else:
+                    existing_timestamps[k] = t_val
+            else:
+                existing_timestamps[k] = existing.device_timestamp
 
-    if not existing:
-        # Easy case, no conflict
-        new_sub = EPROSubmission(
+        existing_metadata = SyncMetadata(
+            timestamps=existing_timestamps,
+            modified_by=existing_markers.get("client_id", "server"),
+            signature=existing_markers.get("signature"),
+        )
+        existing_data = existing.answers
+    else:
+        existing_data = {}
+        existing_metadata = None
+
+    # Delegate reconciliation to sync engine
+    res = reconcile_records(
+        existing_data=existing_data,
+        existing_metadata=existing_metadata,
+        incoming_record=incoming_record,
+        strategy=strategy,
+        secret=secret_bytes,
+        require_signature=False,
+        target_exists=target_exists,
+    )
+
+    status = res["status"]
+
+    if status == "STRUCTURAL_CONFLICT":
+        markers_dict = payload.offline_sync_markers.model_dump(mode="json")
+
+        defeated_sub = EPROSubmissionDefeated(
             subject_id=payload.subject_id,
             diary_id=payload.diary_id,
             device_timestamp=payload.device_timestamp,
             answers=payload.answers,
+            winning_answers=None,
+            offline_sync_markers=markers_dict,
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated_sub)
+
+        # Create an OPEN clinical query with audit reason "SYSTEM SYNC EXCEPTION TRIGGERED"
+        query = ClinicalQuery(
+            study_id="SYSTEM-SYNC",
+            subject_id=payload.subject_id,
+            test_code=payload.diary_id,
+            status="OPEN",
+            explanation=f"Structural conflict: target record (Instrument or Assignment) is missing or deleted for Subject {payload.subject_id} and Diary {payload.diary_id}.",
+        )
+        session.add(query)
+        await session.flush()
+
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="EPRO_STRUCTURAL_CONFLICT",
+            details=f"Structural conflict on Subject '{payload.subject_id}', Diary '{payload.diary_id}': Target record missing or deleted.",
+            change_reason="SYSTEM SYNC EXCEPTION TRIGGERED",
+        )
+
+        return {
+            "status": "STRUCTURAL_CONFLICT",
+            "query": {
+                "id": query.id,
+                "study_id": query.study_id,
+                "subject_id": query.subject_id,
+                "test_code": query.test_code,
+                "status": query.status,
+                "explanation": query.explanation,
+            },
+            "signature_validation": {
+                "status": signature_status,
+                "detail": signature_detail,
+            },
+            "reconciliation_result": {
+                "status": "STRUCTURAL_CONFLICT",
+                "metadata": None,
+            },
+            "audit_details": {
+                "action": "EPRO_STRUCTURAL_CONFLICT",
+                "details": f"Structural conflict on Subject '{payload.subject_id}', Diary '{payload.diary_id}': Target record missing or deleted.",
+            },
+        }
+
+    reconciled_metadata: SyncMetadata = res["metadata"]
+
+    # Format timestamps back into offline_sync_markers metadata for persistence
+    markers_dict = payload.offline_sync_markers.model_dump(mode="json")
+    markers_dict["timestamps"] = {
+        k: v.isoformat() if isinstance(v, datetime) else str(v)
+        for k, v in reconciled_metadata.timestamps.items()
+    }
+    if reconciled_metadata.signature:
+        markers_dict["signature"] = reconciled_metadata.signature
+
+    if status == "CREATED":
+        new_sub = EPROSubmission(
+            subject_id=payload.subject_id,
+            diary_id=payload.diary_id,
+            device_timestamp=payload.device_timestamp,
+            answers=res["data"],
             offline_sync_markers=markers_dict,
             sync_status="RESOLVED",
             version_index=1,
         )
         session.add(new_sub)
         await session.flush()
+
+        audit_details = "Decision: CREATED. Version index is 1."
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="EPRO_RECONCILE",
+            details=audit_details,
+            change_reason=change_reason,
+        )
+
         return {
             "status": "CREATED",
             "id": new_sub.id,
@@ -210,18 +421,52 @@ async def resolve_and_save_submission(
             "answers": new_sub.answers,
             "sync_status": new_sub.sync_status,
             "version_index": new_sub.version_index,
+            "signature_validation": {
+                "status": signature_status,
+                "detail": signature_detail,
+            },
+            "reconciliation_result": {
+                "status": "CREATED",
+                "metadata": reconciled_metadata.model_dump(mode="json"),
+            },
+            "audit_details": {
+                "action": "EPRO_RECONCILE",
+                "details": audit_details,
+            },
         }
 
-    # Conflict scenario!
-    if strategy == "CLIENT_WINS":
-        # Overwrite with incoming
-        existing.answers = payload.answers
+    elif status == "UPDATED_CLIENT_WINS":
+        defeated_sub = EPROSubmissionDefeated(
+            subject_id=existing.subject_id,
+            diary_id=existing.diary_id,
+            device_timestamp=existing.device_timestamp,
+            answers=existing.answers,
+            winning_answers=payload.answers,
+            offline_sync_markers=existing.offline_sync_markers,
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated_sub)
+
+        existing.answers = res["data"]
         existing.device_timestamp = payload.device_timestamp
         existing.offline_sync_markers = markers_dict
         existing.version_index += 1
         existing.sync_status = "RESOLVED"
         session.add(existing)
         await session.flush()
+
+        audit_details = (
+            f"Decision: CLIENT_WINS. Version incremented to {existing.version_index}."
+        )
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="EPRO_RECONCILE",
+            details=audit_details,
+            change_reason=change_reason,
+        )
+
         return {
             "status": "UPDATED_CLIENT_WINS",
             "id": existing.id,
@@ -230,10 +475,32 @@ async def resolve_and_save_submission(
             "answers": existing.answers,
             "sync_status": existing.sync_status,
             "version_index": existing.version_index,
+            "signature_validation": {
+                "status": signature_status,
+                "detail": signature_detail,
+            },
+            "reconciliation_result": {
+                "status": "UPDATED_CLIENT_WINS",
+                "metadata": reconciled_metadata.model_dump(mode="json"),
+            },
+            "audit_details": {
+                "action": "EPRO_RECONCILE",
+                "details": audit_details,
+            },
         }
 
-    elif strategy == "SERVER_WINS":
-        # Keep existing, store incoming as ignored/archived under conflict status
+    elif status == "IGNORED_SERVER_WINS":
+        defeated_sub = EPROSubmissionDefeated(
+            subject_id=payload.subject_id,
+            diary_id=payload.diary_id,
+            device_timestamp=payload.device_timestamp,
+            answers=payload.answers,
+            winning_answers=existing.answers,
+            offline_sync_markers=markers_dict,
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated_sub)
+
         conflict_sub = EPROSubmission(
             subject_id=payload.subject_id,
             diary_id=payload.diary_id,
@@ -245,6 +512,19 @@ async def resolve_and_save_submission(
         )
         session.add(conflict_sub)
         await session.flush()
+
+        audit_details = (
+            f"Decision: SERVER_WINS. Version index is {existing.version_index}."
+        )
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="EPRO_RECONCILE",
+            details=audit_details,
+            change_reason=change_reason,
+        )
+
         return {
             "status": "IGNORED_SERVER_WINS",
             "id": existing.id,
@@ -253,20 +533,52 @@ async def resolve_and_save_submission(
             "answers": existing.answers,
             "sync_status": "RESOLVED",
             "version_index": existing.version_index,
+            "signature_validation": {
+                "status": signature_status,
+                "detail": signature_detail,
+            },
+            "reconciliation_result": {
+                "status": "IGNORED_SERVER_WINS",
+                "metadata": reconciled_metadata.model_dump(mode="json"),
+            },
+            "audit_details": {
+                "action": "EPRO_RECONCILE",
+                "details": audit_details,
+            },
         }
 
-    elif strategy == "MERGE":
-        # Merge dictionaries (client overrides server for identical keys)
-        merged_answers = existing.answers.copy()
-        merged_answers.update(payload.answers)
+    elif status == "MERGED":
+        defeated_sub = EPROSubmissionDefeated(
+            subject_id=existing.subject_id,
+            diary_id=existing.diary_id,
+            device_timestamp=existing.device_timestamp,
+            answers=existing.answers,
+            winning_answers=res["data"],
+            offline_sync_markers=existing.offline_sync_markers,
+            status="Defeated by online-merge conflict resolution",
+        )
+        session.add(defeated_sub)
 
-        existing.answers = merged_answers
+        existing.answers = res["data"]
         existing.device_timestamp = payload.device_timestamp
         existing.offline_sync_markers = markers_dict
         existing.version_index += 1
         existing.sync_status = "RESOLVED"
         session.add(existing)
         await session.flush()
+
+        audit_details = (
+            f"Decision: MERGE. Version incremented to {existing.version_index}."
+        )
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="EPRO_RECONCILE",
+            details=audit_details,
+            change_reason=change_reason,
+        )
+
         return {
             "status": "MERGED",
             "id": existing.id,
@@ -275,6 +587,18 @@ async def resolve_and_save_submission(
             "answers": existing.answers,
             "sync_status": existing.sync_status,
             "version_index": existing.version_index,
+            "signature_validation": {
+                "status": signature_status,
+                "detail": signature_detail,
+            },
+            "reconciliation_result": {
+                "status": "MERGED",
+                "metadata": reconciled_metadata.model_dump(mode="json"),
+            },
+            "audit_details": {
+                "action": "EPRO_RECONCILE",
+                "details": audit_details,
+            },
         }
 
     return {"status": "ERROR", "detail": "Unhandled conflict resolution state"}
@@ -320,6 +644,79 @@ async def fhir_prefill(
     return result
 
 
+@app.post("/api/v1/interop/fhir/pre-screen", response_model=FHIRPreScreenResponse)
+async def fhir_pre_screen(
+    request: Request,
+    payload: FHIRPreScreenRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> FHIRPreScreenResponse:
+    """
+    Advisory FHIR eligibility pre-screening endpoint. Orchestrates projection,
+    MDR criteria retrieval, kleene AST evaluation, and non-PHI audit logging.
+    Strictly isolated from clinical subject execution data mutations.
+    """
+    require_staff_role(request)
+    user_id = getattr(request.state, "user_id", "system")
+    user_roles = getattr(request.state, "roles", "system")
+    change_reason = getattr(request.state, "change_reason", "system_operation")
+
+    # 1. Parse bundle and build de-identified eCRF flat context
+    adapter = FHIRAdapter(payload.study_id)
+    parsed_result = adapter.parse_bundle(payload.bundle)
+    ecrf_context = adapter.build_ecrf_context(parsed_result)
+
+    # 2. Fetch criteria from Designer service
+    criteria = await fetch_eligibility_criteria(payload.study_id)
+
+    # 3. Evaluate criteria using shared evaluator
+    eval_res = evaluate_eligibility(criteria, ecrf_context)
+
+    # 4. Write non-PHI audit log
+    met_count = sum(
+        1
+        for c in eval_res.criteria_evaluations.values()
+        if c.is_met and not c.is_indeterminate
+    )
+    failed_count = len(eval_res.failed_criteria)
+    indeterminate_count = len(eval_res.indeterminate_criteria)
+    total_count = len(criteria)
+
+    audit_details = (
+        f"Advisory FHIR Pre-screen executed for study '{payload.study_id}'. "
+        f"Pseudonymized Subject: '{parsed_result['subject_pseudonym']}'. "
+        f"Criteria evaluated: {total_count} total (Met: {met_count}, Failed: {failed_count}, Indeterminate: {indeterminate_count}). "
+        f"Aggregate Outcome: {eval_res.eligible}."
+    )
+
+    await write_audit_log(
+        session=session,
+        user_id=user_id,
+        user_role=user_roles,
+        action="FHIR_PRESCREEN",
+        details=audit_details,
+        change_reason=change_reason,
+    )
+
+    # 5. Map to response structure
+    explanations = [
+        CriterionExplanation(
+            criterion_id=crit_id,
+            criterion_type=crit_eval.criterion_type,
+            description=crit_eval.description,
+            is_met=crit_eval.is_met,
+            is_indeterminate=crit_eval.is_indeterminate,
+        )
+        for crit_id, crit_eval in eval_res.criteria_evaluations.items()
+    ]
+
+    return FHIRPreScreenResponse(
+        eligible=eval_res.eligible,
+        failed_criteria=eval_res.failed_criteria,
+        indeterminate_criteria=eval_res.indeterminate_criteria,
+        criteria_explanations=explanations,
+    )
+
+
 @app.post("/api/v1/interop/epro/submit", status_code=201)
 async def epro_submit(
     request: Request,
@@ -336,7 +733,13 @@ async def epro_submit(
     change_reason = getattr(request.state, "change_reason", "system_operation")
 
     # Process and resolve conflict
-    resolved = await resolve_and_save_submission(session, payload)
+    resolved = await resolve_and_save_submission(
+        session,
+        payload,
+        user_id=user_id,
+        user_role=user_roles,
+        change_reason=change_reason,
+    )
 
     # Log action to immutable audit trail
     await write_audit_log(
@@ -372,9 +775,16 @@ async def epro_sync(
     created_count = 0
     updated_count = 0
     ignored_count = 0
+    conflict_count = 0
 
     for sub_payload in payload.submissions:
-        resolved = await resolve_and_save_submission(session, sub_payload)
+        resolved = await resolve_and_save_submission(
+            session,
+            sub_payload,
+            user_id=user_id,
+            user_role=user_roles,
+            change_reason=change_reason,
+        )
         results.append(resolved)
         status = resolved["status"]
         if status == "CREATED":
@@ -383,6 +793,8 @@ async def epro_sync(
             updated_count += 1
         elif status == "IGNORED_SERVER_WINS":
             ignored_count += 1
+        elif status == "STRUCTURAL_CONFLICT":
+            conflict_count += 1
 
     # Log bulk sync to audit trail
     await write_audit_log(
@@ -390,7 +802,7 @@ async def epro_sync(
         user_id=user_id,
         user_role=user_roles,
         action="EPRO_BULK_SYNC",
-        details=f"Processed bulk ePRO sync containing {len(payload.submissions)} items. Created: {created_count}, Reconciled/Updated: {updated_count}, Ignored: {ignored_count}.",
+        details=f"Processed bulk ePRO sync containing {len(payload.submissions)} items. Created: {created_count}, Reconciled/Updated: {updated_count}, Ignored: {ignored_count}, Structural Conflicts: {conflict_count}.",
         change_reason=change_reason,
     )
 
@@ -400,6 +812,7 @@ async def epro_sync(
         "created_count": created_count,
         "updated_count": updated_count,
         "ignored_count": ignored_count,
+        "conflict_count": conflict_count,
         "results": results,
     }
 
@@ -719,11 +1132,13 @@ async def deliver_notification_task(
                 )
             elif channel == "SMS":
                 # Simulated SMS sending
-                print(f"[STUB SMS] Sending SMS to +1234567890: {message}")
+                print(
+                    f"[STUB SMS] Sending SMS to +1234567890: {message}"  # deid: ignore
+                )
             elif channel == "WEBHOOK":
                 # Simulated webhook delivery
                 print(
-                    f"[STUB WEBHOOK] Sending webhook to https://hooks.example.com/subject/{subject_id}"
+                    f"[STUB WEBHOOK] Sending webhook to https://hooks.example.com/subject/{subject_id}"  # deid-ignore
                 )
             elif channel == "IN_APP":
                 # Delivered in-app

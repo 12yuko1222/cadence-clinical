@@ -523,6 +523,59 @@ To load and apply a localization dictionary without requiring a service restart,
 
 ---
 
+## 2.4 Tickets & Query Escalation Operations
+
+The in-app Tickets and Query Escalation service manages operational issues, support tickets, and system queries. SREs and system operators must follow these deployment and monitoring specifications to guarantee GxP and ISO 27001 compliance.
+
+### Directory Mapping & Active Utilities
+* Active ticket service routes and controllers reside in `apps/tickets/main.py`.
+* Relational database tables and Alembic configuration reside in `apps/tickets/database.py` and `apps/tickets/models.py`.
+* Dynamic notification generation logic resides in `apps/tickets/notification_events.py`.
+* Gate-signed internal service notification dispatch resides in `apps/tickets/notifications_client.py`.
+* Automated background priority escalation loops reside in `apps/tickets/escalation.py`.
+
+### Environment Variables & CI Configuration
+Using the CI env: block convention, SREs must inject these keys into deployment templates:
+
+```yaml
+env:
+  TICKETS_URL: "http://localhost:8009"
+  TICKETS_DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+  TICKETS_ESCALATION_POLL_INTERVAL_SECONDS: "60.0"
+  TICKETS_ESCALATION_INTERVAL_SECONDS: "86400.0"
+```
+
+### SLA Priority & MTTR Metrics Matrix
+Under the §4.3 Severity/SLA/MTTR format, tickets are escalated stepwise up to CRITICAL based on these targets:
+
+| Priority Level | Definition | Target Resolution (SLA) | Target MTTR | Notification Chain |
+| :--- | :--- | :--- | :--- | :--- |
+| **CRITICAL** | Critical clinical roadblock, randomization freeze, or data corruption. | **1 Hour** | **2 Hours** | Immediate SMS/Pager alert to SRE Lead, QA Director, and System Admin. |
+| **HIGH** | Form submission block, single site query backlog, or major API latency. | **4 Hours** | **8 Hours** | High-priority email/Slack alert to SRE Team and Developer Lead. |
+| **MEDIUM** | Standard operational query, minor eCRF glitch, or localization discrepancy. | **24 Hours** | **48 Hours** | Support Desk ticket queue automated routing. |
+| **LOW** | Enhancement request, minor documentation update, or cosmetic portal issue. | **72 Hours** | **120 Hours** | Bi-weekly backlog review and release planning. |
+
+### Escalation Worker & Background Runner Specifications
+Following the §3.1.0 background-runner style, the escalation worker operates as follows:
+* **Module Path:** `apps/tickets/escalation.py`
+* **Poll & Cooldown Vars:** Configured via `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS` (sleep interval between scans, e.g. 60s) and `TICKETS_ESCALATION_INTERVAL_SECONDS` (cooldown window between escalation steps, e.g. 86400s / 1 day).
+* **Eligibility & Idempotency Rules:**
+  - Overdue tickets (`due_date` in the past), non-terminal (not in `CLOSED` or `CANCELLED`), non-deleted, and below `CRITICAL` priority are eligible.
+  - Priority advances stepwise (`LOW` -> `MEDIUM` -> `HIGH` -> `CRITICAL`). Once at `CRITICAL`, it is capped and does not advance.
+  - No `due_date` or terminal tickets are skipped.
+* **Notification-Owed Retry Invariant:**
+  - To prevent duplicate or lost notifications across worker restarts, the loop executes a strict transactional order: (1) Escalation commits priority mutation and writes a `TICKET_ESCALATE` audit log. (2) Outbound notification is dispatched via `notifications_client.py` using HMAC-SHA256 signatures. (3) On notification success, `last_escalation_notified_at` is stamped.
+  - If notification fails, the timestamp remains `None` (stale). In the next cycle, the cooldown check blocks re-escalation but identifies that a notification is still owed, safely retrying the dispatch.
+
+### Observability & Health Checks
+* **Endpoint:** `GET /health` on port `8009` returns `{"status": "ok", "service": "tickets"}`.
+* **Prometheus metrics:** Exposes `http_requests_total`, `http_request_duration_seconds`, and active/idle database pool size.
+
+### Rollback & Operational Guidance
+* **Pytest Test Bypass:** To allow unit testing, the escalation worker automatically detects standard pytest execution contexts (`"pytest" in sys.modules` or the `PYTEST_CURRENT_TEST` env var) and bypasses the background loop auto-execution.
+* **Optimistic & Pessimistic Lock Safety:** Concurrency is eliminated during escalation by acquiring a pessimistic write lock via `.with_for_update()` on target rows. If a rollback is needed, the `version_index` protects historical lines from conflicting database writes.
+---
+
 # SECTION 3: Database Migration, Schema Evolution, and Version Rollbacks
 
 Clinical data migrations must guarantee **zero data loss** (GxP GAMP 5 Class 5 software requirements) and continuous backward compatibility to allow uninterrupted EDC data entry while database nodes undergo schema-level mutations.
@@ -532,6 +585,11 @@ Clinical data migrations must guarantee **zero data loss** (GxP GAMP 5 Class 5 s
 Alembic-style, migration scripts must employ a **Expand-and-Contract (Two-Phase)** pattern to eliminate locks and ensure rolling updates:
 1. **Expand Phase (Pre-boot):** Add columns, create shadow tables, execute non-blocking writes. Database changes are completely backward compatible with older codebase versions currently running in production.
 2. **Contract Phase (Post-rollout):** Deprecate and drop older attributes only after all microservice instances are updated.
+
+### 3.1.0 eTMF & eISF Pre-boot Migration Runners
+Following the platform-wide zero-downtime execution pattern, both the event-driven eTMF and eISF services manage their database schema migrations through dedicated pre-boot migration runners (`apps.etmf.database.migrate` and `apps.eisf.database.migrate`).
+
+These runners execute base DDL declarations (e.g. adding nullable `issue_date`, `expiration_date`, and `document_owner_id` columns, alongside corresponding indexing structures) idempotently before starting up web servers. This ensures safe backward-compatibility across all active and legacy document management nodes during platform upgrades.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -775,6 +833,24 @@ if __name__ == "__main__":
     asyncio.run(rollback_schema_to_version(1))
 ```
 
+### 3.1.3 Tickets SLA Escalation Background Runner
+The Tickets SLA Escalation background worker runs as a persistent service inside the Tickets microservice process lifespan.
+
+* **Module Path:** `apps/tickets/escalation.py`
+* **Configuration:**
+  - `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS`: Defines how frequently the worker sweeps the database (e.g. `60.0`).
+  - `TICKETS_ESCALATION_INTERVAL_SECONDS`: Cooldown window gating re-escalation of a single ticket (e.g., `86400.0` or 24 hours).
+* **Eligibility & Idempotency Behavior:**
+  - Candidates are active, overdue, non-deleted, and non-terminal tickets (i.e. not `CLOSED` or `CANCELLED`).
+  - The worker uses pessimism write-locking (`with_for_update()`) during re-fetch to ensure concurrent safe state transitions.
+* **Notification-Owed Retry Invariant:**
+  - If a priority advancement succeeds but the async notification dispatch fails (network/transport error), the `last_escalation_notified_at` field remains stale (`None`).
+  - During subsequent cycles, the worker retries dispatching the missed notification without re-escalating the ticket (cooldown gating), updating `last_escalation_notified_at` only upon a successful notification dispatch.
+* **Operational & Rollback Guidance:**
+  - The worker is automatically toggled off in test environments to isolate unit behaviors.
+  - To rollback or disable the worker during production incidents, set `TICKETS_ESCALATION_POLL_INTERVAL_SECONDS` to `-1` or set the worker toggle in config variables.
+  - Due to pessimistic lock gating, `version_index` increments are fully transactional and safe to roll back at any point without causing database-level race conditions.
+
 ---
 
 ## 3.2 Neo4j Graph Schema Evolution & Migrations
@@ -928,6 +1004,15 @@ groups:
           severity: warning
         annotations:
           summary: "PostgreSQL active connection pool has reached 85% capacity"
+
+      - alert: TicketsServiceDowntime
+        expr: up{job="cadence-tickets"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tickets Service is offline"
+          description: "Tickets Service has stopped answering. Support ticket and query tracking is locked."
 ```
 
 ---
@@ -952,6 +1037,16 @@ In the event of automated Prometheus alert triggers, SREs must action incidents 
 | **P1 - Critical** | Platform entirely unreachable; database replication failure; security/data breach detected. | **15 Minutes** | **1 Hour** | SMS/PagerDuty to SRE Lead, QA Director, Security Officer, VP Engineering. |
 | **P2 - Major** | Single tenant inaccessible; random audit logs failing to write; performance degradation > 1000ms latency. | **30 Minutes** | **4 Hours** | Level 1 SRE, Engineering Lead, Database Admin. |
 | **P3 - Minor** | Localized form design translation override glitches; non-blocking API anomalies; telemetry device pairing latency. | **12 Hours** | **48 Hours** | Support Desk, System Engineer. |
+
+### 4.3.1 Support Ticket SLA/Escalation Timers
+Support tickets logged inside the system follow standard GxP SLA, MTTR, and escalation triggers:
+
+| Ticket Priority | Definition | Target Response (SLA) | Target Resolution Time (MTTR) | Notification Chain |
+| :--- | :--- | :--- | :--- | :--- |
+| **CRITICAL** | System-wide failure blocking active patient randomization or form submissions. | **15 Minutes** | **1 Hour** | SMS/PagerDuty to Lead Unblinded Statistician, Principal Investigator, Sponsor Medical Monitor. |
+| **HIGH** | Single site/visit form lock issues; non-blocking telemetry device latency. | **1 Hour** | **4 Hours** | Email to assigned CTA/CRA and Clinical Study Manager. |
+| **MEDIUM** | Minor data correction queries; terminology lookup or localization discrepancies. | **4 Hours** | **12 Hours** | In-App alert to assigned Study Coordinator and Site Staff. |
+| **LOW** | General platform questions; enhancement requests; minor formatting feedback. | **24 Hours** | **72 Hours** | Standard Support Helpdesk Ticket queue. |
 
 ---
 

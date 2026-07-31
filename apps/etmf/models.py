@@ -1,8 +1,22 @@
+import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Optional
 
-from sqlalchemy import JSON, DateTime, Integer, String, func
+from sqlalchemy import (
+    DDL,
+    JSON,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    event,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -46,13 +60,47 @@ class TMFDocumentType:
     PROTOCOL_SIGNOFF = "PROTOCOL_SIGNOFF"
 
 
-class DocumentStatus:
+class DocumentStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     TECHNICAL_QC = "TECHNICAL_QC"
     CLINICAL_QC = "CLINICAL_QC"
     APPROVED = "APPROVED"
     ARCHIVED = "ARCHIVED"
     REJECTED = "REJECTED"
+    SIGNED = "SIGNED"
+
+
+def is_site_level_artifact(
+    artifact_type: str, artifact_code: Optional[str] = None
+) -> bool:
+    """
+    Determines if an eTMF artifact or code is expected at site-level (True) or study-level (False).
+    Used to prevent silent scope inference and properly quarantine unassigned legacy records.
+    """
+    site_artifacts = {
+        "fda form 1572",
+        "financial disclosure",
+        "investigator cv",
+        "delegation of authority log",
+        "site signature page",
+        "site feasibility survey",
+        "informed consent form",
+    }
+    site_codes_prefix = {
+        "05.02",
+        "04.01",
+        "05.01",
+    }  # Zone 5 Investigator Qualification, Zone 4 regulatory
+
+    art_lower = artifact_type.strip().lower()
+    if art_lower in site_artifacts:
+        return True
+    if artifact_code:
+        # Check if the code starts with any of our site prefixes
+        for prefix in site_codes_prefix:
+            if artifact_code.startswith(prefix):
+                return True
+    return False
 
 
 class TMFDocument(Base):
@@ -66,10 +114,23 @@ class TMFDocument(Base):
 
     __tablename__ = "tmf_documents"
 
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('DRAFT', 'TECHNICAL_QC', 'CLINICAL_QC', 'APPROVED', 'ARCHIVED', 'REJECTED', 'SIGNED')",
+            name="chk_tmf_document_status",
+        ),
+    )
+
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     study_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    site_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
     zone: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     section: Mapped[str] = mapped_column(String(255), nullable=False)
     artifact_type: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -90,6 +151,29 @@ class TMFDocument(Base):
     )
     metadata_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
+    # Expiration metadata fields
+    issue_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    expiration_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    document_owner_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+
+    # Change justification and shared protocol-version reference fields
+    reason_for_change: Mapped[Optional[str]] = mapped_column(
+        String(1000), nullable=True
+    )
+    protocol_version_tag: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+    protocol_version_index: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    protocol_version_status: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True
+    )
+
     # Signature and lifecycle fields
     document_type: Mapped[Optional[str]] = mapped_column(
         String(50), nullable=True, index=True
@@ -105,6 +189,23 @@ class TMFDocument(Base):
         DateTime, nullable=True
     )
 
+    # Redaction-related fields
+    is_redacted: Mapped[bool] = mapped_column(default=False, nullable=False)
+    redaction_source_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, index=True
+    )
+    redaction_manifest_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True
+    )
+
+    # Synchronization and provenance fields
+    correlation_key: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    content_checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source_system: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
 
 class DocumentQCTransition(Base):
     """
@@ -114,10 +215,27 @@ class DocumentQCTransition(Base):
 
     __tablename__ = "tmf_document_qc_transitions"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "transition_sequence", name="uq_document_transition_sequence"
+        ),
+        Index(
+            "ix_tmf_document_qc_transitions_doc_seq",
+            "document_id",
+            "transition_sequence",
+        ),
+    )
+
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    document_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    document_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("tmf_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    transition_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
     from_status: Mapped[str] = mapped_column(String(50), nullable=False)
     to_status: Mapped[str] = mapped_column(String(50), nullable=False)
     actor_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -150,6 +268,9 @@ class TMFAuditLog(Base):
     )
     details: Mapped[str] = mapped_column(String(1000), nullable=False)
     cryptographic_seal: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    reason_for_change: Mapped[Optional[str]] = mapped_column(
+        String(1000), nullable=True
+    )
 
 
 class TMFAuditLedgerSeal(Base):
@@ -169,3 +290,145 @@ class TMFAuditLedgerSeal(Base):
     )
     sealed_record_count: Mapped[int] = mapped_column(Integer, nullable=False)
     merkle_root_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class DocumentExpirationAlertState(Base):
+    """
+    Tracks persistent warning/expiration alerts generated for eTMF documents to avoid duplication.
+    """
+
+    __tablename__ = "tmf_document_expiration_alert_states"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id", "warning_window", name="uq_tmf_doc_expiration_alert_state"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    document_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("tmf_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    warning_window: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    alerted_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+    # Dispatch tracking fields
+    dispatched: Mapped[bool] = mapped_column(default=False, nullable=False, index=True)
+    notification_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, index=True
+    )
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+
+    # Standard Part 11 Audit Fields
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason_for_change: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+
+# Trigger listener setup for SQLite immutability
+trigger_update_sqlite = DDL("""
+CREATE TRIGGER IF NOT EXISTS tmf_document_qc_transitions_no_update
+BEFORE UPDATE ON tmf_document_qc_transitions
+BEGIN
+    SELECT RAISE(FAIL, 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be updated.');
+END;
+""")
+
+trigger_delete_sqlite = DDL("""
+CREATE TRIGGER IF NOT EXISTS tmf_document_qc_transitions_no_delete
+BEFORE DELETE ON tmf_document_qc_transitions
+BEGIN
+    SELECT RAISE(FAIL, 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be deleted.');
+END;
+""")
+
+trigger_func_pg = DDL("""
+CREATE OR REPLACE FUNCTION block_qc_transition_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only.';
+END;
+$$ LANGUAGE plpgsql;
+""")
+
+trigger_update_pg_drop = DDL("""
+DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_update ON tmf_document_qc_transitions;
+""")
+
+trigger_update_pg_create = DDL("""
+CREATE TRIGGER tmf_document_qc_transitions_no_update
+BEFORE UPDATE ON tmf_document_qc_transitions
+FOR EACH ROW EXECUTE FUNCTION block_qc_transition_mutation();
+""")
+
+trigger_delete_pg_drop = DDL("""
+DROP TRIGGER IF EXISTS tmf_document_qc_transitions_no_delete ON tmf_document_qc_transitions;
+""")
+
+trigger_delete_pg_create = DDL("""
+CREATE TRIGGER tmf_document_qc_transitions_no_delete
+BEFORE DELETE ON tmf_document_qc_transitions
+FOR EACH ROW EXECUTE FUNCTION block_qc_transition_mutation();
+""")
+
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_update_sqlite.execute_if(dialect="sqlite"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_delete_sqlite.execute_if(dialect="sqlite"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_func_pg.execute_if(dialect="postgresql"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_update_pg_drop.execute_if(dialect="postgresql"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_update_pg_create.execute_if(dialect="postgresql"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_delete_pg_drop.execute_if(dialect="postgresql"),
+)
+event.listen(
+    DocumentQCTransition.__table__,
+    "after_create",
+    trigger_delete_pg_create.execute_if(dialect="postgresql"),
+)
+
+
+# Model event listeners for SQLAlchemy session/mapper validation
+@event.listens_for(DocumentQCTransition, "before_update")
+def prevent_qc_transition_update(mapper, connection, target):
+    raise RuntimeError(
+        "IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be updated."
+    )
+
+
+@event.listens_for(DocumentQCTransition, "before_delete")
+def prevent_qc_transition_delete(mapper, connection, target):
+    raise RuntimeError(
+        "IMMUTABILITY_VIOLATION: DocumentQCTransition records are append-only and cannot be deleted."
+    )

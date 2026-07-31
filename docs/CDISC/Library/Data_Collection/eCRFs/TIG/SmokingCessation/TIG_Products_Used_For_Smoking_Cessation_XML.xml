@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-20T18:07:52"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_SMOKING_CESSATION"
+                  Name="Tobacco Implementation Guide-Products Used For Smoking Cessation"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect data  on the previous use of smoking cessation products at the baseline visit.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_SMOK_CESSAT_ANY" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_SMOK_CESSAT_DETAILS"
+                          Mandatory="No"
+                          OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_SMOK_CESSAT_ANY"
+                       Name="Any Products Used for Smoking Cessation"
+                       Repeating="No">
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSAT_ANY.CMCAT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSAT_ANY.CMOCCUR"
+                     Mandatory="Yes"
+                     OrderNumber="2"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_SMOK_CESSAT_DETAILS"
+                       Name="Smoking Cessation Product"
+                       Repeating="No">
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSSAT_DETAILS.CMTRT"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSAT_DEATILS.CMOCCUR"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSSAT_DETAILS.CMTRTO"
+                     Mandatory="No"
+                     OrderNumber="3"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSSAT_DETAILS.CMCRSDIS"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+            <ItemRef ItemOID="CM_TIG_SMOK_CESSSAT_DETAILS.CMENDAT"
+                     Mandatory="No"
+                     OrderNumber="5"/>
+         </ItemGroupDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSAT_ANY.CMOCCUR"
+                  Name="ANY_CMOCCUR"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="CMOCCUR">
+            <Question>
+               <TranslatedText>Were any smoking cessation products taken?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+            <Alias Name="CMOCCUR" Context="SDTM"/>
+            <Alias Name="ANY_CMOCCUR" Context="CDASH"/>
+            <Alias Name="Any Smoking Cessation Products" Context="prompt"/>
+            <Alias Name="Indicate if the subject took any smoking cessation products. If Yes, complete the next section of the form."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSAT_ANY.CMCAT"
+                  Name="CMCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="CMCAT">
+            <Question>
+               <TranslatedText>What is the category for the medication?</TranslatedText>
+            </Question>
+            <Alias Name="Concomitant Medication Category" Context="prompt"/>
+            <Alias Name="What is the category for the medication?" Context="questiontext"/>
+            <Alias Name="SMOKING CESSATION PRODUCT" Context="pre-filled"/>
+            <Alias Name="CMCAT" Context="CDASH"/>
+            <Alias Name="CMCAT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSSAT_DETAILS.CMCRSDIS"
+                  Name="CMCRSDIS"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="CMCRSDIS">
+            <Question>
+               <TranslatedText>Was the smoking cessation product discontinued due to an adverse experience?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="CMCRSDIS" Context="CDASH"/>
+            <Alias Name="If Yes then CMRSDISC = &#34;ADVERSE EXPERIENCE&#34;" Context="SDTM"/>
+            <Alias Name="Reason Smoking Cessation Product Discontinued" Context="prompt"/>
+            <Alias Name="Indicate if the product was discontinued due to a adverse experience"
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSSAT_DETAILS.CMENDAT"
+                  Name="CMENDAT"
+                  DataType="date"
+                  SDSVarName="CMENDTC">
+            <Question>
+               <TranslatedText>What was the last date the smoking cessation product was used?</TranslatedText>
+            </Question>
+            <Alias Name="CMENDTC" Context="SDTM"/>
+            <Alias Name="CMENDAT" Context="CDASH"/>
+            <Alias Name="Indicate the last date the product was used. If  the product was used with the last 14 days, a complete  date must be recorded. Otherwise partial dates can be recorded."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSAT_DEATILS.CMOCCUR"
+                  Name="CMOCCUR"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="CMOCCUR">
+            <Question>
+               <TranslatedText>Did the subject previously use the selected product for smoking cessation?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_NO/YES/NOTDONE"/>
+            <Alias Name="CMOCCUR" Context="CDASH"/>
+            <Alias Name="Indicate if the subject had used the selected smoking cessation product"
+                   Context="completionInstructions"/>
+            <Alias Name="Occurrence" Context="prompt"/>
+            <Alias Name="CMOCCUR" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSSAT_DETAILS.CMTRT"
+                  Name="CMTRT"
+                  DataType="text"
+                  Length="60"
+                  SDSVarName="CMTRT">
+            <Question>
+               <TranslatedText>Smoking Cessation Product</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="SC_CMTRT"/>
+            <Alias Name="CMTRT; CMPRESP;  If CMTRT=&#34;OTHER&#34; Then CMTRT and CMPRESP are NULL"
+                   Context="SDTM"/>
+            <Alias Name="Select the smoking cessation product."
+                   Context="completionInstructions"/>
+            <Alias Name="CMTRT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_SMOK_CESSSAT_DETAILS.CMTRTO"
+                  Name="CMTRTO"
+                  DataType="text"
+                  Length="80"
+                  SDSVarName="CMTRT">
+            <Question>
+               <TranslatedText>What was the name of the other smoking cessation product used?</TranslatedText>
+            </Question>
+            <Alias Name="CMTRTO" Context="CDASH"/>
+            <Alias Name="Indicate the Other type of product previously used."
+                   Context="completionInstructions"/>
+            <Alias Name="CMTRT" Context="SDTM"/>
+         </ItemDef>
+         <CodeList OID="TIG_NO/YES/NOTDONE" Name="NO/YES/NOTDONE" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT DONE" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Not Done</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+            <CodeListItem CodedValue="Y" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="N" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="SC_CMTRT"
+                   Name="Type of Smoking Cessation Product"
+                   DataType="text">
+            <CodeListItem CodedValue="NICOTINE PATCH" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Nicotine Patch</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NICOTINE GUM" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Nicotine Gum</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NICOTINE LOZENGE" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Nicotine Lozenge</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NICOTINE INHALER" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Nicotine Inhaler</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="VARENICLINE" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Varenicline</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BUPROPION" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Bupropion</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="OTHER" OrderNumber="7">
+               <Decode>
+                  <TranslatedText>Other</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

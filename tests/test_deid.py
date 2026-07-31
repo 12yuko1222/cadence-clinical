@@ -271,3 +271,139 @@ def test_deidentify_free_text_direct():
     assert "John" not in redacted
     assert "000-12-3456" not in redacted
     assert "john@me.com" not in redacted
+
+
+def test_cli_get_line_and_col():
+    from packages.deid.cli import get_line_and_col
+
+    content = "line1\nline2\nline3"
+    # 'l' in line2 is at index 6
+    line, col = get_line_and_col(content, 6)
+    assert line == 2
+    assert col == 1
+
+
+def test_cli_should_scan_file(tmp_path):
+    from packages.deid.cli import should_scan_file
+
+    py_file = tmp_path / "test.py"
+    py_file.write_text("print('hello')", encoding="utf-8")
+    assert should_scan_file(str(py_file)) is True
+
+    bin_file = tmp_path / "test.bin"
+    bin_file.write_bytes(b"\x00\x01\x02\x03")
+    assert should_scan_file(str(bin_file)) is False
+
+
+def test_cli_load_gitignore_patterns(tmp_path):
+    import os
+
+    from packages.deid.cli import is_locally_ignored, load_gitignore_patterns
+
+    root_dir = str(tmp_path)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(
+        "# This is comment\n*.log\n/build/\n!keep.log", encoding="utf-8"
+    )
+
+    patterns = load_gitignore_patterns(root_dir)
+    assert len(patterns) == 3
+    assert patterns[0] == (False, "*.log")
+    assert patterns[1] == (False, "/build/")
+    assert patterns[2] == (True, "keep.log")
+
+    assert (
+        is_locally_ignored(os.path.join(root_dir, "app.log"), patterns, root_dir)
+        is True
+    )
+    assert (
+        is_locally_ignored(os.path.join(root_dir, "keep.log"), patterns, root_dir)
+        is False
+    )
+    assert (
+        is_locally_ignored(
+            os.path.join(root_dir, "build", "something"), patterns, root_dir
+        )
+        is True
+    )
+
+
+def test_cli_main_clean(tmp_path, monkeypatch):
+    import os
+    import sys
+
+    from packages.deid.cli import main
+
+    test_file = tmp_path / "clean.txt"
+    test_file.write_text("This is completely clean text.", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", ["deid-scan", str(test_file)])
+
+    exit_code = None
+
+    def mock_exit(code):
+        nonlocal exit_code
+        exit_code = code
+
+    monkeypatch.setattr(sys, "exit", mock_exit)
+
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+
+    main()
+    assert exit_code == 0
+
+
+def test_cli_main_violation(tmp_path, monkeypatch):
+    import os
+    import sys
+
+    from packages.deid.cli import main
+
+    test_file = tmp_path / "dirty.txt"
+    test_file.write_text("My email is patient@hospital.org", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", ["deid-scan", str(test_file)])
+
+    exit_code = None
+
+    def mock_exit(code):
+        nonlocal exit_code
+        exit_code = code
+
+    monkeypatch.setattr(sys, "exit", mock_exit)
+
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+
+    main()
+    assert exit_code == 1
+
+
+def test_cli_main_bypass_comments_and_false_positives(tmp_path, monkeypatch):
+    import os
+    import sys
+
+    from packages.deid.cli import main
+
+    test_file = tmp_path / "bypass.txt"
+    content = (
+        "This line has patient@hospital.org but with deid: ignore comment\n"
+        "This is localhost http://localhost:8000 and 127.0.0.1 which are false positives\n"
+        "This has a mock key designer-amendment-secure-key-12345 in it\n"
+        "This has a SNOMED concept code 271649006 and exponent 65537 which are safe"
+    )
+    test_file.write_text(content, encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", ["deid-scan", str(test_file)])
+
+    exit_code = None
+
+    def mock_exit(code):
+        nonlocal exit_code
+        exit_code = code
+
+    monkeypatch.setattr(sys, "exit", mock_exit)
+
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+
+    main()
+    assert exit_code == 0

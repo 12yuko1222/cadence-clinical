@@ -2,14 +2,16 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-30
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
 ## 1. Context & Problem Statement
 
 Clinical trials require rigorous tracking and verification of laboratory test results against predefined reference ranges. To support this requirement, the Cadence Clinical platform needs a durable and audited data persistence model for lab reference ranges, alongside safe and deployable schema evolution for existing clinical databases.
+
+This decision implements requirements under Trace-1.
 
 ## 2. Decision Drivers & Constraints
 

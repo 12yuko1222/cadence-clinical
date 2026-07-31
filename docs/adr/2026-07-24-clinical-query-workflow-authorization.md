@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-24
-* **Authors:** @google-labs-jules[bot]
+* **Authors:** @fderuiter
 * **Deciders:** @fderuiter
 
 ---
@@ -14,6 +14,8 @@ The core issues addressed by this decision are:
 - Handling potential role claim variances (case sensitivity, whitespace, synonym mapping) safely.
 - Centralizing query lifecycle validation to prevent invalid state transitions or data corruption.
 - Correctly capturing GxP audit metadata utilizing a session commit-then-reselect pattern.
+
+This decision implements requirements under Trace-8.
 
 ## 2. Decision Drivers & Constraints
 * **Driver 1 (Compliance):** Enforce allow-list-based role gates (e.g., CRAs/Data Managers can raise/close, Site Investigators can answer).

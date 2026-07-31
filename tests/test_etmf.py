@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from apps.etmf.database import db_manager
+from apps.etmf.ingestion import ingest_document_service
 from apps.etmf.main import app, map_artifact_to_tmf
 from apps.etmf.models import Base, DocumentQCTransition, TMFAuditLog, TMFDocument
 from apps.gateway.main import generate_signature
@@ -89,7 +90,7 @@ async def test_automated_ingestion_and_version_indexing():
     assert data["zone"] == 1
     assert data["section"] == "01.01"
     assert data["version_index"] == 1
-    assert data["taxonomy_version"] == "v3.2.0"
+    assert data["taxonomy_version"] == "v3.2.0-complete"
     assert data["artifact_code"] == "01.01.01"
 
     # Ingest Version 2 (Same study_id and artifact_type)
@@ -197,29 +198,37 @@ async def test_view_download_audit_logging():
     assert view_resp.status_code == 200
     assert view_resp.json()["filename"] == "define.xml"
 
-    # Perform Download content
+    # Perform Download content as admin (not auditor)
     download_resp = client.get(
-        f"/api/v1/etmf/documents/{doc_id}/download", headers=inspector_headers
+        f"/api/v1/etmf/documents/{doc_id}/download", headers=admin_headers
     )
     assert download_resp.status_code == 200
     assert download_resp.text == "SDTM standard data specification structure."
 
+    # Perform Download content as inspector (auditor)
+    download_resp_aud = client.get(
+        f"/api/v1/etmf/documents/{doc_id}/download", headers=inspector_headers
+    )
+    assert download_resp_aud.status_code == 200
+    assert "CONFIDENTIAL — Auditor Copy" in download_resp_aud.text
+
     # Retrieve all audit logs
     audit_resp = client.get("/api/v1/etmf/audit-logs", headers=inspector_headers)
     assert audit_resp.status_code == 200
-    logs = audit_resp.json()
+    logs = audit_resp.json()["items"]
 
     # The latest logs should be in descending order (newest first)
-    # We expect: AUDIT_VIEW, DOWNLOAD, VIEW, LIST, INGEST
+    # We expect: AUDIT_VIEW, WATERMARKED_DOWNLOAD, DOWNLOAD, VIEW, LIST, INGEST
     actions = [log["action"] for log in logs]
     assert "AUDIT_VIEW" in actions
+    assert "WATERMARKED_DOWNLOAD" in actions
     assert "DOWNLOAD" in actions
     assert "VIEW" in actions
     assert "LIST" in actions
     assert "INGEST" in actions
 
     # Verify correct document association in logs
-    download_log = next(log for log in logs if log["action"] == "DOWNLOAD")
+    download_log = next(log for log in logs if log["action"] == "WATERMARKED_DOWNLOAD")
     assert download_log["document_id"] == doc_id
     assert download_log["user_role"] == "regulatory_inspector"
 
@@ -687,9 +696,9 @@ def test_uninitialized_database_manager():
     """
     Cover the exception path when database manager is uninitialized.
     """
-    from apps.etmf.database import ETMFDatabaseManager
+    from packages.database import RelationalDatabaseManager
 
-    mgr = ETMFDatabaseManager()
+    mgr = RelationalDatabaseManager(service_name="eTMF")
     with pytest.raises(Exception) as exc_info:
         mgr.get_session_maker()
     assert "not initialized" in str(exc_info.value)
@@ -1221,7 +1230,7 @@ async def test_etmf_qc_lifecycle_and_audit():
         headers=headers_auditor,
     )
     assert resp_logs.status_code == 200
-    logs = resp_logs.json()
+    logs = resp_logs.json()["items"]
     history_view_logs = [
         log
         for log in logs
@@ -1229,3 +1238,1368 @@ async def test_etmf_qc_lifecycle_and_audit():
     ]
     assert len(history_view_logs) > 0
     assert "Viewed QC transition history" in history_view_logs[0]["details"]
+
+
+@pytest.mark.asyncio
+async def test_etmf_audit_logs_filtering_and_pagination():
+    """
+    Verify the filterable, paginated audit-log API behaves correctly under multiple scenarios.
+    """
+    client = TestClient(app)
+    admin_headers = get_auth_headers(
+        roles="admin", change_reason="Filtering and pagination testing setup"
+    )
+    inspector_headers = get_auth_headers(roles="regulatory_inspector")
+    non_auditor_headers = get_auth_headers(roles="investigator")
+
+    # 1. Unauthorized caller rejection
+    resp_unauth = client.get("/api/v1/etmf/audit-logs", headers=non_auditor_headers)
+    assert resp_unauth.status_code == 403
+
+    # 2. Ingest several documents to generate multiple log records with different properties
+    # Let's ingest Doc A
+    ingest_a = client.post(
+        "/api/v1/etmf/ingest",
+        json={
+            "study_id": "study_filter_test",
+            "artifact_type": "Clinical Trial Protocol",
+            "filename": "protocol_filter_a.pdf",
+            "content": "Protocol filter testing content A.",
+            "mime_type": "application/pdf",
+        },
+        headers=admin_headers,
+    )
+    assert ingest_a.status_code == 201
+    doc_id_a = ingest_a.json()["document_id"]
+
+    # Let's ingest Doc B with different properties
+    ingest_b = client.post(
+        "/api/v1/etmf/ingest",
+        json={
+            "study_id": "study_filter_test",
+            "artifact_type": "Define-XML Specifications",
+            "filename": "define_filter_b.xml",
+            "content": "Define filter testing content B.",
+            "mime_type": "application/xml",
+        },
+        headers=admin_headers,
+    )
+    assert ingest_b.status_code == 201
+    assert ingest_b.json()["document_id"] is not None
+
+    # 3. Retrieve audit-logs with pagination and check descending ordering
+    resp = client.get(
+        "/api/v1/etmf/audit-logs?limit=3&offset=0", headers=inspector_headers
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "items" in data
+    assert "total_count" in data
+    assert "limit" in data
+    assert "offset" in data
+    assert "has_more" in data
+
+    items = data["items"]
+    # The limit is 3, so we should get at most 3 items
+    assert len(items) <= 3
+    # Check descending order by timestamp or id
+    for i in range(len(items) - 1):
+        assert items[i]["timestamp"] >= items[i + 1]["timestamp"]
+
+    # 4. Independent filters: Filter by user_id
+    # The setup user is "test_user" (since get_auth_headers sets it)
+    resp_user = client.get(
+        "/api/v1/etmf/audit-logs?user_id=test_user", headers=inspector_headers
+    )
+    assert resp_user.status_code == 200
+    items_user = resp_user.json()["items"]
+    assert len(items_user) >= 2
+    for item in items_user:
+        assert item["user_id"] == "test_user"
+
+    # 5. Independent filters: Filter by action (e.g., INGEST)
+    resp_action = client.get(
+        "/api/v1/etmf/audit-logs?action=INGEST", headers=inspector_headers
+    )
+    assert resp_action.status_code == 200
+    items_action = resp_action.json()["items"]
+    assert len(items_action) >= 2
+    for item in items_action:
+        assert item["action"] == "INGEST"
+
+    # 6. Independent filters: Filter by document_id
+    resp_doc_a = client.get(
+        f"/api/v1/etmf/audit-logs?document_id={doc_id_a}", headers=inspector_headers
+    )
+    assert resp_doc_a.status_code == 200
+    items_doc_a = resp_doc_a.json()["items"]
+    assert len(items_doc_a) >= 1
+    for item in items_doc_a:
+        assert item["document_id"] == doc_id_a
+
+    # 7. Joint filters: Filter by user_id, action, and document_id together
+    resp_joint = client.get(
+        f"/api/v1/etmf/audit-logs?user_id=test_user&action=INGEST&document_id={doc_id_a}",
+        headers=inspector_headers,
+    )
+    assert resp_joint.status_code == 200
+    items_joint = resp_joint.json()["items"]
+    assert len(items_joint) == 1
+    assert items_joint[0]["document_id"] == doc_id_a
+    assert items_joint[0]["user_id"] == "test_user"
+    assert items_joint[0]["action"] == "INGEST"
+
+    # 8. Date range filtering
+    # Let's find a timestamp of one of the items
+    sample_timestamp_str = items_joint[0]["timestamp"]
+    # Parse to datetime
+    from datetime import datetime
+
+    sample_timestamp = datetime.fromisoformat(
+        sample_timestamp_str.replace("Z", "+00:00")
+    )
+
+    # If we filter with start_time/end_time surrounding the sample timestamp
+    import datetime as dt
+
+    start_time = sample_timestamp - dt.timedelta(minutes=5)
+    end_time = sample_timestamp + dt.timedelta(minutes=5)
+
+    resp_range = client.get(
+        f"/api/v1/etmf/audit-logs?start_time={start_time.isoformat()}&end_time={end_time.isoformat()}",
+        headers=inspector_headers,
+    )
+    assert resp_range.status_code == 200
+    items_range = resp_range.json()["items"]
+    # Should find at least our logged item
+    found_joint_item = any(item["id"] == items_joint[0]["id"] for item in items_range)
+    assert found_joint_item is True
+
+    # If we filter with start_time strictly in the future, we should get 0 results for that range
+    future_start = datetime.now() + dt.timedelta(days=1)
+    future_end = datetime.now() + dt.timedelta(days=2)
+    resp_future = client.get(
+        f"/api/v1/etmf/audit-logs?start_time={future_start.isoformat()}&end_time={future_end.isoformat()}",
+        headers=inspector_headers,
+    )
+    assert resp_future.status_code == 200
+    assert len(resp_future.json()["items"]) == 0
+
+    # 9. Verify pagination next-page/cursor metadata
+    # Get total count first
+    total_resp = client.get("/api/v1/etmf/audit-logs", headers=inspector_headers)
+    assert total_resp.status_code == 200
+    total_count = total_resp.json()["total_count"]
+
+    if total_count > 1:
+        # Request with limit=1 to trigger next_page / next_cursor / has_more
+        resp_paginated = client.get(
+            "/api/v1/etmf/audit-logs?limit=1", headers=inspector_headers
+        )
+        assert resp_paginated.status_code == 200
+        paginated_data = resp_paginated.json()
+        assert paginated_data["has_more"] is True
+        assert paginated_data["next_cursor"] == "1"
+        assert "offset=1" in paginated_data["next_page"]
+        assert "limit=1" in paginated_data["next_page"]
+
+
+@pytest.mark.asyncio
+async def test_watermarked_document_viewing_and_download():
+    """
+    Verify watermarked eTMF document access controls, content generation,
+    database non-modification, and WATERMARKED_DOWNLOAD audit trailing.
+    """
+    import json
+
+    client = TestClient(app)
+    admin_headers = get_auth_headers(
+        roles="admin", change_reason="Ingest documents for watermarking"
+    )
+    auditor_headers = get_auth_headers(roles="regulatory_inspector")
+    cra_headers = get_auth_headers(roles="cra", change_reason="CRA download attempt")
+
+    # 1. Ingest documents of different formats (plain text, JSON, XML, CSV)
+    payload_txt = {
+        "study_id": "study_watermark",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol.txt",
+        "content": "This is raw protocol text.",
+        "mime_type": "text/plain",
+    }
+    resp = client.post("/api/v1/etmf/ingest", json=payload_txt, headers=admin_headers)
+    assert resp.status_code == 201
+    txt_doc_id = resp.json()["document_id"]
+
+    payload_json = {
+        "study_id": "study_watermark",
+        "artifact_type": "Define-XML Specifications",
+        "filename": "spec.json",
+        "content": json.dumps({"key": "original_value"}),
+        "mime_type": "application/json",
+    }
+    resp = client.post("/api/v1/etmf/ingest", json=payload_json, headers=admin_headers)
+    assert resp.status_code == 201
+    json_doc_id = resp.json()["document_id"]
+
+    payload_xml = {
+        "study_id": "study_watermark",
+        "artifact_type": "Blank CRF",
+        "filename": "form.xml",
+        "content": "<form><field id='1'/></form>",
+        "mime_type": "application/xml",
+    }
+    resp = client.post("/api/v1/etmf/ingest", json=payload_xml, headers=admin_headers)
+    assert resp.status_code == 201
+    xml_doc_id = resp.json()["document_id"]
+
+    payload_csv = {
+        "study_id": "study_watermark",
+        "artifact_type": "Data Lock Certificate",
+        "filename": "records.csv",
+        "content": "id,name\n1,subject_1",
+        "mime_type": "text/csv",
+    }
+    resp = client.post("/api/v1/etmf/ingest", json=payload_csv, headers=admin_headers)
+    assert resp.status_code == 201
+    csv_doc_id = resp.json()["document_id"]
+
+    # 2. Test authorization gates
+    # A non-auditor (e.g. cra) attempting to use explicit watermark parameter -> 403
+    resp_cra_query = client.get(
+        f"/api/v1/etmf/documents/{txt_doc_id}/download?watermark=true",
+        headers=cra_headers,
+    )
+    assert resp_cra_query.status_code == 403
+    assert "restricted to authorized auditor" in resp_cra_query.json()["detail"]
+
+    # A non-auditor attempting to use dedicated watermark endpoint -> 403
+    resp_cra_endpoint = client.get(
+        f"/api/v1/etmf/documents/{txt_doc_id}/watermark",
+        headers=cra_headers,
+    )
+    assert resp_cra_endpoint.status_code == 403
+    assert "restricted to authorized auditor" in resp_cra_endpoint.json()["detail"]
+
+    # 3. Test normal downloads for non-auditors (must NOT contain watermark content)
+    resp_cra_normal = client.get(
+        f"/api/v1/etmf/documents/{txt_doc_id}/download",
+        headers=cra_headers,
+    )
+    assert resp_cra_normal.status_code == 200
+    assert "CONFIDENTIAL — Auditor Copy" not in resp_cra_normal.text
+    assert resp_cra_normal.text == "This is raw protocol text."
+
+    # 4. Test watermarking for auditors (under different MIME types)
+    # 4.1 Plain text format
+    resp_aud_txt = client.get(
+        f"/api/v1/etmf/documents/{txt_doc_id}/download",
+        headers=auditor_headers,
+    )
+    assert resp_aud_txt.status_code == 200
+    assert "CONFIDENTIAL — Auditor Copy" in resp_aud_txt.text
+    assert "Access by:" in resp_aud_txt.text or "Accessed by:" in resp_aud_txt.text
+    assert "regulatory_inspector" in resp_aud_txt.text
+    assert "UTC" in resp_aud_txt.text
+
+    # 4.2 JSON format (dedicated watermark endpoint check)
+    resp_aud_json = client.get(
+        f"/api/v1/etmf/documents/{json_doc_id}/watermark",
+        headers=auditor_headers,
+    )
+    assert resp_aud_json.status_code == 200
+    parsed_json = resp_aud_json.json()
+    assert "_watermark" in parsed_json
+    assert parsed_json["_watermark"]["marker"] == "CONFIDENTIAL — Auditor Copy"
+    assert parsed_json["_watermark"]["accessed_by"] == "test_user"
+    assert "regulatory_inspector" in parsed_json["_watermark"]["role"]
+
+    # 4.3 XML format (comment insertion check)
+    resp_aud_xml = client.get(
+        f"/api/v1/etmf/documents/{xml_doc_id}/download",
+        headers=auditor_headers,
+    )
+    assert resp_aud_xml.status_code == 200
+    assert "<!-- CONFIDENTIAL — Auditor Copy" in resp_aud_xml.text
+
+    # 4.4 CSV format (row insertion check)
+    resp_aud_csv = client.get(
+        f"/api/v1/etmf/documents/{csv_doc_id}/download",
+        headers=auditor_headers,
+    )
+    assert resp_aud_csv.status_code == 200
+    assert "# CONFIDENTIAL — Auditor Copy" in resp_aud_csv.text
+
+    # 5. Verify the original stored document content remains completely unchanged
+    resp_cra_unaffected = client.get(
+        f"/api/v1/etmf/documents/{json_doc_id}/download",
+        headers=cra_headers,
+    )
+    assert resp_cra_unaffected.status_code == 200
+    assert "_watermark" not in resp_cra_unaffected.json()
+    assert resp_cra_unaffected.json()["key"] == "original_value"
+
+    # 6. Verify that accessing a watermarked copy generates WATERMARKED_DOWNLOAD audit log
+    audit_resp = client.get(
+        "/api/v1/etmf/audit-logs?action=WATERMARKED_DOWNLOAD", headers=auditor_headers
+    )
+    assert audit_resp.status_code == 200
+    logs = audit_resp.json()["items"]
+    # We performed watermarked downloads on multiple formats, so there should be multiple logs
+    assert len(logs) >= 4
+    for log in logs:
+        assert log["action"] == "WATERMARKED_DOWNLOAD"
+        assert log["user_id"] == "test_user"
+        assert log["user_role"] == "regulatory_inspector"
+        assert "Downloaded watermarked content" in log["details"]
+
+
+@pytest.mark.asyncio
+async def test_regulatory_binder_export():
+    """
+    Verify the automated ZIP-based regulatory binder export for eTMF studies.
+    Covers:
+    - Authorization check (only auditor roles allowed).
+    - Latest-only vs full-history export modes.
+    - Format-agnostic watermarking on zipped files.
+    - Presence of manifest.json and masked audit_summary.json inside the ZIP.
+    - TMFAuditLog BINDER_EXPORT audit event registration.
+    """
+    client = TestClient(app)
+    admin_headers = get_auth_headers(roles="admin", change_reason="Binder test setup")
+    auditor_headers = get_auth_headers(roles="regulatory_inspector")
+    cra_headers = get_auth_headers(roles="cra", change_reason="CRA download attempt")
+
+    study_id = "study_binder_test"
+
+    # 1. Ingest documents (Protocol v1, Protocol v2, and a Define-XML file)
+    payload_prot_v1 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol.txt",
+        "content": "This is raw protocol text version 1.",
+        "mime_type": "text/plain",
+    }
+    resp1 = client.post(
+        "/api/v1/etmf/ingest", json=payload_prot_v1, headers=admin_headers
+    )
+    assert resp1.status_code == 201
+
+    payload_prot_v2 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol.txt",
+        "content": "This is raw protocol text version 2.",
+        "mime_type": "text/plain",
+    }
+    resp2 = client.post(
+        "/api/v1/etmf/ingest", json=payload_prot_v2, headers=admin_headers
+    )
+    assert resp2.status_code == 201
+
+    payload_xml = {
+        "study_id": study_id,
+        "artifact_type": "Define-XML Specifications",
+        "filename": "define.xml",
+        "content": "<xml>Specifications</xml>",
+        "mime_type": "application/xml",
+    }
+    resp3 = client.post("/api/v1/etmf/ingest", json=payload_xml, headers=admin_headers)
+    assert resp3.status_code == 201
+
+    # 2. Test authorization gates
+    # CRA role should be denied
+    resp_forbidden = client.get(
+        f"/api/v1/etmf/studies/{study_id}/binder", headers=cra_headers
+    )
+    assert resp_forbidden.status_code == 403
+    assert "restricted to authorized auditor" in resp_forbidden.json()["detail"]
+
+    # Auditor role should be allowed
+    resp_ok = client.get(
+        f"/api/v1/etmf/studies/{study_id}/binder", headers=auditor_headers
+    )
+    assert resp_ok.status_code == 200
+    assert (
+        resp_ok.headers["Content-Disposition"]
+        == f"attachment; filename=study_{study_id}_binder.zip"
+    )
+
+    # 3. Verify ZIP structure and default latest-only mode
+    import io
+    import json
+    import zipfile
+
+    zip_bytes = resp_ok.content
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+        filenames = z.namelist()
+
+        # Must contain manifest.json and audit_summary.json at the root
+        assert "manifest.json" in filenames
+        assert "audit_summary.json" in filenames
+
+        # In latest-only mode:
+        # Clinical Trial Protocol (Zone 01, Section 01.01, filename protocol.txt)
+        # Define-XML Specifications (Zone 10, Section 10.01, filename define.xml)
+        assert "Zone 01/01.01/protocol.txt" in filenames
+        assert "Zone 10/10.01/define.xml" in filenames
+        # Protocol v1 should NOT be present
+        assert "Zone 01/01.01/protocol_v1.txt" not in filenames
+
+        # Verify manifest.json content
+        manifest_text = z.read("manifest.json").decode("utf-8")
+        manifest_data = json.loads(manifest_text)
+        assert manifest_data["study_id"] == study_id
+        assert manifest_data["include_history"] is False
+        assert manifest_data["document_count"] == 2
+
+        # Verify watermark is applied inside the zipped files
+        protocol_text = z.read("Zone 01/01.01/protocol.txt").decode("utf-8")
+        assert "This is raw protocol text version 2." in protocol_text
+        assert "CONFIDENTIAL — Auditor Copy" in protocol_text
+        assert "regulatory_inspector" in protocol_text
+
+        # Verify masked audit summary
+        audit_text = z.read("audit_summary.json").decode("utf-8")
+        audit_data = json.loads(audit_text)
+        assert len(audit_data) > 0
+
+        # Sensitive user_id must be masked using MASKED_... deterministic format
+        for entry in audit_data:
+            assert entry["user_id"].startswith("MASKED_")
+            assert "test_user" not in entry["user_id"]
+            if "test_user" in entry["details"]:
+                assert "test_user" not in entry["details"]
+                assert "MASKED_" in entry["details"]
+
+    # 4. Verify include_history=True mode
+    resp_history = client.get(
+        f"/api/v1/etmf/studies/{study_id}/binder?include_history=true",
+        headers=auditor_headers,
+    )
+    assert resp_history.status_code == 200
+
+    with zipfile.ZipFile(io.BytesIO(resp_history.content)) as z_hist:
+        filenames_hist = z_hist.namelist()
+
+        assert "manifest.json" in filenames_hist
+        assert "audit_summary.json" in filenames_hist
+
+        # In history mode, both versions must coexist, suffixed with their versions
+        assert "Zone 01/01.01/protocol_v1.txt" in filenames_hist
+        assert "Zone 01/01.01/protocol_v2.txt" in filenames_hist
+        assert (
+            "Zone 10/10.01/define_v1.xml" in filenames_hist
+            or "Zone 10/10.01/define.xml" in filenames_hist
+        )
+
+        manifest_text_hist = z_hist.read("manifest.json").decode("utf-8")
+        manifest_data_hist = json.loads(manifest_text_hist)
+        assert manifest_data_hist["include_history"] is True
+        assert manifest_data_hist["document_count"] == 3
+
+    # 5. Verify TMFAuditLog BINDER_EXPORT audit event registration
+    audit_resp = client.get(
+        "/api/v1/etmf/audit-logs?action=BINDER_EXPORT", headers=auditor_headers
+    )
+    assert audit_resp.status_code == 200
+    logs = audit_resp.json()["items"]
+    assert len(logs) >= 2
+    assert logs[0]["action"] == "BINDER_EXPORT"
+    assert f"Exported regulatory binder for study '{study_id}'" in logs[0]["details"]
+
+
+@pytest.mark.asyncio
+async def test_qualify_catalog_cutover_and_extension_persistence():
+    """
+    Cover POST to /api/v1/etmf/ingest with valid artifacts from v3.2.0-complete,
+    and a v3.2.0-extended is_extension=True artifact with explicit taxonomy_version.
+    Cover negative-path tests asserting HTTP 422 for unknown artifacts and mismatched hierarchies.
+    """
+    # @req:PRD-TMF-002
+    # @req:Trace-5
+    client = TestClient(app)
+    headers = get_auth_headers(
+        roles="admin", change_reason="Qualifying catalog cutover"
+    )
+
+    # 1. Valid artifact from v3.2.0-complete (active default)
+    payload_complete = {
+        "study_id": "study_cutover_test",
+        "artifact_type": "Investigator CV",  # Under Zone 5, Section 05.02 in v3.2.0-complete
+        "filename": "cv.pdf",
+        "content": "CV of PI Dr. John",
+        "mime_type": "application/pdf",
+    }
+    resp_complete = client.post(
+        "/api/v1/etmf/ingest", json=payload_complete, headers=headers
+    )
+    assert resp_complete.status_code == 201
+    data_complete = resp_complete.json()
+    assert data_complete["zone"] == 5
+    assert data_complete["section"] == "05.02"
+    assert data_complete["artifact_code"] == "05.02.03"
+    assert data_complete["taxonomy_version"] == "v3.2.0-complete"
+
+    # 2. Extension artifact from v3.2.0-extended via explicit taxonomy_version
+    payload_extension = {
+        "study_id": "study_cutover_test",
+        "artifact_type": "Cadence Investigator Portal Training Certificate",  # 05.02.99
+        "filename": "cert.pdf",
+        "content": "Certificate of training",
+        "mime_type": "application/pdf",
+        "taxonomy_version": "v3.2.0-extended",
+    }
+    resp_ext = client.post(
+        "/api/v1/etmf/ingest", json=payload_extension, headers=headers
+    )
+    assert resp_ext.status_code == 201
+    data_ext = resp_ext.json()
+    assert data_ext["zone"] == 5
+    assert data_ext["section"] == "05.02"
+    assert data_ext["artifact_code"] == "05.02.99"
+    assert data_ext["taxonomy_version"] == "v3.2.0-extended"
+
+    # 3. Negative-path: unknown artifact name
+    payload_unknown = {
+        "study_id": "study_cutover_test",
+        "artifact_type": "Totally Fake Artifact Not Registered",
+        "filename": "fake.pdf",
+        "content": "Some fake content",
+        "mime_type": "application/pdf",
+    }
+    resp_unknown = client.post(
+        "/api/v1/etmf/ingest", json=payload_unknown, headers=headers
+    )
+    assert resp_unknown.status_code == 422
+
+    # 4. Negative-path: mismatched hierarchy
+    payload_mismatch = {
+        "study_id": "study_cutover_test",
+        "artifact_type": "Investigator CV",
+        "filename": "cv.pdf",
+        "content": "Mismatched content",
+        "mime_type": "application/pdf",
+        "zone": 1,  # Investigator CV belongs to zone 5, not zone 1
+        "section": "01.01",
+    }
+    resp_mismatch = client.post(
+        "/api/v1/etmf/ingest", json=payload_mismatch, headers=headers
+    )
+    assert resp_mismatch.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_explicit_and_default_taxonomy_version_roundtrip_and_legacy_interpretability():
+    """
+    Ingest under explicit taxonomy_version: "v3.2.0" and default v3.2.0-complete in the same study.
+    GET both documents and assert taxonomy_version/artifact_code round-trip unchanged.
+    Assert legacy v3.2.0-tagged document remains resolvable via resolve_artifact.
+    """
+    # @req:PRD-TMF-003
+    client = TestClient(app)
+    headers = get_auth_headers(
+        roles="admin", change_reason="Testing legacy interpretability"
+    )
+
+    # 1. Ingest under explicit "v3.2.0"
+    payload_legacy = {
+        "study_id": "study_interpret_test",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_legacy.pdf",
+        "content": "Legacy protocol",
+        "mime_type": "application/pdf",
+        "taxonomy_version": "v3.2.0",
+    }
+    resp_legacy = client.post(
+        "/api/v1/etmf/ingest", json=payload_legacy, headers=headers
+    )
+    assert resp_legacy.status_code == 201
+    doc_id_legacy = resp_legacy.json()["document_id"]
+
+    # 2. Ingest under active default "v3.2.0-complete"
+    payload_complete = {
+        "study_id": "study_interpret_test",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_complete.pdf",
+        "content": "Complete protocol",
+        "mime_type": "application/pdf",
+    }
+    resp_complete = client.post(
+        "/api/v1/etmf/ingest", json=payload_complete, headers=headers
+    )
+    assert resp_complete.status_code == 201
+    doc_id_complete = resp_complete.json()["document_id"]
+
+    # 3. GET both and assert they round-trip successfully
+    get_legacy = client.get(f"/api/v1/etmf/documents/{doc_id_legacy}", headers=headers)
+    assert get_legacy.status_code == 200
+    doc_legacy_data = get_legacy.json()
+    assert doc_legacy_data["taxonomy_version"] == "v3.2.0"
+    assert doc_legacy_data["artifact_code"] == "01.01.01"
+
+    get_complete = client.get(
+        f"/api/v1/etmf/documents/{doc_id_complete}", headers=headers
+    )
+    assert get_complete.status_code == 200
+    doc_complete_data = get_complete.json()
+    assert doc_complete_data["taxonomy_version"] == "v3.2.0-complete"
+    assert doc_complete_data["artifact_code"] == "01.01.01"
+
+    # 4. Assert a legacy v3.2.0-tagged document remains resolvable via resolve_artifact
+    from tmf_reference_model import resolve_artifact
+
+    resolved_legacy = resolve_artifact(version="v3.2.0", code="01.01.01")
+    assert resolved_legacy["artifact"].name == "Clinical Trial Protocol"
+    assert resolved_legacy["version"] == "v3.2.0"
+
+
+@pytest.mark.asyncio
+async def test_completeness_from_catalog_across_versions():
+    """
+    Test /api/v1/etmf/completeness for INITIATION/CONDUCT milestones with documents
+    spanning both v3.2.0 and v3.2.0-complete, asserting reporting matches active version.
+    Confirm unknown-milestone rejection.
+    """
+    # @req:PRD-TMF-004
+    client = TestClient(app)
+    admin_headers = get_auth_headers(
+        roles="admin", change_reason="Preparing completeness mixed versions"
+    )
+    inspector_headers = get_auth_headers(roles="regulatory_inspector")
+
+    study_id = "study_completeness_mixed"
+
+    # 1. Initially check INITIATION milestone (missing Clinical Trial Protocol)
+    res_init = client.get(
+        f"/api/v1/etmf/completeness?study_id={study_id}&milestone=INITIATION",
+        headers=inspector_headers,
+    )
+    assert res_init.status_code == 200
+    assert res_init.json()["is_complete"] is False
+    assert "Clinical Trial Protocol" in res_init.json()["missing_artifacts"]
+
+    # 2. Ingest Clinical Trial Protocol under explicit legacy version "v3.2.0"
+    payload_prot_legacy = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_legacy.pdf",
+        "content": "Protocol Content Legacy",
+        "mime_type": "application/pdf",
+        "taxonomy_version": "v3.2.0",
+    }
+    client.post("/api/v1/etmf/ingest", json=payload_prot_legacy, headers=admin_headers)
+
+    # 3. Check INITIATION milestone -> should now be True (it can resolve and match Clinical Trial Protocol across versions)
+    res_init_2 = client.get(
+        f"/api/v1/etmf/completeness?study_id={study_id}&milestone=INITIATION",
+        headers=inspector_headers,
+    )
+    assert res_init_2.json()["is_complete"] is True
+
+    # 4. Check CONDUCT milestone (requires Clinical Trial Protocol, Define-XML Specifications, Blank CRF) -> should be False
+    res_cond = client.get(
+        f"/api/v1/etmf/completeness?study_id={study_id}&milestone=CONDUCT",
+        headers=inspector_headers,
+    )
+    assert res_cond.json()["is_complete"] is False
+    assert "Define-XML Specifications" in res_cond.json()["missing_artifacts"]
+    assert "Blank CRF" in res_cond.json()["missing_artifacts"]
+
+    # Ingest Blank CRF under "v3.2.0-complete" (default active)
+    payload_crf = {
+        "study_id": study_id,
+        "artifact_type": "Blank CRF",
+        "filename": "crf.xml",
+        "content": "Blank CRF Content",
+        "mime_type": "application/xml",
+    }
+    client.post("/api/v1/etmf/ingest", json=payload_crf, headers=admin_headers)
+
+    # Ingest Define-XML Specifications under "v3.2.0" (legacy)
+    payload_define = {
+        "study_id": study_id,
+        "artifact_type": "Define-XML Specifications",
+        "filename": "define.xml",
+        "content": "Define XML Content",
+        "mime_type": "application/xml",
+        "taxonomy_version": "v3.2.0",
+    }
+    client.post("/api/v1/etmf/ingest", json=payload_define, headers=admin_headers)
+
+    # 5. Check CONDUCT milestone again -> should now be True!
+    res_cond_2 = client.get(
+        f"/api/v1/etmf/completeness?study_id={study_id}&milestone=CONDUCT",
+        headers=inspector_headers,
+    )
+    assert res_cond_2.json()["is_complete"] is True
+
+    # 6. Unknown milestone HTTP 400 rejection path is covered
+    res_unknown = client.get(
+        f"/api/v1/etmf/completeness?study_id={study_id}&milestone=SOME_FAKE_MILESTONE",
+        headers=inspector_headers,
+    )
+    assert res_unknown.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_service_caller_ingestion_success():
+    """
+    Verify that a non-HTTP direct service caller can ingest content using the
+    exact same workflow, and can customize the audit-action.
+    """
+    session_maker = db_manager.get_session_maker()
+    async with session_maker() as session:
+        # Ingest a document directly using the service
+        doc = await ingest_document_service(
+            session=session,
+            study_id="study_service_001",
+            artifact_type="Clinical Trial Protocol",
+            filename="protocol_from_email.txt",
+            content="Protocol text received via inbound email parsing.",
+            mime_type="text/plain",
+            user_id="email_parser_job",
+            user_roles="system_daemon",
+            audit_action="EMAIL_INGEST",
+        )
+        await session.commit()
+
+        assert doc.id is not None
+        assert doc.study_id == "study_service_001"
+        assert doc.filename == "protocol_from_email.txt"
+        assert doc.version_index == 1
+        assert doc.zone == 1
+        assert doc.section == "01.01"
+
+    # Query the database to verify persistence and audit trails
+    async with session_maker() as session:
+        # Verify TMFDocument persistence
+        stmt_doc = select(TMFDocument).where(TMFDocument.id == doc.id)
+        res_doc = await session.execute(stmt_doc)
+        db_doc = res_doc.scalars().first()
+        assert db_doc is not None
+        assert db_doc.created_by == "email_parser_job"
+
+        # Verify TMFAuditLog with the custom EMAIL_INGEST action is written
+        stmt_audit = select(TMFAuditLog).where(TMFAuditLog.document_id == doc.id)
+        res_audit = await session.execute(stmt_audit)
+        audit_logs = res_audit.scalars().all()
+        assert len(audit_logs) == 1
+        assert audit_logs[0].action == "EMAIL_INGEST"
+        assert audit_logs[0].user_id == "email_parser_job"
+        assert "Ingested artifact type" in audit_logs[0].details
+
+
+@pytest.mark.asyncio
+async def test_service_caller_ingestion_rollback_on_failure():
+    """
+    Verify that transactional boundaries are defined so a failed ingest does
+    not leave partial document or audit state in the session/database.
+    """
+    session_maker = db_manager.get_session_maker()
+    async with session_maker() as session:
+        # Start a transaction block or let nested handle it.
+        # Try to ingest an unknown artifact, which will raise ValueError
+        with pytest.raises(ValueError, match="Validation Error"):
+            await ingest_document_service(
+                session=session,
+                study_id="study_service_002",
+                artifact_type="Fake Out Artifact",
+                filename="fake.txt",
+                content="Some content",
+                mime_type="text/plain",
+                user_id="job_runner",
+                user_roles="system_daemon",
+            )
+
+        # Ensure that no document was inserted or flushed to the database
+        stmt_doc = select(TMFDocument).where(
+            TMFDocument.study_id == "study_service_002"
+        )
+        res_doc = await session.execute(stmt_doc)
+        assert len(res_doc.scalars().all()) == 0
+
+        # Ensure no audit logs were written
+        stmt_audit = select(TMFAuditLog).where(TMFAuditLog.user_id == "job_runner")
+        res_audit = await session.execute(stmt_audit)
+        assert len(res_audit.scalars().all()) == 0
+
+
+@pytest.mark.asyncio
+async def test_service_caller_ingestion_immutability_violation():
+    """
+    Verify that the document immutability protection remains intact at the service level,
+    rejecting attempts to ingest new versions of signed/approved documents and writing a
+    MUTATION_REJECTED audit log record.
+    """
+    session_maker = db_manager.get_session_maker()
+
+    # 1. Ingest initial document version
+    async with session_maker() as session:
+        doc = await ingest_document_service(
+            session=session,
+            study_id="study_imm_test",
+            artifact_type="Clinical Trial Protocol",
+            filename="protocol_v1.txt",
+            content="Original content.",
+            mime_type="text/plain",
+            user_id="user_admin",
+            user_roles="admin",
+        )
+        # Transition to SIGNED
+        doc.status = "SIGNED"
+        doc.approval_status = "APPROVED"
+        doc.signature_manifestation = {"mock": "manifestation"}
+        await session.commit()
+        doc_id = doc.id
+
+    # 2. Attempt to ingest a new version over the signed/approved document -> must raise PermissionError
+    async with session_maker() as session:
+        with pytest.raises(PermissionError, match="IMMUTABILITY_VIOLATION"):
+            await ingest_document_service(
+                session=session,
+                study_id="study_imm_test",
+                artifact_type="Clinical Trial Protocol",
+                filename="protocol_v2.txt",
+                content="Attempting modification.",
+                mime_type="text/plain",
+                user_id="user_unauthorized",
+                user_roles="sponsor_dm",
+            )
+
+    # 3. Verify that the MUTATION_REJECTED audit log record was successfully persisted
+    async with session_maker() as session:
+        stmt_audit = select(TMFAuditLog).where(
+            TMFAuditLog.document_id == doc_id, TMFAuditLog.action == "MUTATION_REJECTED"
+        )
+        res_audit = await session.execute(stmt_audit)
+        reject_logs = res_audit.scalars().all()
+        assert len(reject_logs) == 1
+        assert "Rejected attempt to ingest new version" in reject_logs[0].details
+        assert reject_logs[0].user_id == "user_unauthorized"
+
+
+@pytest.mark.asyncio
+async def test_protocol_versioning_and_change_justification_ingestion():
+    """
+    Verify that ingestion properly persists the shared ProtocolVersionRef context
+    and records the custom reason_for_change rationale on the TMFDocument version.
+    """
+    client = TestClient(app)
+    headers = get_auth_headers(
+        roles="admin", change_reason="Initial Protocol Amendment"
+    )
+
+    payload = {
+        "study_id": "STUDY-AMEND-101",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_v1.pdf",
+        "content": "Protocol text with versioning data.",
+        "mime_type": "application/pdf",
+        "protocol_version": {
+            "study_id": "STUDY-AMEND-101",
+            "version_tag": "1.0",
+            "version_index": 1,
+            "status": "ACTIVE",
+        },
+    }
+
+    # Ingest document
+    response = client.post("/api/v1/etmf/ingest", json=payload, headers=headers)
+    assert response.status_code == 201
+    doc_id = response.json()["document_id"]
+
+    # Verify via retrieve endpoint
+    response_get = client.get(f"/api/v1/etmf/documents/{doc_id}", headers=headers)
+    assert response_get.status_code == 200
+    doc_data = response_get.json()
+    assert doc_data["reason_for_change"] == "Initial Protocol Amendment"
+    assert doc_data["protocol_version"]["study_id"] == "STUDY-AMEND-101"
+    assert doc_data["protocol_version"]["version_tag"] == "1.0"
+    assert doc_data["protocol_version"]["version_index"] == 1
+    assert doc_data["protocol_version"]["status"] == "ACTIVE"
+
+
+@pytest.mark.asyncio
+async def test_ordered_artifact_history_endpoint():
+    """
+    Verify that the GET study artifact history endpoint returns historical versions of
+    a given artifact type, correctly ordered by version_index in ascending sequence.
+    """
+    client = TestClient(app)
+    headers = get_auth_headers(
+        roles="admin", change_reason="Upload sequential protocol edits"
+    )
+
+    study_id = "STUDY-HIST-99"
+
+    # Ingest Version 1
+    p1 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "prot_v1.pdf",
+        "content": "Version 1 protocol.",
+        "mime_type": "application/pdf",
+        "protocol_version": {
+            "study_id": study_id,
+            "version_tag": "1.0",
+            "version_index": 1,
+            "status": "DRAFT",
+        },
+    }
+    resp1 = client.post("/api/v1/etmf/ingest", json=p1, headers=headers)
+    assert resp1.status_code == 201
+
+    # Ingest Version 2
+    p2 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "prot_v2.pdf",
+        "content": "Version 2 protocol.",
+        "mime_type": "application/pdf",
+        "protocol_version": {
+            "study_id": study_id,
+            "version_tag": "2.0",
+            "version_index": 2,
+            "status": "ACTIVE",
+        },
+    }
+    # Change change_reason to verify updated rationale
+    headers_v2 = get_auth_headers(
+        roles="admin", change_reason="Submitting Major protocol amendment"
+    )
+    resp2 = client.post("/api/v1/etmf/ingest", json=p2, headers=headers_v2)
+    assert resp2.status_code == 201
+
+    # Call history retrieval endpoint
+    history_resp = client.get(
+        f"/api/v1/etmf/studies/{study_id}/artifacts/Clinical Trial Protocol/history",
+        headers=get_auth_headers(roles="regulatory_inspector"),
+    )
+    assert history_resp.status_code == 200
+    history = history_resp.json()
+    assert len(history) == 2
+
+    # Verify chronological ascending sequence
+    assert history[0]["version_index"] == 1
+    assert history[0]["reason_for_change"] == "Upload sequential protocol edits"
+    assert history[0]["protocol_version"]["version_tag"] == "1.0"
+
+    assert history[1]["version_index"] == 2
+    assert history[1]["reason_for_change"] == "Submitting Major protocol amendment"
+    assert history[1]["protocol_version"]["version_tag"] == "2.0"
+
+
+@pytest.mark.asyncio
+async def test_archived_document_retrieval_and_immutability():
+    """
+    Verify and extend eTMF retrieval/export behavior so archived study records remain readable
+    and binder exports include all required archived documents and version history.
+    And verify post-archive immutability across all mutation endpoints.
+    """
+    client = TestClient(app)
+    admin_headers = get_auth_headers(roles="admin", change_reason="Archive test setup")
+    dm_headers = get_auth_headers(roles="sponsor_dm", change_reason="DM QC checks")
+    clinical_headers = get_auth_headers(
+        roles="sponsor_clinical", change_reason="Clinical review"
+    )
+
+    # 1. Ingest document (DRAFT)
+    payload = {
+        "study_id": "study_arch_test",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_v1.pdf",
+        "content": "Protocol text content.",
+        "mime_type": "application/pdf",
+    }
+    resp = client.post("/api/v1/etmf/ingest", json=payload, headers=admin_headers)
+    assert resp.status_code == 201
+    doc_id = resp.json()["document_id"]
+
+    # Transition: DRAFT -> TECHNICAL_QC
+    resp = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/transition",
+        json={
+            "to_status": "TECHNICAL_QC",
+            "reason_for_change": "Technical QC complete",
+        },
+        headers=dm_headers,
+    )
+    assert resp.status_code == 200
+
+    # Transition: TECHNICAL_QC -> CLINICAL_QC
+    resp = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/transition",
+        json={"to_status": "CLINICAL_QC", "reason_for_change": "Clinical QC complete"},
+        headers=clinical_headers,
+    )
+    assert resp.status_code == 200
+
+    # Transition: CLINICAL_QC -> APPROVED
+    resp = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/transition",
+        json={"to_status": "APPROVED", "reason_for_change": "Approvals obtained"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+
+    # Transition: APPROVED -> ARCHIVED
+    resp = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/transition",
+        json={"to_status": "ARCHIVED", "reason_for_change": "Closeout archive"},
+        headers=dm_headers,
+    )
+    assert resp.status_code == 200
+
+    # 2. Assert is returned by list_documents both with and without status filter
+    # List without filter (should return our archived document)
+    list_resp = client.get(
+        "/api/v1/etmf/documents?study_id=study_arch_test", headers=admin_headers
+    )
+    assert list_resp.status_code == 200
+    docs = list_resp.json()
+    assert len(docs) == 1
+    assert docs[0]["status"] == "ARCHIVED"
+
+    # List with status=ARCHIVED
+    list_arch_resp = client.get(
+        "/api/v1/etmf/documents?study_id=study_arch_test&status=ARCHIVED",
+        headers=admin_headers,
+    )
+    assert list_arch_resp.status_code == 200
+    assert len(list_arch_resp.json()) == 1
+
+    # List with status=DRAFT (should be empty)
+    list_draft_resp = client.get(
+        "/api/v1/etmf/documents?study_id=study_arch_test&status=DRAFT",
+        headers=admin_headers,
+    )
+    assert list_draft_resp.status_code == 200
+    assert len(list_draft_resp.json()) == 0
+
+    # Assert view_document works
+    view_resp = client.get(f"/api/v1/etmf/documents/{doc_id}", headers=admin_headers)
+    assert view_resp.status_code == 200
+    assert view_resp.json()["status"] == "ARCHIVED"
+
+    # 3. Post-archive immutability: redact, transition, expiration, sign-off, re-ingest
+    # Attempt: Standard redact
+    redact_payload = {
+        "redacted_content": "[REDACTED] Protocol text content.",
+        "manifest": {"signature": "sig-123", "redaction_metadata": {}},
+    }
+    resp_redact = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/redact",
+        json=redact_payload,
+        headers=admin_headers,
+    )
+    assert resp_redact.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_redact.json()["detail"]
+
+    # Attempt: Auto redact
+    resp_auto = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/auto-redact",
+        json={"profile": "HIPAA"},
+        headers=admin_headers,
+    )
+    assert resp_auto.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_auto.json()["detail"]
+
+    # Attempt: Manual redact
+    resp_manual = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/manual-redact",
+        json={"terms": ["Protocol"]},
+        headers=admin_headers,
+    )
+    assert resp_manual.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_manual.json()["detail"]
+
+    # Attempt: Transition status from ARCHIVED to DRAFT (disallowed state-machine transition and immutability violation)
+    resp_trans = client.post(
+        f"/api/v1/etmf/documents/{doc_id}/transition",
+        json={"to_status": "DRAFT", "reason_for_change": "Try to revert archive"},
+        headers=admin_headers,
+    )
+    assert resp_trans.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_trans.json()["detail"]
+
+    # Attempt: Expiration update
+    resp_exp = client.put(
+        f"/api/v1/etmf/documents/{doc_id}/expiration",
+        json={
+            "issue_date": "2023-01-01",
+            "expiration_date": "2024-01-01",
+            "document_owner_id": "owner1",
+        },
+        headers=admin_headers,
+    )
+    assert resp_exp.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_exp.json()["detail"]
+
+    # Attempt: Sign-off (using correct re-auth signature headers to pass 401 gate)
+    from jose import jwt
+
+    action_path = f"/api/v1/etmf/documents/{doc_id}/sign-off"
+    sig_payload = {
+        "sub": "test_user",
+        "username": "test_user",
+        "action": action_path,
+        "roles": ["admin"],
+        "iat": time.time(),
+        "exp": time.time() + 300.0,
+        "jti": f"jti-{time.time()}-{hash(action_path)}-{time.process_time()}",
+    }
+    sig_token = jwt.encode(
+        sig_payload, "internal-gateway-secret-12345", algorithm="HS256"
+    )
+    sig_headers = get_auth_headers(roles="admin", change_reason="Sign-off Form 1572")
+    sig_headers["X-Sig-Token"] = sig_token
+
+    resp_sign = client.post(
+        action_path, json={"signing_reason": "APPROVAL"}, headers=sig_headers
+    )
+    assert resp_sign.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_sign.json()["detail"]
+
+    # Attempt: Ingest new version (re-ingest)
+    payload_v2 = {
+        "study_id": "study_arch_test",
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_v2.pdf",
+        "content": "Protocol version 2 text content.",
+        "mime_type": "application/pdf",
+    }
+    resp_v2 = client.post("/api/v1/etmf/ingest", json=payload_v2, headers=admin_headers)
+    assert resp_v2.status_code == 403
+    assert "IMMUTABILITY_VIOLATION" in resp_v2.json()["detail"]
+
+    # Verify that MUTATION_REJECTED was logged for each of these blocked attempts
+    async with db_manager.get_session_maker()() as session:
+        stmt = select(TMFAuditLog).where(
+            TMFAuditLog.document_id == doc_id, TMFAuditLog.action == "MUTATION_REJECTED"
+        )
+        logs = (await session.execute(stmt)).scalars().all()
+        # Ensure we captured our attempts
+        assert len(logs) >= 5
+
+
+@pytest.mark.asyncio
+async def test_deterministic_and_complete_binder_export():
+    """
+    Construct a study with a mix of archived and non-archived documents, with multiple versions,
+    then assert the exported ZIP and manifest.json:
+    - Include both archived and non-archived content.
+    - Reflect the deterministic zone -> section -> artifact_code -> version_index ordering.
+    - Full version lineage is included when include_history=True.
+    """
+    client = TestClient(app)
+    admin_headers = get_auth_headers(roles="admin", change_reason="Export test setup")
+    dm_headers = get_auth_headers(roles="sponsor_dm", change_reason="DM QC checks")
+    auditor_headers = get_auth_headers(roles="regulatory_inspector")
+
+    study_id = "study_export_sort"
+
+    # 1. Ingest: Clinical Trial Protocol (Zone 1, Section 01.01, code 01.01.01) - Ingest 2 versions, version 1 is signed/approved, version 2 is DRAFT (non-archived)
+    p1 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_v1.txt",
+        "content": "Protocol V1 text.",
+        "mime_type": "text/plain",
+    }
+    resp_p1 = client.post("/api/v1/etmf/ingest", json=p1, headers=admin_headers)
+    assert resp_p1.status_code == 201
+
+    # Transition p1 to TECHNICAL_QC so it's not a simple DRAFT.
+    doc_id_p1 = resp_p1.json()["document_id"]
+    client.post(
+        f"/api/v1/etmf/documents/{doc_id_p1}/transition",
+        json={
+            "to_status": "TECHNICAL_QC",
+            "reason_for_change": "Technical QC complete",
+        },
+        headers=dm_headers,
+    )
+
+    p2 = {
+        "study_id": study_id,
+        "artifact_type": "Clinical Trial Protocol",
+        "filename": "protocol_v2.txt",
+        "content": "Protocol V2 text.",
+        "mime_type": "text/plain",
+    }
+    resp_p2 = client.post("/api/v1/etmf/ingest", json=p2, headers=admin_headers)
+    assert resp_p2.status_code == 201
+
+    # Ingest: Define-XML Specifications (Zone 10, Section 10.01, code 10.01.01) - Transition to ARCHIVED
+    xml1 = {
+        "study_id": study_id,
+        "artifact_type": "Define-XML Specifications",
+        "filename": "define_v1.xml",
+        "content": "Define V1 XML.",
+        "mime_type": "application/xml",
+    }
+    resp_xml1 = client.post("/api/v1/etmf/ingest", json=xml1, headers=admin_headers)
+    assert resp_xml1.status_code == 201
+    doc_id_xml = resp_xml1.json()["document_id"]
+
+    # Transition Define-XML to ARCHIVED (DRAFT -> TECHNICAL_QC -> CLINICAL_QC -> APPROVED -> ARCHIVED)
+    client.post(
+        f"/api/v1/etmf/documents/{doc_id_xml}/transition",
+        json={"to_status": "TECHNICAL_QC", "reason_for_change": "Technical review"},
+        headers=dm_headers,
+    )
+    client.post(
+        f"/api/v1/etmf/documents/{doc_id_xml}/transition",
+        json={"to_status": "CLINICAL_QC", "reason_for_change": "Clinical review"},
+        headers=get_auth_headers(
+            roles="sponsor_clinical", change_reason="clinical review"
+        ),
+    )
+    client.post(
+        f"/api/v1/etmf/documents/{doc_id_xml}/transition",
+        json={"to_status": "APPROVED", "reason_for_change": "Approval complete"},
+        headers=admin_headers,
+    )
+    client.post(
+        f"/api/v1/etmf/documents/{doc_id_xml}/transition",
+        json={"to_status": "ARCHIVED", "reason_for_change": "Archived closeout"},
+        headers=dm_headers,
+    )
+
+    # 2. Trigger Export with include_history=False (latest only)
+    export_resp_latest = client.get(
+        f"/api/v1/etmf/studies/{study_id}/binder?include_history=false",
+        headers=auditor_headers,
+    )
+    assert export_resp_latest.status_code == 200
+
+    import io
+    import json
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(export_resp_latest.content)) as z:
+        manifest_text = z.read("manifest.json").decode("utf-8")
+        manifest_data = json.loads(manifest_text)
+        assert manifest_data["study_id"] == study_id
+
+        docs_list = manifest_data["documents"]
+        # In latest mode, we expect exactly 2 documents:
+        # - Clinical Trial Protocol version 2 (since version_index 2 is higher than 1)
+        # - Define-XML Specifications version 1 (status ARCHIVED)
+        assert len(docs_list) == 2
+
+        # Assert correct deterministic ordering in manifest array:
+        # Zone 1 (Protocol) -> Zone 10 (Define-XML)
+        assert docs_list[0]["artifact_code"] == "01.01.01"
+        assert docs_list[0]["version_index"] == 2
+        assert docs_list[0]["status"] == "DRAFT"
+
+        assert docs_list[1]["artifact_code"] == "10.01.02"
+        assert docs_list[1]["version_index"] == 1
+        assert docs_list[1]["status"] == "ARCHIVED"
+
+        # Assert ZIP file entries match the manifest deterministic order
+        zip_files = [
+            f for f in z.namelist() if f not in ("manifest.json", "audit_summary.json")
+        ]
+        assert len(zip_files) == 2
+        assert (
+            "Zone 01/01.01/protocol.txt" in zip_files[0]
+            or "protocol_v2" in zip_files[0]
+        )
+        assert "Zone 10/10.01/define_v1.xml" in zip_files[1] or "define" in zip_files[1]
+
+    # 3. Trigger Export with include_history=True (full lineage)
+    export_resp_hist = client.get(
+        f"/api/v1/etmf/studies/{study_id}/binder?include_history=true",
+        headers=auditor_headers,
+    )
+    assert export_resp_hist.status_code == 200
+
+    with zipfile.ZipFile(io.BytesIO(export_resp_hist.content)) as z:
+        manifest_text = z.read("manifest.json").decode("utf-8")
+        manifest_data = json.loads(manifest_text)
+
+        docs_list = manifest_data["documents"]
+        # In history mode, we expect exactly 3 documents:
+        # - Clinical Trial Protocol version 1 (TECHNICAL_QC)
+        # - Clinical Trial Protocol version 2 (DRAFT)
+        # - Define-XML Specifications version 1 (ARCHIVED)
+        assert len(docs_list) == 3
+
+        # Assert correct deterministic ordering:
+        # Zone 1, version 1 -> Zone 1, version 2 -> Zone 10, version 1
+        assert docs_list[0]["artifact_code"] == "01.01.01"
+        assert docs_list[0]["version_index"] == 1
+        assert docs_list[0]["status"] == "TECHNICAL_QC"
+
+        assert docs_list[1]["artifact_code"] == "01.01.01"
+        assert docs_list[1]["version_index"] == 2
+        assert docs_list[1]["status"] == "DRAFT"
+
+        assert docs_list[2]["artifact_code"] == "10.01.02"
+        assert docs_list[2]["version_index"] == 1
+        assert docs_list[2]["status"] == "ARCHIVED"
+
+        zip_files = [
+            f for f in z.namelist() if f not in ("manifest.json", "audit_summary.json")
+        ]
+        assert len(zip_files) == 3
+        # First two must be protocol versions, third must be define
+        assert "protocol_v1_v1.txt" in zip_files[0]
+        assert "protocol_v2_v2.txt" in zip_files[1]
+        assert "define_v1_v1.xml" in zip_files[2]
+
+
+def test_informed_consent_form_taxonomy_and_idempotency():
+    """
+    Assert resolve_artifact retrieves the correct "Informed Consent Form" taxonomy elements,
+    and verify that re-ingesting a document with the same idempotency_key is a no-op
+    returning the existing document.
+    """
+    from fastapi.testclient import TestClient
+    from tmf_reference_model import get_active_catalog, resolve_artifact
+
+    from apps.etmf.main import app
+
+    # 1. Assert taxonomy resolution of "Informed Consent Form"
+    active_version = get_active_catalog().version
+    res = resolve_artifact(version=active_version, name="Informed Consent Form")
+    assert res["artifact"].code == "05.02.05"
+    assert res["zone"].code == 5
+    assert res["section"].code == "05.02"
+
+    res_by_code = resolve_artifact(version=active_version, code="05.02.05")
+    assert res_by_code["artifact"].name == "Informed Consent Form"
+
+    # 2. Ingest first time with idempotency_key
+    client = TestClient(app)
+    headers = get_auth_headers(
+        roles="admin", change_reason="Testing taxonomy and idempotency"
+    )
+
+    payload = {
+        "study_id": "study_idem_123",
+        "site_id": "site_idem_abc",
+        "artifact_type": "Informed Consent Form",
+        "filename": "icf_sign_999.json",
+        "content": "Informed Consent Content",
+        "mime_type": "application/json",
+        "idempotency_key": "stable-idempotency-key-xyz",
+    }
+
+    resp1 = client.post("/api/v1/etmf/ingest", json=payload, headers=headers)
+    assert resp1.status_code == 201
+    data1 = resp1.json()
+    assert data1["status"] == "success"
+    doc1_id = data1["document_id"]
+    assert data1["version_index"] == 1
+
+    # Ingest second time with the exact same idempotency_key
+    resp2 = client.post("/api/v1/etmf/ingest", json=payload, headers=headers)
+    assert resp2.status_code == 201
+    data2 = resp2.json()
+    assert data2["status"] == "success"
+    assert data2["document_id"] == doc1_id
+    assert data2["version_index"] == 1  # version should not have incremented!

@@ -1,12 +1,17 @@
 import { defineStore } from "pinia";
-import { sha256 } from "../../index.js";
-import { generateGatewaySignature, generateJwtHS256 } from "ui";
+import { buildLedgerBlock, debounce } from "ui";
+import { useAuthStore } from "./auth.js";
+import { soaClient } from "../api/soaClient.js";
+import { executionService } from "../api/execution.js";
+import { evaluateAST } from "../evaluator.js";
+import { ingestionClient } from "../api/ingestionClient.js";
 
 export const useClinicalStore = defineStore("clinical", {
   state: () => {
     let savedFormValues = null;
     let savedFormQueries = null;
     let savedLedgerBlocks = null;
+    let savedUsdm = null;
     if (typeof window !== "undefined" && window.localStorage) {
       try {
         savedFormValues = JSON.parse(window.localStorage.getItem("formValues"));
@@ -16,13 +21,14 @@ export const useClinicalStore = defineStore("clinical", {
         savedLedgerBlocks = JSON.parse(
           window.localStorage.getItem("ledgerBlocks")
         );
+        savedUsdm = JSON.parse(window.localStorage.getItem("currentUsdm"));
       } catch (e) {
         console.error("Failed to parse saved state from localStorage", e);
       }
     }
 
     return {
-      currentUsdm: {
+      currentUsdm: savedUsdm || {
         studyId: "STUDY-USDM-001",
         studyTitle: "Phase II Trial of Cadence-001 in Essential Hypertension",
         objectives: [
@@ -172,28 +178,28 @@ export const useClinicalStore = defineStore("clinical", {
           {
             id: "M1",
             type: "SITE_SELECTION",
-            plannedDate: "2026-08-01",
-            actualDate: "2026-08-01",
+            plannedDate: "2026-08-01", // deid-ignore
+            actualDate: "2026-08-01", // deid-ignore
             status: "ACHIEVED",
           },
           {
             id: "M2",
             type: "INITIATION_VISIT",
-            plannedDate: "2026-08-10",
-            actualDate: "2026-08-12",
+            plannedDate: "2026-08-10", // deid-ignore
+            actualDate: "2026-08-12", // deid-ignore
             status: "ACHIEVED",
           },
           {
             id: "M3",
             type: "SITE_ACTIVATION",
-            plannedDate: "2026-08-15",
+            plannedDate: "2026-08-15", // deid-ignore
             actualDate: "",
             status: "PLANNED",
           },
           {
             id: "M4",
             type: "FIRST_SUBJECT_ENROLLED",
-            plannedDate: "2026-09-01",
+            plannedDate: "2026-09-01", // deid-ignore
             actualDate: "",
             status: "PLANNED",
           },
@@ -202,15 +208,15 @@ export const useClinicalStore = defineStore("clinical", {
           {
             id: "V1",
             type: "SIV",
-            scheduledDate: "2026-08-10",
-            actualDate: "2026-08-12",
+            scheduledDate: "2026-08-10", // deid-ignore
+            actualDate: "2026-08-12", // deid-ignore
             status: "SIGNED_OFF",
             cra: "cra_fderuiter",
           },
           {
             id: "V2",
             type: "IMV",
-            scheduledDate: "2026-08-25",
+            scheduledDate: "2026-08-25", // deid-ignore
             actualDate: "",
             status: "SCHEDULED",
             cra: "cra_fderuiter",
@@ -237,12 +243,20 @@ export const useClinicalStore = defineStore("clinical", {
       },
       ecrfFields: [
         {
+          id: "concept_code",
+          label: "Concept Code Lookup (NCI Thesaurus)",
+          type: "concept_code",
+          gridSpan: 12,
+          cdash: "DM.CONCEPT_CODE",
+          value: "",
+        },
+        {
           id: "brthdt",
           label: "Date of Birth (YYYY-MM-DD)",
           type: "text",
           gridSpan: 6,
           cdash: "DM.BRTHDT",
-          value: "1980-05-12",
+          value: "1980-05-12", // deid-ignore
           validation: {
             required: true,
             pattern: "^\\d{4}-\\d{2}-\\d{2}$",
@@ -304,47 +318,197 @@ export const useClinicalStore = defineStore("clinical", {
             message: "Pulse Rate must be between 30 and 200 bpm",
           },
         },
+        {
+          id: "pulse_details",
+          label: "Pulse Details (Tachycardia comment)",
+          type: "text",
+          gridSpan: 12,
+          cdash: "VS.VSHR_DETAILS",
+          value: "",
+          relevant: {
+            type: "comparison",
+            operator: ">",
+            operands: [
+              { type: "field_ref", field_ref: { field_id: "pulse" } },
+              { type: "constant", value: 100 },
+            ],
+          },
+        },
+        {
+          id: "weight",
+          label: "Weight (kg)",
+          type: "text",
+          gridSpan: 6,
+          cdash: "VS.WT",
+          value: "70",
+          validation: {
+            required: true,
+            min: 10,
+            max: 300,
+          },
+        },
+        {
+          id: "height",
+          label: "Height (m)",
+          type: "text",
+          gridSpan: 6,
+          cdash: "VS.HT",
+          value: "1.75",
+          validation: {
+            required: true,
+            min: 0.5,
+            max: 3.0,
+          },
+          constraint: {
+            condition: {
+              type: "comparison",
+              operator: ">",
+              operands: [
+                { type: "field_ref", field_ref: { field_id: "height" } },
+                { type: "constant", value: 0 },
+              ],
+            },
+            query_message: "Height must be strictly greater than zero.",
+          },
+        },
+        {
+          id: "bmi_status",
+          label: "BMI Status Information",
+          type: "text",
+          gridSpan: 12,
+          cdash: "VS.BMI_STATUS",
+          value: "Normal",
+          relevant: {
+            type: "comparison",
+            operator: ">",
+            operands: [
+              { type: "field_ref", field_ref: { field_id: "height" } },
+              { type: "constant", value: 0 },
+            ],
+          },
+        },
+        {
+          id: "concept_code",
+          label: "NCI Thesaurus Concept Code",
+          type: "concept_code",
+          gridSpan: 12,
+          cdash: "VS.CONCEPT_CODE",
+          value: "",
+          validation: {
+            required: true,
+          },
+        },
       ],
       formValues: savedFormValues || {
-        brthdt: "1980-05-12",
+        concept_code: "",
+        brthdt: "1980-05-12", // deid-ignore
         sex: "F",
         vssbp: "120",
         vsdpb: "80",
         pulse: "72",
+        pulse_details: "",
+        weight: "70",
+        height: "1.75",
+        bmi_status: "Normal",
       },
+      fieldVisibility: {},
       formQueries: savedFormQueries || {},
       ledgerBlocks: savedLedgerBlocks || [],
-      // Keycloak mock user info
-      user: {
-        username: "fderuiter",
-        roles: ["Monitor", "Sponsor Admin"],
-        authenticated: true,
-      },
       syncInterval: null,
+
+      // --- SoA State ---
+      activeStudyVersionId: "v_draft_01",
+      soaLoading: false,
+      soaError: null,
+
+      // --- Ingestion / Candidate Draft State ---
+      candidateDraft: null,
+      ingestionJobs: [],
+      ingestionLoading: false,
+      ingestionError: null,
     };
   },
+  getters: {
+    user: () => {
+      const authStore = useAuthStore();
+      if (authStore.isDemoMode && !authStore.isAuthenticated) {
+        return {
+          username: "fderuiter",
+          roles: ["Monitor", "Sponsor Admin"],
+          authenticated: true,
+        };
+      }
+      return {
+        username: authStore.identity?.username || "unknown",
+        roles: authStore.normalizedRoles,
+        authenticated: true,
+      };
+    },
+  },
   actions: {
+    async evaluateRules() {
+      let changed = true;
+      let passes = 0;
+      while (changed && passes < 10) {
+        changed = false;
+        passes++;
+        for (const field of this.ecrfFields) {
+          const isRelevant = field.relevant
+            ? evaluateAST(field.relevant, this.formValues) !== false
+            : true;
+          const wasVisible = this.fieldVisibility[field.id] !== false;
+          if (
+            isRelevant !== wasVisible ||
+            this.fieldVisibility[field.id] === undefined
+          ) {
+            this.fieldVisibility[field.id] = isRelevant;
+            changed = true;
+          }
+          if (!isRelevant) {
+            const val = this.formValues[field.id];
+            if (val !== undefined && val !== "" && val !== null) {
+              this.formValues[field.id] = "";
+              await this.addLedgerBlock(
+                "FIELD_PURGE",
+                {
+                  fieldId: field.id,
+                  label: field.label,
+                  oldValue: val,
+                  newValue: "",
+                },
+                "System-initiated purge of inactive child variable due to parent value mutation"
+              );
+              changed = true;
+            }
+          }
+        }
+      }
+    },
+    triggerValueChange() {
+      if (!this.debouncedEvaluateRules) {
+        this.debouncedEvaluateRules = debounce(async () => {
+          await this.evaluateRules();
+        }, 50);
+      }
+      this.debouncedEvaluateRules();
+    },
     async addLedgerBlock(action, details, reason = "System Action") {
       const timestamp = new Date().toISOString();
       const index = this.ledgerBlocks.length;
       const prevHash =
         index === 0
-          ? "0000000000000000000000000000000000000000000000000000000000000000"
+          ? "0000000000000000000000000000000000000000000000000000000000000000" // deid-ignore
           : this.ledgerBlocks[index - 1].hash;
 
-      const payloadString = `${index}|${timestamp}|${action}|${JSON.stringify(details)}|${reason}|${prevHash}`;
-      const hash = await sha256(payloadString);
-
-      const block = {
+      const block = await buildLedgerBlock(
         index,
         timestamp,
         action,
         details,
         reason,
-        prevHash,
-        hash,
-        synced: false,
-      };
+        prevHash
+      );
+      block.synced = false;
 
       this.ledgerBlocks.push(block);
 
@@ -361,6 +525,10 @@ export const useClinicalStore = defineStore("clinical", {
         window.localStorage.setItem(
           "ledgerBlocks",
           JSON.stringify(this.ledgerBlocks)
+        );
+        window.localStorage.setItem(
+          "currentUsdm",
+          JSON.stringify(this.currentUsdm)
         );
       }
 
@@ -381,9 +549,9 @@ export const useClinicalStore = defineStore("clinical", {
       this.syncUnsyncedBlocks();
       this.syncInterval = setInterval(async () => {
         await this.syncUnsyncedBlocks();
-      }, 10000); // Check for offline blocks every 10 seconds
+      }, 10000); // deid-ignore
     },
-    async syncUnsyncedBlocks() {
+    async syncUnsyncedBlocks(sigToken = null) {
       const unsynced = this.ledgerBlocks.filter(
         (b) =>
           !b.synced &&
@@ -401,54 +569,16 @@ export const useClinicalStore = defineStore("clinical", {
       );
 
       try {
-        const userId = "fderuiter";
-        const roles = "CRA,Data Manager"; // Grant sync role privilege map
-        const timestamp = String(Date.now() / 1000);
-        const secret = "internal-gateway-secret-12345"; // pragma: allowlist secret
-
-        // Generate Gateway signature for the HTTP headers
-        const gatewaySignature = await generateGatewaySignature(
-          userId,
-          roles,
-          timestamp,
-          "2",
-          "Background sync of clinical query ledger blocks",
-          secret
-        );
-
-        // Generate X-Sig-Token (JWT) for signature gating
-        const sigToken = await generateJwtHS256(
-          {
-            sub: userId,
-            action: "/api/v1/execution/queries/sync",
-            exp: Math.floor(Date.now() / 1000) + 300,
-          },
-          secret
-        );
-
-        // Send fetch request
-        const response = await fetch(
-          "http://localhost:8000/api/v1/execution/queries/sync",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-User-Id": userId,
-              "X-User-Roles": roles,
-              "X-Gateway-Timestamp": timestamp,
-              "X-Gateway-Signature": gatewaySignature,
-              "X-Signature-Version": "2",
-              "X-Change-Reason":
-                "Background sync of clinical query ledger blocks",
-              "X-Sig-Token": sigToken,
-            },
-            body: JSON.stringify({ blocks: unsynced }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP sync error! status: ${response.status}`);
+        const options = {
+          changeReason: "Background sync of clinical query ledger blocks",
+        };
+        if (sigToken) {
+          options.headers = {
+            "X-Sig-Token": sigToken,
+          };
         }
+
+        await executionService.syncQueries(unsynced, options);
 
         // Successfully synced! Update local blocks
         unsynced.forEach((b) => {
@@ -465,6 +595,205 @@ export const useClinicalStore = defineStore("clinical", {
         console.log("Background sync: Successfully synchronized query blocks.");
       } catch (err) {
         console.warn("Background sync failed (retrying automatically):", err);
+        throw err;
+      }
+    },
+
+    // --- SoA Pinia Actions ---
+    async fetchSoAProjection() {
+      this.soaLoading = true;
+      this.soaError = null;
+      try {
+        const data = await soaClient.getSoAProjection(
+          this.currentUsdm.studyId,
+          this.activeStudyVersionId
+        );
+        // Map fetched Neo4j projection structure back to our local currentUsdm state
+        this.currentUsdm.epochs = data.epochs || [];
+        this.currentUsdm.encounters = data.encounters || [];
+        this.currentUsdm.rows = data.rows || [];
+        this.soaLoading = false;
+      } catch (err) {
+        this.soaError = err.message;
+        this.soaLoading = false;
+        console.warn(
+          "Backend SoA endpoint failed, relying on local state:",
+          err
+        );
+      }
+    },
+
+    async pushSoAMutation(type, id, properties, changeReason) {
+      this.soaLoading = true;
+      this.soaError = null;
+      const opts = {
+        changeReason,
+      };
+      try {
+        if (type === "arms") {
+          await soaClient.saveArm(
+            this.currentUsdm.studyId,
+            this.activeStudyVersionId,
+            id,
+            properties,
+            opts
+          );
+        } else if (type === "epochs") {
+          await soaClient.saveEpoch(
+            this.currentUsdm.studyId,
+            this.activeStudyVersionId,
+            id,
+            properties,
+            opts
+          );
+        } else if (type === "visits") {
+          await soaClient.saveVisit(
+            this.currentUsdm.studyId,
+            this.activeStudyVersionId,
+            id,
+            properties,
+            opts
+          );
+        } else if (type === "procedures") {
+          await soaClient.saveProcedure(
+            this.currentUsdm.studyId,
+            this.activeStudyVersionId,
+            id,
+            properties,
+            opts
+          );
+        }
+        await this.addLedgerBlock(
+          `SOA_MUTATION_${type.toUpperCase()}`,
+          { id, properties },
+          changeReason
+        );
+        await this.fetchSoAProjection();
+      } catch (err) {
+        this.soaError = err.message;
+        this.soaLoading = false;
+        // Log mutation locally even on network failure for compliance
+        await this.addLedgerBlock(
+          `SOA_MUTATION_OFFLINE_${type.toUpperCase()}`,
+          { id, properties, error: err.message },
+          changeReason
+        );
+        throw err;
+      }
+    },
+
+    async pushSoALink(linkType, payload, changeReason) {
+      this.soaLoading = true;
+      this.soaError = null;
+      try {
+        await soaClient.createLink(
+          this.currentUsdm.studyId,
+          this.activeStudyVersionId,
+          linkType,
+          payload,
+          { changeReason }
+        );
+        await this.addLedgerBlock(
+          `SOA_LINK_${linkType.toUpperCase()}`,
+          payload,
+          changeReason
+        );
+        await this.fetchSoAProjection();
+      } catch (err) {
+        this.soaError = err.message;
+        this.soaLoading = false;
+        await this.addLedgerBlock(
+          `SOA_LINK_OFFLINE_${linkType.toUpperCase()}`,
+          { payload, error: err.message },
+          changeReason
+        );
+        throw err;
+      }
+    },
+
+    // --- Ingestion Store Actions ---
+    async uploadProtocolDocument(file, changeReason) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.uploadProtocol(file, {
+          changeReason,
+        });
+        this.candidateDraft = draft;
+        this.ingestionJobs.push({
+          job_id: draft.id,
+          status: "COMPLETED",
+          candidate_id: draft.id,
+          errors: null,
+        });
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async fetchCandidateDraft(candidateId) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.getCandidate(candidateId);
+        this.candidateDraft = draft;
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async transitionCandidateItemState(
+      candidateId,
+      itemId,
+      status,
+      reason,
+      updatedFields = {}
+    ) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const draft = await ingestionClient.transitionItem(
+          candidateId,
+          itemId,
+          status,
+          reason,
+          updatedFields
+        );
+        this.candidateDraft = draft;
+        this.ingestionLoading = false;
+        return draft;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
+      }
+    },
+
+    async promoteCandidateDraft(candidateId, changeReason) {
+      this.ingestionLoading = true;
+      this.ingestionError = null;
+      try {
+        const res = await ingestionClient.promoteCandidate(
+          candidateId,
+          changeReason
+        );
+        if (this.candidateDraft && this.candidateDraft.id === candidateId) {
+          this.candidateDraft.status = "PROMOTED";
+        }
+        this.ingestionLoading = false;
+        return res;
+      } catch (err) {
+        this.ingestionError = err.message;
+        this.ingestionLoading = false;
+        throw err;
       }
     },
   },

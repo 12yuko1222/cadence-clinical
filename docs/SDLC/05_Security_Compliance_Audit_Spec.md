@@ -97,7 +97,8 @@ The Cadence Clinical platform enforces a highly granular Role-Based Access Contr
 6. **Principal Investigator / Site Investigator (PI):** The medical authority at the clinical research site. Enrolls subjects, performs medical review, answers queries, and sign-off/approves finalized eCRFs.
 7. **Clinical Research Coordinator (CRC):** Performs daily data entry on subjects, saves draft eCRFs, responds to query validation issues, and manages subject visits.
 8. **Clinical Research Associate (CRA / Monitor):** Represents the sponsor at the site. Performs Source Document Verification (SDV), raises manual queries, and monitors protocol compliance.
-9. **Subject / Patient (ePRO):** Individual enrolled in the trial. Limited access strictly through a mobile or web portal to submit self-reported outcomes (ePRO/diaries) without visibility into any backend trial configurations, dictionaries, or other subjects.
+9. **Subject / Patient (ePRO):** Individual enrolled in the trial. Limited access strictly through a mobile or web portal to perform the 8 allowed self-service actions (submit diaries, bulk sync, read assigned instruments, read self-scoped assignments, assigned instruments, compliance metrics, and notifications inbox, and acknowledge notifications), without visibility into any backend trial configurations, dictionaries, or other subjects.
+10. **External Monitor (CRO Monitor):** Associated with CRO affiliation. Performs high-level clinical oversight as a strict read-only persona. Excluded from delegation-of-authority workflows, and holds only read permissions for eTMF, EDL, eTMF Audit Logs, and eISF.
 
 ### 2.2 System Resource & Feature Permission Matrix
 
@@ -108,22 +109,23 @@ The following matrix defines the granular operations allowed for each role acros
 - **`D`**: Soft-Delete / Inactivate
 - **`N`**: No Access
 
-| Clinical Role | Study Design (USDM) | Subject Enrollment | eCRF Data Entry | Query Lifecycle | Source Doc Verification (SDV) | System Audit Logs | Export Unmasked | Export Masked |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **SysAdmin** | R | N | N | N | N | R | N | N | R |
-| **Sponsor Designer**| C/R/U/D | N | N | N | N | R | N | N | N |
-| **Sponsor DM** | R | R | R | C/R/U/D | N | R | N | R | C/R/U |
-| **Sponsor MM** | R | R | R | C/R/U | N | R | N | R | R |
-| **Sponsor Statistician**| R | N | N | N | N | R | N | N | C/R/U |
-| **Site Investigator (PI)**| R | C/R/U | C/R/U | R/U (Ans) | R | R (Site) | N | N | N |
-| **Site Coordinator (CRC)**| R | C/R/U | C/R/U (Draft) | R/U (Ans) | N | R (Site) | N | N | N |
-| **Site Monitor (CRA)** | R | R | R | C/R/U/D | C/R/U/D | R (Site) | N | N | R (Site) |
-| **Patient (ePRO)** | N | N | C/U (Diary) | N | N | N | N | N | N |
+| Clinical Role | Study Design (USDM) | Subject Enrollment | eCRF Data Entry | Query Lifecycle | Source Doc Verification (SDV) | System Audit Logs | Export Unmasked | Export Masked | TSDV Config | Form Submission | PI Sign-off | Medical Coding | Trial Lock |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **SysAdmin** | R | N | N | N | N | R | C/R/U/D | R | C/R/U/D | C/R/U/D | C/R/U/D | C/R/U/D | C/R/U/D |
+| **Sponsor Designer**| C/R/U/D | N | N | N | N | R | N | N | N | N | N | N | R |
+| **Sponsor DM** | R | R | R | C/R/U/D | N | R | N | C/R/U | R | R | R | C/R/U/D | C/R/U/D |
+| **Sponsor MM** | R | R | R | C/R/U | N | R | N | R | N | R | R | R | R |
+| **Sponsor Statistician**| R | N | N | N | N | R | C/R/U | C/R/U | N | N | N | N | R |
+| **Site Investigator (PI)**| R | C/R/U | C/R/U | R/U (Ans) | R | R (Site) | N | N | R | C/R/U | C/R/U | N | R |
+| **Site Coordinator (CRC)**| R | C/R/U | C/R/U (Draft) | R/U (Ans) | N | R (Site) | N | N | N | C/R/U | R | N | R |
+| **Site Monitor (CRA)** | R | R | R | C/R/U/D | C/R/U/D | R (Site) | N | R (Site) | C/R/U/D | R | R | N | R |
+| **Patient (ePRO)** | N | N | C/U (Diary) | N | N | N | N | N | N | C/U | N | N | N |
+| **External Monitor (CRO)** | R | N | N | N | N | R | N | R | R | R | R | N | R |
 
 ### 2.3 Field-Level Visibility & Blinding Matrix
 To guarantee compliance with blinding regulations, several parameters must be completely hidden or obfuscated from blinded roles. Blinded roles include CRCs, PIs, CRAs, and general Sponsor Data Managers during active trial phases. Unblinded roles include designated unblinded statisticians, unblinded pharmacists, and specific safety monitoring boards (DSMB).
 
-| Database Table / Entity | Field/Attribute | Blinded Roles (PI, CRC, CRA, DM, MM) | Unblinded Roles (Unblinded Pharmacist, DSMB) | Technical Enforcement Mechanism |
+| Database Table / Entity | Field/Attribute | Blinded Roles (PI, CRC, CRA, DM, MM, External Monitor) | Unblinded Roles (Unblinded Pharmacist, DSMB) | Technical Enforcement Mechanism |
 | :--- | :--- | :--- | :--- | :--- |
 | `subject_demographics` | Patient Initials, SSN, DOB | Masked / Hashed (No Read) | Read Only (PI/CRC Site Only) | API-layer field stripping in Gateway based on OIDC token attributes. |
 | `subject_demographics` | Country, Gender, Age | Read Only | Read Only | Exposed globally across all clinical site roles. |
@@ -509,6 +511,17 @@ The user must choose from an immutable, system-declared dropdown list matching t
 ```
 
 This manifest block is combined with the current operational form state as an immutable JSON chunk, cryptographically signed using the server's private key, and permanently archived alongside the database row.
+
+### 4.3 Batch PI Electronic Sign-Off (Trace-14 & Trace-15)
+To support high-throughput clinical operations while strictly adhering to 21 CFR Part 11, the system supports server-side atomic batch electronic sign-offs for the Principal Investigator (PI) persona.
+* **Role Enforcement:** Limited strictly to roles `pi` or `principal investigator` (mapped downstream to `ROLE_PI` or `ROLE_INVESTIGATOR`).
+* **Target Semantics:** Supports bulk target query resolution for `FormSubmission` records. It accepts `target_type` parameters of `FORM` (specific UUIDs), `VISIT` (visit codes like `VISIT-001`), or `SUBJECT` (subject pseudonyms).
+* **Token Action & Batch Binding:** The client captures a single re-authentication credential set and requests a JWT `X-Sig-Token` carrying a custom `batch_id` claim. The `batch_id` is computed as a SHA-256 hash of the canonical serial block:
+  `{study_id}:{target_type}:{sorted_target_ids_comma_separated}:{signing_reason}`
+  The downstream Execution service recalculates this hash to verify that the request body matches the signature's binding. Any payload variation fails verification (rejection with HTTP 401), executing **no database mutations**.
+* **Single-Use Replay Protection:** Enforces `jti` tracking in active replay caches at both the Gateway and Execution levels to block token replay attacks.
+* **Individual Manifest Manifestation:** Every approved form submission receives its own independent, distinct signature manifestation block in the `signature_manifest` JSON column. The manifestation details the printed signer name, UTC timestamp (ending in `Z`), reason code `PI_APPROVAL`, reason text, unique record ID, and the newly incremented `record_version` (e.g., from 1 to 2).
+* **Locking & Atomicity Guarantees:** A pre-requisite check scans for any trial, site, visit, subject, or form level locks. If any targets are locked, a `PermissionError` is raised. The entire batch updates inside a nested database transaction (`session.begin_nested()`), ensuring that any lock breach or exception rolls back the entire batch atomically, leaving all records unchanged (no partial approvals on error).
 
 ---
 

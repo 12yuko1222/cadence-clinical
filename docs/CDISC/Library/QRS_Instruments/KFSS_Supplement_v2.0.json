@@ -1,0 +1,817 @@
+{
+    "Read Me": [
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "About the use of Code: Code (i.e., unique numeric code assigned by NCI EVS, in C<<number>> format) is used so that information presented is agnostic to different versions of CDISC Controlled Terminology publications, where Code is immutable in principal and other information such as Submission Value may vary. Users will have the flexibility to pair the Code information with any given publication of their choice.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Statement on copyright permission: A QRS Supplement to the SDTMIG may be for an instrument in the a public domain or for a copyrighted instrument for which the copyright holder has given CDISC permission to develop a supplement. All QRS Supplements to the SDTMIG are created in compliance with CDISC operating procedure COP-001. For copyrighted instruments, note the following:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Granting CDISC the right to create supplements to represent an instrument in CDISC QRS domains is not a license for CDISC standards users to use the instrument without complying with the copyright holders licensing requirements.\n\nNo part of a copyrighted instrument or accompanying guidelines may be reproduced, distributed, or transmitted in any form, or by any means, including photocopying, recording, or other electronic or mechanical methods without the permission of the copyright holder and payment of applicable fees.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Warranties, Limitations of Liability, Disclaimers, Copyright Status, and Relationship to the CDISC SDTMIG: Consult the specifics in each QRS Supplement publication, downloadable from the CDISC QRS standards page.",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "For additional information, visit these on-line resources:",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC QRS standards page",
+            "Unnamed: 1": "https://www.cdisc.org/foundational/qrs"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "\"All Published QRS Supplements\" section",
+            "Unnamed: 1": "https://www.cdisc.org/standards/foundational/qrs#QRS_Supplements"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library API documentation",
+            "Unnamed: 1": "https://www.cdisc.org/cdisc-library/api-documentation"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library release notes",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/Release+Notes"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "CDISC Library knowledge base",
+            "Unnamed: 1": "https://wiki.cdisc.org/display/LIBSUPRT/How-to+articles"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Instrument",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Short Name (Column A)",
+            "Unnamed: 1": "Short Name (--CAT) in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Name (Column B)",
+            "Unnamed: 1": "QRS Name in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Version (Column C)",
+            "Unnamed: 1": "Version in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Supplement Release Date (Column D)",
+            "Unnamed: 1": "Release Date in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Description (Column E)",
+            "Unnamed: 1": "CDISC Definition for this QRS instrument from one of these CDISC Controlled Terminology codelists: CCCAT (C118971), FTCAT (C115304), or QSCAT (C100129).\n\nRefer to columns H and G for exact code and codelist and code."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Type (Column F)",
+            "Unnamed: 1": "Questionnaire, Functional Test, or Clinical Classification.\n\nDerived (i.e., spelled out) from the SDTM Domain information in the \"All Published QRS Supplements\" table on the CDISC QRS standards page for this QRS instrument.\n\nVisit the CDISC QRS standards page for up-to-date definitions for these values, as well as choosing an SDTM domain for each type."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Copyright Permission (Column G)",
+            "Unnamed: 1": "Copyright permission status for this QRS instrument.\n\nFor details, refer to the QRS SDTMIG and ADaMIG Supplements Addendum of CDISC COP-001."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--CAT' (Column H)",
+            "Unnamed: 1": "C100129 (QSCAT), C115304 (FTCAT), or C118971 (CCCAT), depending on whether the Type in column F is Questionnaire, Functional Test, or Clinical Classification, respectively. \n\nUse in conjunction with column I."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--CAT' (Column I)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this specific instrument in column B; this is a member of the codelist referenced in column H.\n\nUse the Submission Value of this Code from the codelist referenced in column G to populate --CAT in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Items",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Order (Column A)",
+            "Unnamed: 1": "Derived from the ordering of a term in a codelist, i.e., the position of the term (column G) in the CDISC Controlled Terminology codelist (column F)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Test Name (Column B)",
+            "Unnamed: 1": "CDISC Submission Value for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Item Text (Column C)",
+            "Unnamed: 1": "CDISC Definition for this QRS item, which is also the codelist term referenced in columns D and E.\n\nThis is for reference only. Refer to a CDISC Controlled Terminology publication of your choice for the exact text."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TEST' (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column E."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TEST' (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this is member of the codelist referenced in column D.\n\nUse the Submission Value of this Code from the codelist referenced in column D to populate --TEST in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Codelist Code for '--TESTCD' (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS item.\n\nUse in conjunction with column G."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Code for '--TESTCD' (Column G)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS item; this term is member of the codelist referenced in column F.\n\nUse the Submission Value of this Code from the codelist referenced in column F to populate --TESTCD in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column H)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with QRS Responses tab, when it is populated for this QRS item. When it is not populated, Controlled Terminology is not available for this QRS item."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "QRS Responses\nNote: Populated when Controlled Terminology for responses is available",
+            "Unnamed: 1": NaN
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Column",
+            "Unnamed: 1": "Description"
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Group (Column A)",
+            "Unnamed: 1": "Assigned name of a response group.\n\nUse in conjunction with column I of QRS Items tab."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response Order (Column B)",
+            "Unnamed: 1": "Derived from the ordering of a term in a QRS response codelist, i.e., the position of the term (columns D and F) in the CDISC Controlled Terminology codelist (columns C and E)."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Codelist C-Code (Column C)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's original result.\n\nUse in conjunction with column D."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Original Result Term C-Code (Column D)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response; this is member of the codelist referenced in column C.\n\nUse the Submission Value of this Code from the codelist referenced in column C to populate --ORRES in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Codelist C-Code (Column E)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Codelist Code for this QRS response's standardized result.\n\nUse in conjunction with column F."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Response's Standardized Result Term C-Code (Column F)",
+            "Unnamed: 1": "CDISC Controlled Terminology's Code for this QRS response's standardized result; this is member of the codelist referenced in column E.\n\nUse the Submission Value of this Code from the codelist referenced in column E to populate --STRESN in an SDTMIG-based dataset."
+        },
+        {
+            "Description: Information in this spreadsheet represents metadata described in the QRS Supplement to the SDTMIG. This spreadsheet is generated from CDISC Controlled Terminology in CDISC Library. One spreadsheet is available per QRS instrument, per version (as designated in QRS Supplement to the SDTMIG). The layout of the spreadsheet provides a combined, simplified view of CDISC Controlled Terminology and information in the \"All Published QRS Supplements\" section of the CDISC QRS standards page. The purpose of the spreadsheet is to aid implementers in creating SDTMIG-based datasets.": "Numeric Standardized Results? (Column G)",
+            "Unnamed: 1": "Boolean indicator for standardized result is numeric, and whether --STRESN is to be used."
+        }
+    ],
+    "QRS Instrument": [
+        {
+            "Short Name": "KFSS",
+            "QRS Name": "Kurtzke Functional Systems Scores Supplement v2.0",
+            "Supplement Version": 2.0,
+            "Supplement Release Date": "2021-04-03",
+            "Description": "Kurtzke Functional Systems Scores (FSS) (Kurtzke JF. Rating neurologic impairment in multiple sclerosis: an expanded disability status scale (EDSS). Neurology. 1983 Nov;33(11):1444-52).",
+            "Type": "Clinical Classification",
+            "Copyright\nPermission": "Public Domain",
+            "Codelist Code for '--CAT'": "C118971",
+            "Code for\n'--CAT'": "C112522"
+        }
+    ],
+    "QRS Items": [
+        {
+            "Item\nOrder": 1,
+            "Item Test Name": "KFSS1-Weakness Interferes With Testing",
+            "Item Text": "QRS Instrument Item KFSS1-Weakness Interferes With Testing for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112611",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112611",
+            "Response Group": "KFSS1:VD.KFSS1-2A_"
+        },
+        {
+            "Item\nOrder": 2,
+            "Item Test Name": "KFSS1-Presence of Temporal Pallor",
+            "Item Text": "QRS Instrument Item KFSS1-Presence of Temporal Pallor for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112616",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112616",
+            "Response Group": "KFSS1:VD.KFSS1-2A_"
+        },
+        {
+            "Item\nOrder": 3,
+            "Item Test Name": "KFSS1-Pyramidal Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Pyramidal Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112609",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112609",
+            "Response Group": "KFSS1:VD.KFSS1-01"
+        },
+        {
+            "Item\nOrder": 4,
+            "Item Test Name": "KFSS1-Cerebellar Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Cerebellar Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112610",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112610",
+            "Response Group": "KFSS1:VD.KFSS1-02"
+        },
+        {
+            "Item\nOrder": 5,
+            "Item Test Name": "KFSS1-Brain Stem Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Brain Stem Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112612",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112612",
+            "Response Group": "KFSS1:VD.KFSS1-03"
+        },
+        {
+            "Item\nOrder": 6,
+            "Item Test Name": "KFSS1-Sensory Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Sensory Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112613",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112613",
+            "Response Group": "KFSS1:VD.KFSS1-04"
+        },
+        {
+            "Item\nOrder": 7,
+            "Item Test Name": "KFSS1-Bowel and Bladder Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Bowel and Bladder Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112614",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112614",
+            "Response Group": "KFSS1:VD.KFSS1-05"
+        },
+        {
+            "Item\nOrder": 8,
+            "Item Test Name": "KFSS1-Visual or Optic Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Visual or Optic Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112615",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112615",
+            "Response Group": "KFSS1:VD.KFSS1-06"
+        },
+        {
+            "Item\nOrder": 9,
+            "Item Test Name": "KFSS1-Cerebral or Mental Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Cerebral or Mental Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C112617",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C112617",
+            "Response Group": "KFSS1:VD.KFSS1-07"
+        },
+        {
+            "Item\nOrder": 10,
+            "Item Test Name": "KFSS1-Other Functions",
+            "Item Text": "QRS Instrument Item KFSS1-Other Functions for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C113884",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C113884",
+            "Response Group": "KFSS1:VD.KFSS1-08"
+        },
+        {
+            "Item\nOrder": 11,
+            "Item Test Name": "KFSS1-Other Functions Specify",
+            "Item Text": "QRS Instrument Item KFSS1-Other Functions Specify for KFSS Supplement v2.0",
+            "Codelist Code for '--TEST'": "C112442",
+            "Code\nfor '--TEST'": "C113885",
+            "Codelist Code\nfor '--TESTCD'": "C112443",
+            "Code\nfor '--TESTCD'": "C113885",
+            "Response Group": "KFSS1:VD.KFSS1-8A"
+        }
+    ],
+    "QRS Responses": [
+        {
+            "Response Group": "KFSS1:VD.KFSS1-2A_",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182477",
+            "Response's Original Result Term C-Code": "C182796",
+            "Response's Standardized Result Codelist C-Code": "C182515",
+            "Response's Standardized Result Term C-Code": "C182798",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-2A_",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182477",
+            "Response's Original Result Term C-Code": "C182797",
+            "Response's Standardized Result Codelist C-Code": "C182515",
+            "Response's Standardized Result Term C-Code": "C182799",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182766",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182774",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182767",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182775",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182768",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182776",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182769",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182777",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182770",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182778",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182771",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182779",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182772",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182780",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-01",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182475",
+            "Response's Original Result Term C-Code": "C182773",
+            "Response's Standardized Result Codelist C-Code": "C182513",
+            "Response's Standardized Result Term C-Code": "C182781",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182782",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182789",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182783",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182790",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182784",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182791",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182785",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182792",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182786",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182793",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182787",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182794",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-02",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182476",
+            "Response's Original Result Term C-Code": "C182788",
+            "Response's Standardized Result Codelist C-Code": "C182514",
+            "Response's Standardized Result Term C-Code": "C182795",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182800",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182807",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182801",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182808",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182802",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182809",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182803",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182810",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182804",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182811",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182805",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182812",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-03",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182478",
+            "Response's Original Result Term C-Code": "C182806",
+            "Response's Standardized Result Codelist C-Code": "C182516",
+            "Response's Standardized Result Term C-Code": "C182813",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182814",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182822",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182815",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182823",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182816",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182824",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182817",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182825",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182818",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182826",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182819",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182827",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182820",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182828",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-04",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182479",
+            "Response's Original Result Term C-Code": "C182821",
+            "Response's Standardized Result Codelist C-Code": "C182517",
+            "Response's Standardized Result Term C-Code": "C182829",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182830",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182838",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182831",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182839",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182832",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182840",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182833",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182841",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182834",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182842",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182835",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182843",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182836",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182844",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-05",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182480",
+            "Response's Original Result Term C-Code": "C182837",
+            "Response's Standardized Result Codelist C-Code": "C182518",
+            "Response's Standardized Result Term C-Code": "C182845",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182846",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182854",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182847",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182855",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182848",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182856",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182849",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182857",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182850",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182858",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182851",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182859",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182852",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182860",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-06",
+            "Response\nOrder": 8,
+            "Response's Original Result Codelist C-Code": "C182481",
+            "Response's Original Result Term C-Code": "C182853",
+            "Response's Standardized Result Codelist C-Code": "C182519",
+            "Response's Standardized Result Term C-Code": "C182861",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182862",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182869",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182863",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182870",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182864",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182871",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 4,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182865",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182872",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 5,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182866",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182873",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 6,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182867",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182874",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-07",
+            "Response\nOrder": 7,
+            "Response's Original Result Codelist C-Code": "C182482",
+            "Response's Original Result Term C-Code": "C182868",
+            "Response's Standardized Result Codelist C-Code": "C182520",
+            "Response's Standardized Result Term C-Code": "C182875",
+            "Numeric Standardized Results?": "No"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-08",
+            "Response\nOrder": 1,
+            "Response's Original Result Codelist C-Code": "C182483",
+            "Response's Original Result Term C-Code": "C182876",
+            "Response's Standardized Result Codelist C-Code": "C182521",
+            "Response's Standardized Result Term C-Code": "C182879",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-08",
+            "Response\nOrder": 2,
+            "Response's Original Result Codelist C-Code": "C182483",
+            "Response's Original Result Term C-Code": "C182877",
+            "Response's Standardized Result Codelist C-Code": "C182521",
+            "Response's Standardized Result Term C-Code": "C182880",
+            "Numeric Standardized Results?": "Yes"
+        },
+        {
+            "Response Group": "KFSS1:VD.KFSS1-08",
+            "Response\nOrder": 3,
+            "Response's Original Result Codelist C-Code": "C182483",
+            "Response's Original Result Term C-Code": "C182878",
+            "Response's Standardized Result Codelist C-Code": "C182521",
+            "Response's Standardized Result Term C-Code": "C182881",
+            "Numeric Standardized Results?": "No"
+        }
+    ]
+}

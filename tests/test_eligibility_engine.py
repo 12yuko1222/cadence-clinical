@@ -17,6 +17,7 @@ from eligibility import (
 # @req:PRD-ELIGIBILITY-001
 def test_parse_simple_expressions():
     """Verify parser correctly builds AST for simple comparison and literal expressions."""
+    # @req:PRD-MDR-007
     node1 = parse_dsl("eCRF.DM.AGE >= 18")
     assert node1.type == "comparison"
     assert node1.operator == ">="
@@ -45,6 +46,7 @@ def test_parse_simple_expressions():
 # @req:PRD-ELIGIBILITY-002
 def test_parse_logical_and_nested_expressions():
     """Verify parsing of binary logical operators, not, and parentheses nesting."""
+    # @req:PRD-MDR-007
     node = parse_dsl("eCRF.DM.AGE >= 18 and eCRF.LB.ALT < 150")
     assert node.type == "logical"
     assert node.operator == "and"
@@ -103,6 +105,7 @@ def test_parse_invalid_syntax():
 # @req:PRD-ELIGIBILITY-004
 def test_evaluation_all_operators():
     """Verify execution of every comparison operator under various input data states."""
+    # @req:PRD-MDR-007
     context = {
         "eCRF.DM.AGE": 25,
         "eCRF.LB.ALT": 120.5,
@@ -138,6 +141,7 @@ def test_evaluation_all_operators():
 # @req:PRD-ELIGIBILITY-005
 def test_evaluation_kleene_indeterminate_propagation():
     """Verify Kleene 3-valued logic evaluations and short-circuit outcomes for missing/null values."""
+    # @req:PRD-MDR-007
     # Context with some fields missing or null
     context = {
         "eCRF.DM.AGE": 25,
@@ -203,6 +207,7 @@ def test_evaluation_incompatible_types_graceful_handling():
 # @req:PRD-ELIGIBILITY-007
 def test_aggregate_eligibility_evaluation():
     """Verify total/aggregate eligibility calculation with list of inclusions/exclusions."""
+    # @req:PRD-MDR-007
     audit_args = {
         "created_by": "tester",
         "reason_for_change": "Initial eligibility criteria definitions.",

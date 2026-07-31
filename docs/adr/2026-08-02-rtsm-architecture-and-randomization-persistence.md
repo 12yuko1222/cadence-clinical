@@ -2,7 +2,7 @@
 
 * **Status:** Accepted
 * **Date:** 2026-08-02
-* **Authors:** @jules
+* **Authors:** @fderuiter
 * **Deciders:** @lead_architect, @gxp_compliance_officer
 
 ---
@@ -13,6 +13,8 @@ The platform requires a Randomization and Trial Supply Management (RTSM) module 
 To maintain blinding, the treatment assignments and allocation sequences must be strictly confidential. Thus, sensitive allocation and sequence values must be encrypted-at-rest. Concurrently, the randomization setup, state tracking per stratum, and subject assignments must be protected from tampering and hard-deletion, participating in the platform's unified audit trail and read-only trial-locking architecture.
 
 This decision record establishes the governing RTSM architecture and the audited relational database schemas for randomization configuration, per-stratum state, and subject assignments.
+
+This decision implements requirements under Trace-1.
 
 ## 2. Decision Drivers & Constraints
 * **Compliance (21 CFR Part 11 & GxP):** All changes to randomization setup or assignments must produce immutable, versioned audit trail records. Hard deletes must be strictly prohibited.

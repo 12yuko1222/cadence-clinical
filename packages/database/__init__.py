@@ -1,7 +1,26 @@
+from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, AsyncGenerator, Optional
 
-from sqlalchemy import event
+from fastapi import FastAPI
+from sqlalchemy import DateTime, Integer, String, event, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Mapped, declarative_mixin, mapped_column
+
+
+@declarative_mixin
+class AuditMixin:
+    """
+    SQLAlchemy declarative mixin that adds standard Part 11 compliant audit and metadata fields
+    (created_at, created_by, reason_for_change, version_index) to consolidate duplicated patterns.
+    """
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    reason_for_change: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
 
 class RelationalDatabaseManager:
@@ -20,7 +39,6 @@ class RelationalDatabaseManager:
         @event.listens_for(self.engine.sync_engine, "connect")
         def set_sqlite_pragma(dbapi_connection, connection_record):
             """Enable SQLite foreign key support on connect event."""
-            # If using sqlite, ensure foreign keys are enabled (if dialect is sqlite)
             cursor = dbapi_connection.cursor()
             try:
                 cursor.execute("PRAGMA foreign_keys=ON")
@@ -65,3 +83,45 @@ class DatabaseSessionDependency:
             except Exception:
                 await session.rollback()
                 raise
+
+
+def get_relational_db_lifespan(
+    db_manager: RelationalDatabaseManager,
+    database_url: str,
+    base_metadata: Optional[Any] = None,
+    startup_hooks: Optional[list] = None,
+    shutdown_hooks: Optional[list] = None,
+    **kwargs: Any,
+) -> Any:
+    """
+    Unified application lifecycle wrapper that automatically handles database connection
+    setup and local migrations (on SQLite), and supports parameterized callback hooks for
+    executing service-specific startup and shutdown tasks.
+    """
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+        # Initialize database engine and session maker
+        db_manager.init_db(database_url, **kwargs)
+
+        # Run local migrations if using sqlite
+        if database_url.startswith("sqlite") and base_metadata is not None:
+            async with db_manager.engine.begin() as conn:
+                await conn.run_sync(base_metadata.create_all)
+
+        # Run service-specific asynchronous startup tasks
+        if startup_hooks:
+            for hook in startup_hooks:
+                await hook()
+
+        try:
+            yield
+        finally:
+            # Run service-specific asynchronous shutdown tasks
+            if shutdown_hooks:
+                for hook in shutdown_hooks:
+                    await hook()
+            # Clean up database engine
+            await db_manager.close()
+
+    return lifespan

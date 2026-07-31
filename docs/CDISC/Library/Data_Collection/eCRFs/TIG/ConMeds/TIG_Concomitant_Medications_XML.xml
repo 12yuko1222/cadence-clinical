@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-14T16:13:10"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_CONC_MED_GENERAL"
+                  Name="Tobacco Implementation Guide-Concomitant Medications"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect general concomitant medications/products used in a study. This CRF was designed to allow the sponsor to use either CMENRF or CMENRTPT to represent an intervention was ongoing.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="CM_TIG_ANY.CMYN" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="CM_TIG_ MED" Mandatory="Yes" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="CM_TIG_ANY.CMYN"
+                       Name="Any Concomitant Medications"
+                       Repeating="No">
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS_ANY.CMYN" Mandatory="No" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="CM_TIG_ MED" Name="Medications" Repeating="No">
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMCAT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMSPID" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMTRT" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMINDC" Mandatory="No" OrderNumber="4"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.DSTXT" Mandatory="No" OrderNumber="5"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMDOSU" Mandatory="No" OrderNumber="6"/>
+            <ItemRef ItemOID="CM_TIG_CM_GEN_MEDS.CMDOSFRM"
+                     Mandatory="No"
+                     OrderNumber="7"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMROUTE" Mandatory="No" OrderNumber="8"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMDOSFRQ" Mandatory="No" OrderNumber="9"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMSTDAT" Mandatory="No" OrderNumber="10"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMONGO" Mandatory="No" OrderNumber="11"/>
+            <ItemRef ItemOID="CM_TIG_GEN_MEDS.CMENDAT" Mandatory="No" OrderNumber="12"/>
+         </ItemGroupDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMCAT"
+                  Name="CMCAT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="CMCAT">
+            <Question>
+               <TranslatedText>What is the category for the concomitant medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="Record the medication category, if not pre-printed on the CRF."
+                   Context="completion Instructions"/>
+            <Alias Name="GENERAL" Context="pre-filled"/>
+            <Alias Name="Concomitant Medication Category" Context="(prompt)"/>
+            <Alias Name="CMCAT" Context="CDASH"/>
+            <Alias Name="CMCAT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_CM_GEN_MEDS.CMDOSFRM"
+                  Name="CMCDOSFRM"
+                  DataType="text"
+                  Length="50"
+                  SDSVarName="CMDOSFRM">
+            <Question>
+               <TranslatedText>What was the dose form of the medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="CMDOSFRM" Context="CDASH"/>
+            <Alias Name="CMDOSFRM" Context="SDTM"/>
+            <Alias Name="Record the pharmaceutical dosage form (e.g., TABLET CAPSULE, SYRUP) of delivery for the medication/product taken"
+                   Context="completionInstructions"/>
+            <Alias Name="Dose Form" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMDOSFRQ"
+                  Name="CMDOSFRQ"
+                  DataType="text"
+                  Length="50"
+                  SDSVarName="CMDOSFRQ">
+            <Question>
+               <TranslatedText>What was the frequency of the medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="Record how often the medication/product was taken (e.g., BID, PRN)."
+                   Context="completionInstructions"/>
+            <Alias Name="Frequency" Context="prompt"/>
+            <Alias Name="CMDOSFRQ" Context="CDASH"/>
+            <Alias Name="CMDOSFRQ" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMDOSU"
+                  Name="CMDOSU"
+                  DataType="text"
+                  Length="10"
+                  SDSVarName="CMDOSU">
+            <Question>
+               <TranslatedText>What is the unit?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C71620.UNIT.CMDOSU"/>
+            <Alias Name="Record the dose unit of the dose of medication/product taken (e.g., mg.)."
+                   Context="completion Instructions"/>
+            <Alias Name="When sponsors collect data for amount of dose taken (i.e., Dose, Total Daily Dose), Unit must be collected as well (if applicable)."
+                   Context="implementationNotes"/>
+            <Alias Name="UNIT" Context="prompt"/>
+            <Alias Name="CMDOSU" Context="SDTM"/>
+            <Alias Name="CMDOSU" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.DSTXT"
+                  Name="CMDSTXT"
+                  DataType="text"
+                  Length="10">
+            <Question>
+               <TranslatedText>What was the individual dose of the medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="CMDSTXT" Context="CDASH"/>
+            <Alias Name="Record the dose of medication/product."
+                   Context="completionInstructions"/>
+            <Alias Name="CMDOSTXT or CMDOSE" Context="SDTM"/>
+            <Alias Name="Dose" Context="prompt"/>
+            <Alias Name="Defining this data collection field as a dose text field allows for flexibility in capturing dose entries as numbers, text or ranges. The data collected in this dose text-format field should be separated or mapped to either SDTMIG CMDOSE if numeric or CMDOSTXT if text."
+                   Context="implementationNotes"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMENDAT"
+                  Name="CMENDAT"
+                  DataType="date"
+                  SDSVarName="CMENDTC">
+            <Question>
+               <TranslatedText>What was the end date?</TranslatedText>
+            </Question>
+            <Alias Name="End Date" Context="prompt"/>
+            <Alias Name="CMENDTC" Context="SDTM"/>
+            <Alias Name="CMENDAT" Context="CDASH"/>
+            <Alias Name="Record the date the medication/product was stopped. If the subject has not stopped taking the medication/product leave this field blank."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMINDC"
+                  Name="CMINDC"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="CMINDC">
+            <Question>
+               <TranslatedText>For what indication was the medication/product taken?</TranslatedText>
+            </Question>
+            <Alias Name="CMINDC" Context="SDTM"/>
+            <Alias Name="Record the reason the medication/product was taken based on investigator's evaluation. If taken to treat a condition, and a diagnosis was made, the indication should be the diagnosis. If taken to treat a condition, and no diagnosis was made, the indication should be the signs and symptoms. If taken as prophylaxis, report as &#34;Prophylaxis for &#34; and include a description of the condition(s)."
+                   Context="completionInstructions"/>
+            <Alias Name="Indication" Context="prompt"/>
+            <Alias Name="CMINDC" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMONGO"
+                  Name="CMONGO"
+                  DataType="text"
+                  Length="1">
+            <Question>
+               <TranslatedText>Is the medication/product ongoing?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="CMONGO" Context="CDASH"/>
+            <Alias Name="Record the medication/product as ongoing if the subject has not stopped taking the medication/product at [the timepoint defined by the study]. If the medication/product is ongoing, the end date should be left blank"
+                   Context="completionInstructions"/>
+            <Alias Name="Ongoing (as of [the study-specific time point or period])"
+                   Context="prompt"/>
+            <Alias Name="CMENRF or CMENRTPT" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMROUTE"
+                  Name="CMROUTE"
+                  DataType="text"
+                  Length="50"
+                  SDSVarName="CMROUTE">
+            <Question>
+               <TranslatedText>What was the route of administration of the medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="CMROUTE" Context="CDASH"/>
+            <Alias Name="CMROUTE" Context="SDTM"/>
+            <Alias Name="Route" Context="prompt"/>
+            <Alias Name="Provide the route of administration for the medication/product."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMSPID"
+                  Name="CMSPID"
+                  DataType="text"
+                  Length="8"
+                  SDSVarName="CMSPID">
+            <Question>
+               <TranslatedText>What is the line number?</TranslatedText>
+            </Question>
+            <Alias Name="CM Line Number" Context="prompt"/>
+            <Alias Name="If collected on the CRF, the applicant may insert instructions to ensure each record has a unique identifier."
+                   Context="completionInstructions"/>
+            <Alias Name="CMSPID" Context="CDASH"/>
+            <Alias Name="CMSPID" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMSTDAT"
+                  Name="CMSTDAT"
+                  DataType="date"
+                  SDSVarName="CMSTDTC">
+            <Description>
+               <TranslatedText xml:lang="en">CMSTDAT</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>What was the medication/product dose start date?</TranslatedText>
+               <TranslatedText xml:lang="en">Start Date</TranslatedText>
+            </Question>
+            <Alias Name="CMSTDTC" Context="SDTM"/>
+            <Alias Name="Start Date" Context="prompt"/>
+            <Alias Name="CMSTDAT" Context="CDASH"/>
+            <Alias Name="Record the date the medication/product was first taken. If the subject has been taking the medication/product for a considerable amount of time prior to the start of the study, it is acceptable to have an incomplete date. Medication/product taken during the study are expected to have a complete start date. Prior medication/product that are exclusionary should have both a start and end date."
+                   Context="completionInstructions"/>
+            <Alias Name="The assumption is that sponsors should either have a Start Date or will indicate that the medication or therapy was started before, during or after the study period. The preferred method is to collect a complete Start Date. Partial dates (e.g., providing year only) for medications/treatment started a considerable amount of time prior to the start of study are acceptable."
+                   Context="implementationNotes"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS.CMTRT"
+                  Name="CMTRT"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="CMTRT">
+            <Question>
+               <TranslatedText>What was the medication/product?</TranslatedText>
+            </Question>
+            <Alias Name="CMTRT" Context="CDASH"/>
+            <Alias Name="Record only one medication/product per line. Provide the full trade or proprietary name of the medication/product; otherwise, record the generic name."
+                   Context="completionInstructions"/>
+            <Alias Name="CMTRT" Context="SDTM"/>
+            <Alias Name="Concomitant Medication/Product" Context="Prompt"/>
+         </ItemDef>
+         <ItemDef OID="CM_TIG_GEN_MEDS_ANY.CMYN"
+                  Name="CMYN"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Were any concomitant medications/products taken?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="CMYN" Context="CDASH"/>
+            <Alias Name="Indicate if the subject took any concomitant medications/products. If Yes, include the appropriate details where indicated on the CRF."
+                   Context="completionInstructions"/>
+            <Alias Name="NOT SUBMITTED" Context="SDTM"/>
+         </ItemDef>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C71620.UNIT.CMDOSU" Name="Unit" DataType="text">
+            <Description>
+               <TranslatedText>Terminology codelist used for units within CDISC.</TranslatedText>
+            </Description>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

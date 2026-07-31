@@ -1,0 +1,1523 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cadence Clinical - Safety & Pharmacovigilance Gateway",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Service health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/cases": {
+      "post": {
+        "summary": "Create Safety Case",
+        "description": "Create and persist a new Safety Case / ICSR record.",
+        "operationId": "create_safety_case_api_v1_safety_cases_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SafetyCaseICSRCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyCaseICSRResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Safety Cases",
+        "description": "List all safety cases, optionally filtered by patient ID.",
+        "operationId": "list_safety_cases_api_v1_safety_cases_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SafetyCaseICSRResponse"
+                  },
+                  "title": "Response List Safety Cases Api V1 Safety Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/cases/{id}": {
+      "get": {
+        "summary": "Get Safety Case",
+        "description": "Retrieve a specific safety case record by its ID.",
+        "operationId": "get_safety_case_api_v1_safety_cases__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyCaseICSRResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/export-jobs": {
+      "get": {
+        "summary": "List Export Jobs",
+        "description": "List all safety export jobs.",
+        "operationId": "list_export_jobs_api_v1_safety_export_jobs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SafetyExportJobResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Export Jobs Api V1 Safety Export Jobs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Export Job",
+        "description": "Create a new safety ICSR export job.",
+        "operationId": "create_export_job_api_v1_safety_export_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SafetyExportJobCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyExportJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/export-jobs/{id}": {
+      "get": {
+        "summary": "Get Export Job",
+        "description": "Retrieve details of a specific export job by ID.",
+        "operationId": "get_export_job_api_v1_safety_export_jobs__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyExportJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/audit-logs": {
+      "get": {
+        "summary": "List Safety Audit Logs",
+        "description": "Retrieve safety audit logs in descending chronological order.",
+        "operationId": "list_safety_audit_logs_api_v1_safety_audit_logs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SafetyAuditLogResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Safety Audit Logs Api V1 Safety Audit Logs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/export": {
+      "post": {
+        "summary": "Export Safety Case",
+        "description": "Expose validated E2B export and outbound safety/PV transmission.\nAccepts SAE/ICSR data, renders and validates E2B XML, pseudonymizes patient PII\nfollowing the HMAC approach, transmits to configured safety gateway,\npersists a SafetyExportJob, and writes GxP-compliant audit events.",
+        "operationId": "export_safety_case_api_v1_safety_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ICSRDataExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyExportJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/reconciliation/runs": {
+      "get": {
+        "summary": "List Reconciliation Runs",
+        "description": "List all safety reconciliation runs.",
+        "operationId": "list_reconciliation_runs_api_v1_safety_reconciliation_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Reconciliation Runs Api V1 Safety Reconciliation Runs Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Trigger Sae Reconciliation",
+        "description": "Triggers deterministic SAE reconciliation, comparing EDC observations\nwith external safety PV database, and persisting results safely (no direct patient PII).",
+        "operationId": "trigger_sae_reconciliation_api_v1_safety_reconciliation_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SAEReconciliationRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/reconciliation/jobs": {
+      "post": {
+        "summary": "Trigger Sae Reconciliation Job",
+        "description": "Triggers asynchronous SAE reconciliation job. Returns HTTP 202 Accepted.\n\nGated to sponsor_medical_monitor or safety_reviewer roles per GxP RBAC policy.",
+        "operationId": "trigger_sae_reconciliation_job_api_v1_safety_reconciliation_jobs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SAEReconciliationJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Reconciliation Jobs",
+        "description": "List safety reconciliation jobs with pagination.\n\nArgs:\n    limit: Maximum number of jobs to return (default 50).\n    offset: Number of jobs to skip (default 0).",
+        "operationId": "list_reconciliation_jobs_api_v1_safety_reconciliation_jobs_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SAEReconciliationJobResponse"
+                  },
+                  "title": "Response List Reconciliation Jobs Api V1 Safety Reconciliation Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/reconciliation/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Reconciliation Job",
+        "description": "Retrieve a specific safety reconciliation job by ID (polling).\n\nArgs:\n    job_id: The UUID of the reconciliation job to retrieve.",
+        "operationId": "get_reconciliation_job_api_v1_safety_reconciliation_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/safety/reconciliation/runs/{id}": {
+      "get": {
+        "summary": "Get Reconciliation Run",
+        "description": "Retrieve a specific safety reconciliation run.",
+        "operationId": "get_reconciliation_run_api_v1_safety_reconciliation_runs__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SAEReconciliationRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ICSRDataExportRequest": {
+        "properties": {
+          "job_name": {
+            "type": "string",
+            "title": "Job Name",
+            "description": "The descriptive name of the export job"
+          },
+          "icsr": {
+            "$ref": "#/components/schemas/IndividualCaseSafetyReport",
+            "description": "The E2B ICSR report data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_name",
+          "icsr"
+        ],
+        "title": "ICSRDataExportRequest"
+      },
+      "ICSRHeader": {
+        "properties": {
+          "sender_organization": {
+            "type": "string",
+            "title": "Sender Organization",
+            "description": "Sender organization identifier"
+          },
+          "receiver_organization": {
+            "type": "string",
+            "title": "Receiver Organization",
+            "description": "Receiver organization identifier"
+          },
+          "message_type": {
+            "type": "string",
+            "title": "Message Type",
+            "description": "Message type",
+            "default": "ICHICSR"
+          },
+          "transmission_date": {
+            "type": "string",
+            "title": "Transmission Date",
+            "description": "Transmission date/time (DTC format)"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "Unique message ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sender_organization",
+          "receiver_organization",
+          "transmission_date",
+          "message_id"
+        ],
+        "title": "ICSRHeader",
+        "description": "ICSR transmission header details according to ICH E2B(R3)."
+      },
+      "ICSRPatient": {
+        "properties": {
+          "patient_id": {
+            "type": "string",
+            "title": "Patient Id",
+            "description": "Patient identifier / subject key"
+          },
+          "sex": {
+            "type": "string",
+            "title": "Sex",
+            "description": "Gender code (normalizes to 'M', 'F', 'U')"
+          },
+          "age": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age",
+            "description": "Age of the patient"
+          },
+          "age_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Unit",
+            "description": "Age unit (e.g. YEAR, MONTH, DAY)"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date",
+            "description": "Date of birth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "patient_id",
+          "sex"
+        ],
+        "title": "ICSRPatient",
+        "description": "ICSR patient characteristics block."
+      },
+      "ICSRReactionEvent": {
+        "properties": {
+          "reaction_term": {
+            "type": "string",
+            "title": "Reaction Term",
+            "description": "Reaction or event term as reported"
+          },
+          "meddra_coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MedDRACoding"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "MedDRA coding details"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Start date of reaction"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date",
+            "description": "End date of reaction"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome",
+            "description": "Outcome of reaction (e.g. RECOVERED, RESOLVING, FATAL)"
+          },
+          "seriousness_death": {
+            "type": "string",
+            "title": "Seriousness Death",
+            "description": "Results in death ('Y' or 'N')",
+            "default": "N"
+          },
+          "seriousness_life_threatening": {
+            "type": "string",
+            "title": "Seriousness Life Threatening",
+            "description": "Is life-threatening ('Y' or 'N')",
+            "default": "N"
+          },
+          "seriousness_hospitalization": {
+            "type": "string",
+            "title": "Seriousness Hospitalization",
+            "description": "Requires/prolongs hospitalization ('Y' or 'N')",
+            "default": "N"
+          },
+          "seriousness_disability": {
+            "type": "string",
+            "title": "Seriousness Disability",
+            "description": "Results in persistent/significant disability ('Y' or 'N')",
+            "default": "N"
+          },
+          "seriousness_congenital_anomaly": {
+            "type": "string",
+            "title": "Seriousness Congenital Anomaly",
+            "description": "Results in congenital anomaly/birth defect ('Y' or 'N')",
+            "default": "N"
+          },
+          "seriousness_other_medically_important": {
+            "type": "string",
+            "title": "Seriousness Other Medically Important",
+            "description": "Other medically important condition ('Y' or 'N')",
+            "default": "N"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reaction_term"
+        ],
+        "title": "ICSRReactionEvent",
+        "description": "ICSR reaction/event block with MedDRA coding."
+      },
+      "ICSRReportIdentifiers": {
+        "properties": {
+          "worldwide_unique_case_id": {
+            "type": "string",
+            "title": "Worldwide Unique Case Id",
+            "description": "Worldwide unique case ID (e.g., ICH worldwide unique ID)"
+          },
+          "local_report_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Report Id",
+            "description": "Local report identifier"
+          },
+          "first_sender_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Sender Type",
+            "description": "Type of first sender"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worldwide_unique_case_id"
+        ],
+        "title": "ICSRReportIdentifiers",
+        "description": "ICSR report-level identification details."
+      },
+      "ICSRSuspectDrug": {
+        "properties": {
+          "drug_name": {
+            "type": "string",
+            "title": "Drug Name",
+            "description": "Name of suspect drug"
+          },
+          "active_substance_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Substance Name",
+            "description": "Active substance name"
+          },
+          "dosage_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dosage Text",
+            "description": "Dosage and administration text description"
+          },
+          "route_of_administration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Of Administration",
+            "description": "Route of administration"
+          },
+          "action_taken_with_drug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Taken With Drug",
+            "description": "Action taken with the drug"
+          },
+          "drug_role": {
+            "type": "string",
+            "title": "Drug Role",
+            "description": "Role of the drug (e.g. SUSPECT, CONCOMITANT, INTERACTING)",
+            "default": "SUSPECT"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drug_name"
+        ],
+        "title": "ICSRSuspectDrug",
+        "description": "ICSR suspect drug block."
+      },
+      "IndividualCaseSafetyReport": {
+        "properties": {
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index",
+            "description": "Version of this record (must be >= 1)",
+            "default": 1
+          },
+          "reason_for_change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason For Change",
+            "description": "Reason for change in follow-up version"
+          },
+          "header": {
+            "$ref": "#/components/schemas/ICSRHeader",
+            "description": "ICSR message header"
+          },
+          "report_identifiers": {
+            "$ref": "#/components/schemas/ICSRReportIdentifiers",
+            "description": "ICSR report identifiers"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/ICSRPatient",
+            "description": "Patient details"
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/ICSRReactionEvent"
+            },
+            "type": "array",
+            "title": "Reactions",
+            "description": "List of reactions/events"
+          },
+          "suspect_drugs": {
+            "items": {
+              "$ref": "#/components/schemas/ICSRSuspectDrug"
+            },
+            "type": "array",
+            "title": "Suspect Drugs",
+            "description": "List of suspect drugs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "header",
+          "report_identifiers",
+          "patient"
+        ],
+        "title": "IndividualCaseSafetyReport",
+        "description": "Root Individual Case Safety Report (ICSR) according to ICH E2B(R3)."
+      },
+      "MedDRACoding": {
+        "properties": {
+          "llt_code": {
+            "type": "string",
+            "title": "Llt Code",
+            "description": "Lowest Level Term Code"
+          },
+          "llt_name": {
+            "type": "string",
+            "title": "Llt Name",
+            "description": "Lowest Level Term Name"
+          },
+          "pt_code": {
+            "type": "string",
+            "title": "Pt Code",
+            "description": "Preferred Term Code"
+          },
+          "pt_name": {
+            "type": "string",
+            "title": "Pt Name",
+            "description": "Preferred Term Name"
+          },
+          "hlt_code": {
+            "type": "string",
+            "title": "Hlt Code",
+            "description": "High Level Term Code"
+          },
+          "hlt_name": {
+            "type": "string",
+            "title": "Hlt Name",
+            "description": "High Level Term Name"
+          },
+          "hlgt_code": {
+            "type": "string",
+            "title": "Hlgt Code",
+            "description": "High Level Group Term Code"
+          },
+          "hlgt_name": {
+            "type": "string",
+            "title": "Hlgt Name",
+            "description": "High Level Group Term Name"
+          },
+          "soc_code": {
+            "type": "string",
+            "title": "Soc Code",
+            "description": "System Organ Class Code"
+          },
+          "soc_name": {
+            "type": "string",
+            "title": "Soc Name",
+            "description": "System Organ Class Name"
+          },
+          "primary_soc_flag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Soc Flag",
+            "description": "Primary SOC flag ('Y' or 'N')"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Match score",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "llt_code",
+          "llt_name",
+          "pt_code",
+          "pt_name",
+          "hlt_code",
+          "hlt_name",
+          "hlgt_code",
+          "hlgt_name",
+          "soc_code",
+          "soc_name"
+        ],
+        "title": "MedDRACoding",
+        "description": "Represents MedDRA coding hierarchies consistent with the execution-service coding contract."
+      },
+      "SAEDiscrepancyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "case_event_key": {
+            "type": "string",
+            "title": "Case Event Key"
+          },
+          "field_name": {
+            "type": "string",
+            "title": "Field Name"
+          },
+          "expected_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Value"
+          },
+          "actual_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Value"
+          },
+          "meddra_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meddra Version"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "source",
+          "case_event_key",
+          "field_name",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SAEDiscrepancyResponse"
+      },
+      "SAEReconciliationJobRequest": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "The study identifier for reconciliation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id"
+        ],
+        "title": "SAEReconciliationJobRequest"
+      },
+      "SAEReconciliationJobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "result_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SAEReconciliationJobResponse"
+      },
+      "SAEReconciliationRunRequest": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "The study identifier for reconciliation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id"
+        ],
+        "title": "SAEReconciliationRunRequest"
+      },
+      "SAEReconciliationRunResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "run_date": {
+            "type": "string",
+            "title": "Run Date"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "discrepancies": {
+            "items": {
+              "$ref": "#/components/schemas/SAEDiscrepancyResponse"
+            },
+            "type": "array",
+            "title": "Discrepancies",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "run_date",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SAEReconciliationRunResponse"
+      },
+      "SafetyAuditLogResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "created_by",
+          "version_index",
+          "action",
+          "details"
+        ],
+        "title": "SafetyAuditLogResponse"
+      },
+      "SafetyCaseICSRCreate": {
+        "properties": {
+          "worldwide_unique_case_id": {
+            "type": "string",
+            "title": "Worldwide Unique Case Id",
+            "description": "Worldwide unique identifier for this safety case"
+          },
+          "patient_id": {
+            "type": "string",
+            "title": "Patient Id",
+            "description": "Unique subject/patient identifier"
+          },
+          "case_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Case Data",
+            "description": "The structured ICSR case JSON payload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worldwide_unique_case_id",
+          "patient_id",
+          "case_data"
+        ],
+        "title": "SafetyCaseICSRCreate"
+      },
+      "SafetyCaseICSRResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "worldwide_unique_case_id": {
+            "type": "string",
+            "title": "Worldwide Unique Case Id"
+          },
+          "patient_id": {
+            "type": "string",
+            "title": "Patient Id"
+          },
+          "case_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Case Data"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "worldwide_unique_case_id",
+          "patient_id",
+          "case_data",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SafetyCaseICSRResponse"
+      },
+      "SafetyExportJobCreate": {
+        "properties": {
+          "job_name": {
+            "type": "string",
+            "title": "Job Name",
+            "description": "The descriptive name of the export job"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_name"
+        ],
+        "title": "SafetyExportJobCreate"
+      },
+      "SafetyExportJobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "job_name": {
+            "type": "string",
+            "title": "Job Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "job_name",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SafetyExportJobResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -24,7 +24,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.python-version
 
 # ------------------------------------------
 # Virtual Environments & Packaging
@@ -40,6 +39,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!apps/web/src/lib/
 lib64/
 parts/
 sdist/
@@ -88,6 +88,15 @@ logs/
 .jules.local.json
 
 # ------------------------------------------
+# Playwright & End-to-End Test Artifacts
+# ------------------------------------------
+playwright-report/
+test-results/
+playwright/
+.auth/
+user.json
+
+# ------------------------------------------
 # Node.js / Frontend Packages (if applicable)
 # ------------------------------------------
 node_modules/
@@ -123,3 +132,12 @@ Thumbs.db
 !.vscode/launch.json
 !.vscode/extensions.json
 .cursor/
+
+# ------------------------------------------
+# Isolated eTMF & Generated Binary Templates
+# ------------------------------------------
+tmp_etmf/
+apps/designer/templates/*.docx
+*.docx
+scripts/sync_github_project.py
+scripts/live_hygiene_enforcement.py

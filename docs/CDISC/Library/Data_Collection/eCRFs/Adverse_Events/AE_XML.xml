@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="AE" FileType="Snapshot" CreationDateTime="2021-02-11T08:22:07-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Adverse Event">
+		<GlobalVariables>
+			<StudyName>Adverse Event CRF</StudyName>
+			<StudyDescription>Adverse Event CRF</StudyDescription>
+			<ProtocolName>Adverse Event CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Adverse Event CRF" Name="Adverse Event">
+			<FormDef OID="AE" Name="Form AE - Adverse Events" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">AE - Adverse Events</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_8" Mandatory="Yes" OrderNumber="1"/>
+				<Alias Name="CDASH" Context="CDASH"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_8" Name="AE - Adverse Events" Repeating="No" Domain="AE">
+				<Description>
+					<TranslatedText xml:lang="en">AE - Adverse Events</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.AEYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.AETERM" Mandatory="Yes" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.AESTDAT" Mandatory="Yes" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.AEONGO" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.AEENDAT" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.AESEV" Mandatory="No" OrderNumber="6"/>
+				<ItemRef ItemOID="IT.AESER" Mandatory="No" OrderNumber="7"/>
+				<ItemRef ItemOID="IT.AESDTH" Mandatory="No" OrderNumber="8"/>
+				<ItemRef ItemOID="IT.AESLIFE" Mandatory="No" OrderNumber="9"/>
+				<ItemRef ItemOID="IT.AESHOSP" Mandatory="No" OrderNumber="10"/>
+				<ItemRef ItemOID="IT.AESDISAB" Mandatory="No" OrderNumber="11"/>
+				<ItemRef ItemOID="IT.AESCONG" Mandatory="No" OrderNumber="12"/>
+				<ItemRef ItemOID="IT.AESMIE" Mandatory="No" OrderNumber="13"/>
+				<ItemRef ItemOID="IT.AEREL" Mandatory="Yes" OrderNumber="14"/>
+				<ItemRef ItemOID="IT.AEACN" Mandatory="No" OrderNumber="15"/>
+				<ItemRef ItemOID="IT.AEACNOTH" Mandatory="No" OrderNumber="16"/>
+				<ItemRef ItemOID="IT.AEOUT" Mandatory="No" OrderNumber="17"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.AEYN" Name="AEYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AEYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any adverse events experienced?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Adverse Events"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject experienced any adverse events. If yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM aCRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="AEYN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESHOSP" Name="AESHOSP" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESHOSP</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Did the adverse event result in initial or prolonged
+    hospitalization for the subject?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Hospitalization (initial or prolonged)"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event resulted in an initial or prolonged hospitalization."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESHOSP" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEACN" Name="AEACN" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AEACN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What action was taken with study treatment?</TranslatedText>
+					<TranslatedText xml:lang="en">Action Taken with Study Treatment</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66767.ACN"/>
+				<Alias Context="prompt" Name="Action Taken with Study Treatment"/>
+				<Alias Context="completionInstructions" Name="Record changes made to the study treatment resulting from the adverse event."/>
+				<Alias Context="implementationNotes" Name="CDISC Controlled Terminology is used to indicate the action taken with the study treatment in response to the AE. How to handle multiple actions taken is a sponsor-specific decision. If this information is collected elsewhere (e.g., on the Exposure CRF), then it is not required to be collected on the AE CRF. This variable is not to be used for actions taken with devices. See the SDTMIG for Medical Devices for information on reporting multiple actions, or actions with multiple devices."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AEACN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEREL" Name="AEREL" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AEREL</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was this adverse event related to study treatment?</TranslatedText>
+					<TranslatedText xml:lang="en">Relationship to Study Treatment</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Relationship to Study Treatment"/>
+				<Alias Context="completionInstructions" Name="Indicate if the cause of the adverse event is related to the study treatment and cannot be reasonably explained by other factors (e.g., subject&apos;s clinical state, concomitant therapy, other interventions)."/>
+				<Alias Context="implementationNotes" Name="Sponsored-defined controlled terminology is used to indicate the relationship between the AE and the study treatment (e.g., ICH E2B examples include &quot;Not Related&quot;, &quot;Unlikely Related&quot;, &quot;Possibly Related&quot;, &quot;Related&quot;). Another possibility is the use of &quot;Y&quot; and &quot;N&quot;. CDISC Controlled Terminology may be defined in the future. It is recommended that sponsors check with the appropriate regulatory authority for population of this variable to ensure it meets expectations for submission."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AEREL" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESMIE" Name="AESMIE" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESMIE</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the adverse event a medically important event not covered by
+    other serious criteria?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Other Serious (Important Medical Events)"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event is an important medical event, which may be defined in the protocol or in the Investigator Brochure."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESMIE" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESER" Name="AESER" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESER</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the adverse event serious?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Serious"/>
+				<Alias Context="completionInstructions" Name="Assess if an adverse event should be classified as serious based on the serious criteria defined in the protocol."/>
+				<Alias Context="implementationNotes" Name="This field is related to the individual serious adverse event type fields, which may or may not be collected on the CRF. Either AESER or all the Adverse Serious type fields must be present on the CRF. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESER" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESCONG" Name="AESCONG" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESCONG</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the adverse event associated with a congenital anomaly or birth defect?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Congenital Anomaly or Birth Defect"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event was associated with congenital anomaly or birth defect."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESCONG" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESDISAB" Name="AESDISAB" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESDISAB</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Did the adverse event result in disability or permanent
+    damage?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Disability or Permanent Damage"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event resulted in a persistent or significant disability or incapacity."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESDISAB" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEACNOTH" Name="AEACNOTH" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AEACNOTH</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What other action was taken?</TranslatedText>
+					<TranslatedText xml:lang="en">Other Action Taken</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Other Action Taken"/>
+				<Alias Context="completionInstructions" Name="Record all other action(s) taken resulting from the adverse event that are unrelated to study treatments given because of this adverse event."/>
+				<Alias Context="implementationNotes" Name="This field is usually collected as a free text field. If possible/desired, the sponsor can create controlled terminology (e.g., Treatment Unblinded, Primary Care Physician Notified)."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AEACNOTH" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESLIFE" Name="AESLIFE" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESLIFE</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was the adverse event life threatening?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Life Threatening"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event is life threatening."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESLIFE" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESDTH" Name="AESDTH" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AESDTH</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Did the adverse event result in death?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Death"/>
+				<Alias Context="completionInstructions" Name="Record whether the serious adverse event resulted in death."/>
+				<Alias Context="implementationNotes" Name="If the details regarding Serious AEs are collected in the clinical database, then it is recommended that a separate Yes/No variable be defined for each Serious AE type. Sponsors may only collect the AESER field because the individual serious adverse event types might be collected in a separate pharmacovigilance database and therefore are not collected in the clinical database. The sponsor should check if the regulatory agencies to which the data will be submitted require the collection of this data."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESDTH" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEONGO" Name="AEONGO" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">AEONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Is the adverse event ongoing (as of [the study-specific time point     or period])?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing (as of [the study-specific time point or period])"/>
+				<Alias Context="completionInstructions" Name="Indicate if the adverse event has not resolved at the time of data collection; leave the End Date blank."/>
+				<Alias Context="implementationNotes" Name="Completed to indicate that the AE has not resolved at the time of data collection, when no End Date is collected. In some cases the ongoing status may be determined from AE Outcome. The purpose of collecting this field is to help with data cleaning and monitoring; this field provides further confirmation that the End Date was deliberately left blank. Often used as a tick/checkbox."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to populate a value into an SDTMIG relative timing variable such as AEENRF or AEENRTPT. When populating AEENRF, if the value of AEONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating AEENRTPT, if the value of AEONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When AEONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTMIG variable AEENRF should be populated. When AEONGO is compared to another time point, the SDTMIG variables AEENRTPT and AEENTPT should be used. Note: AEENRTPT must refer to a time point anchor described in AEENTPT."/>
+				<Alias Name="AEONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEENDAT" Name="AEENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">AEENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the adverse event end date?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="End Date"/>
+				<Alias Context="completionInstructions" Name="Record the date that the AE resolved using this format (DD-MON-YYYY). If the AE is ongoing, leave the field blank."/>
+				<Alias Context="implementationNotes" Name="The definition of resolved is sponsor-specific. The preferred method is to collect a complete end date (if applicable). Partial dates (e.g., providing year only, month and year only) may be acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable AEENDTC in ISO 8601 format."/>
+				<Alias Name="AEENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AETERM" Name="AETERM" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AETERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">What is the adverse event term?</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Adverse Event"/>
+				<Alias Context="completionInstructions" Name="Record only 1 diagnosis, sign or symptom per line (e.g., nausea and vomiting should not be recorded in the same entry, but as 2 separate entries). Using accepted medical terminology, enter the diagnosis (if known); otherwise enter a sign or symptom."/>
+				<Alias Context="implementationNotes" Name="Can be represented either as an open-entry field to capture verbatim terms reported by subjects or could be preprinted in the situation where solicited AEs of interest are captured. In most cases, the verbatim term (i.e., investigator-reported term) will be coded to a standard medical dictionary such as MedDRA or WHO ART, after the data have been collected on the CRF."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AETERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AEOUT" Name="AEOUT" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AEOUT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the outcome of this adverse event?</TranslatedText>
+					<TranslatedText xml:lang="en">Outcome</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66768.OUT"/>
+				<Alias Context="prompt" Name="Outcome"/>
+				<Alias Context="completionInstructions" Name="Record the appropriate outcome of the event in relation to the subject&apos;s status."/>
+				<Alias Context="implementationNotes" Name="CDISC Controlled Terminology is used to indicate the outcome of the event as it relates to the subject&apos;s status. The Outcome controlled terminology includes ICH E2B values. The use of this field is the recommended way to describe whether and how the AE resolved. Since the outcome of an AE may be &quot;Death&quot;, if this field is NOT used, be sure to provide another form, such as Disposition, with clear instructions to record deaths there."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AEOUT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESEV" Name="AESEV" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">AESEV</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the severity of the adverse event?</TranslatedText>
+					<TranslatedText xml:lang="en">Severity</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66769.AESEV"/>
+				<Alias Context="prompt" Name="Severity"/>
+				<Alias Context="completionInstructions" Name="The reporting physician/healthcare professional will assess the severity of the event using the sponsor-defined categories. This assessment is subjective and the reporting physician/ healthcare professional should use medical judgment to compare the reported AE to similar type events observed in clinical practice. Severity is not equivalent to seriousness."/>
+				<Alias Context="implementationNotes" Name="Either AESEV or AETOXGR must appear on the CRF. Some studies may mandate the collection of both. Refer to ICH E3 Section 12.2.4 guidelines for Clinical Study Reports."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="AESEV" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AESTDAT" Name="AESTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">AESTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the adverse event start date?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the AE using this format (DD-MON-YYYY)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable AESTDTC in ISO 8601 format."/>
+				<Alias Name="AESTDAT" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66768.OUT" Name="Outcome of Event" DataType="text">
+				<Description>
+					<TranslatedText>A condition or event that is attributed to the adverse event and is the result or conclusion of the adverse event. (NCI)</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="FATAL" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Fatal</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NOT RECOVERED/NOT RESOLVED" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Not Recovered or Not Resolved</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="RECOVERED/RESOLVED" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Recovered or Resolved</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="RECOVERED/RESOLVED WITH SEQUELAE" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Recovered or Resolved with Sequelae</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="RECOVERING/RESOLVING" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Recovering or Resolving</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNKNOWN" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66767.ACN" Name="Action Taken with Study Treatment" DataType="text">
+				<Description>
+					<TranslatedText>Terminology specifying changes to the study treatment as a result of an adverse event.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="DOSE INCREASED" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Dose Increased</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DOSE NOT CHANGED" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Dose Not Changed</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DOSE RATE REDUCED" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Dose Rate Reduced</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DOSE REDUCED" OrderNumber="4">
+					<Decode>
+						<TranslatedText>Dose Reduced</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DRUG INTERRUPTED" OrderNumber="5">
+					<Decode>
+						<TranslatedText>Drug Interrupted</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="DRUG WITHDRAWN" OrderNumber="6">
+					<Decode>
+						<TranslatedText>Drug Withdrawn</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="NOT APPLICABLE" OrderNumber="7">
+					<Decode>
+						<TranslatedText>Not Applicable</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="UNKNOWN" OrderNumber="8">
+					<Decode>
+						<TranslatedText>Unknown</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66769.AESEV" Name="Severity/Intensity Scale for Adverse Events" DataType="text">
+				<CodeListItem CodedValue="MILD" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Mild</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="MODERATE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Moderate</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SEVERE" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Severe</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

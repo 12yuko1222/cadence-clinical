@@ -8,20 +8,27 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from apps.execution.database.models import (  # noqa: F401
     Base,
+    BiostatExport,
     ClinicalCodingAssignment,
     ClinicalCodingLedger,
     ClinicalObservation,
     ClinicalQuery,
+    ConsentFormRecord,
+    ConsentSignature,
     DictionaryImportJob,
     FormSubmission,
     LabReferenceRange,
     MedDRAHierarchy,
     MedDRATerm,
     PendingPredecessorCheck,
+    ProcessedOfflineBatch,
     RandomizationConfig,
+    SDTMDomainRecord,
     SDVSignOff,
     StratumState,
+    StudyAuthoredRule,
     SubjectRandomization,
+    SyncedBatchIdempotencyKey,
     TSDVConfig,
     WHODrugATC,
     WHODrugDrugATC,
@@ -145,8 +152,8 @@ async def deploy_database_triggers(conn, dialect_name: str) -> None:
                     RETURN NEW;
                 END IF;
 
-                v_user_id := COALESCE(current_setting('cadence.current_user_id', true), 'system_process');
-                v_change_reason := COALESCE(current_setting('cadence.current_change_reason', true), 'Automated system operation');
+                v_user_id := COALESCE(NULLIF(current_setting('cadence.current_user_id', true), ''), 'system_process');
+                v_change_reason := COALESCE(NULLIF(current_setting('cadence.current_change_reason', true), ''), 'Automated system operation');
 
                 IF (TG_OP = 'INSERT') THEN
                     v_action := 'INSERT';
@@ -346,8 +353,9 @@ async def deploy_database_triggers(conn, dialect_name: str) -> None:
 
 async def upgrade_existing_tables(conn) -> None:
     """
-    Upgrades pre-existing tables with new columns if they do not exist.
-    This ensures schema evolution is deployable without relying on create_all to alter tables.
+    Upgrade existing clinical tables by adding missing schema columns and backfilling subject enrollment indexes.
+
+    The backfill orders subjects within each study by earliest audit timestamp and then by subject identifier. Failures during the legacy backfill are reported as warnings.
     """
     from sqlalchemy import inspect
 
@@ -357,7 +365,7 @@ async def upgrade_existing_tables(conn) -> None:
             return []
         return [col["name"] for col in insp.get_columns(table_name)]
 
-    # 1. Update clinical_observations with lab reference snapshot columns and site_id
+    # 1. Update clinical_observations with lab reference snapshot columns, site_id, and SDV verification columns
     obs_cols = await conn.run_sync(
         lambda sc: get_table_columns(sc, "clinical_observations")
     )
@@ -369,6 +377,10 @@ async def upgrade_existing_tables(conn) -> None:
             ("lab_out_of_range", "BOOLEAN"),
             ("matched_normal_bounds", "VARCHAR(255)"),
             ("site_id", "VARCHAR(255)"),
+            ("is_sdv_verified", "BOOLEAN NOT NULL DEFAULT FALSE"),
+            ("sdv_verified_by", "VARCHAR(255)"),
+            ("sdv_verified_at", "TIMESTAMP"),
+            ("page_id", "VARCHAR(255)"),
         ]
         for col_name, col_type in new_obs_cols:
             if col_name not in obs_cols:
@@ -378,6 +390,27 @@ async def upgrade_existing_tables(conn) -> None:
                 await conn.execute(
                     text(
                         f"ALTER TABLE clinical_observations ADD COLUMN {col_name} {col_type};"
+                    )
+                )
+
+    # Upgrade clinical_coding_ledger with new columns
+    ledger_cols = await conn.run_sync(
+        lambda sc: get_table_columns(sc, "clinical_coding_ledger")
+    )
+    if ledger_cols:
+        new_ledger_cols = [
+            ("old_hierarchy", "JSON"),
+            ("new_hierarchy", "JSON"),
+            ("recoding_status", "VARCHAR(50)"),
+        ]
+        for col_name, col_type in new_ledger_cols:
+            if col_name not in ledger_cols:
+                print(
+                    f"Adding missing column {col_name} to clinical_coding_ledger table..."
+                )
+                await conn.execute(
+                    text(
+                        f"ALTER TABLE clinical_coding_ledger ADD COLUMN {col_name} {col_type};"
                     )
                 )
 
@@ -396,6 +429,92 @@ async def upgrade_existing_tables(conn) -> None:
             await conn.execute(
                 text(f"ALTER TABLE {table_name} ADD COLUMN site_id VARCHAR(255);")
             )
+
+    # 4. Update clinical_subjects with enrollment_index and backfill existing entries
+    subj_cols = await conn.run_sync(
+        lambda sc: get_table_columns(sc, "clinical_subjects")
+    )
+    if subj_cols and "enrollment_index" not in subj_cols:
+        print("Adding missing column enrollment_index to clinical_subjects table...")
+        await conn.execute(
+            text("ALTER TABLE clinical_subjects ADD COLUMN enrollment_index INTEGER;")
+        )
+
+    if subj_cols and "unblinded_signature" not in subj_cols:
+        print("Adding missing column unblinded_signature to clinical_subjects table...")
+        await conn.execute(
+            text("ALTER TABLE clinical_subjects ADD COLUMN unblinded_signature TEXT;")
+        )
+
+    # Deterministic legacy-subject backfill
+    try:
+        subj_res = await conn.execute(
+            text(
+                "SELECT id, subject_id, study_id, enrollment_index FROM clinical_subjects;"
+            )
+        )
+        subjects = subj_res.fetchall()
+
+        # Group subjects by study_id
+        study_subjects = {}
+        for s in subjects:
+            study_id = s[2]
+            if study_id not in study_subjects:
+                study_subjects[study_id] = []
+            study_subjects[study_id].append(s)
+
+        for study_id, subjs in study_subjects.items():
+            # Check if any subject in this study has a NULL enrollment_index
+            if any(s[3] is None for s in subjs):
+                print(f"Backfilling enrollment_index for study {study_id}...")
+                subj_timestamps = {}
+                for s in subjs:
+                    sid = s[0]
+                    ts = None
+                    try:
+                        # Try PostgreSQL audit schema first
+                        ts_res = await conn.execute(
+                            text(
+                                "SELECT MIN(timestamp) FROM audit_schema.audit_logs WHERE table_name = 'clinical_subjects' AND record_id = :sid;"
+                            ),
+                            {"sid": sid},
+                        )
+                        ts = ts_res.scalar()
+                    except Exception:
+                        try:
+                            # Fallback to default schema (SQLite)
+                            ts_res = await conn.execute(
+                                text(
+                                    "SELECT MIN(timestamp) FROM audit_logs WHERE table_name = 'clinical_subjects' AND record_id = :sid;"
+                                ),
+                                {"sid": sid},
+                            )
+                            ts = ts_res.scalar()
+                        except Exception:
+                            ts = None
+                    subj_timestamps[sid] = ts
+
+                # Deterministically sort:
+                # 1. Earliest audit log timestamp (if exists)
+                # 2. Lexical subject_id
+                def sort_key(s):
+                    sid = s[0]
+                    subject_id = s[1]
+                    ts = subj_timestamps.get(sid)
+                    ts_str = str(ts) if ts is not None else ""
+                    return (ts_str == "", ts_str, subject_id)
+
+                sorted_subjs = sorted(subjs, key=sort_key)
+                for idx, s in enumerate(sorted_subjs):
+                    sid = s[0]
+                    await conn.execute(
+                        text(
+                            "UPDATE clinical_subjects SET enrollment_index = :idx WHERE id = :sid;"
+                        ),
+                        {"idx": idx, "sid": sid},
+                    )
+    except Exception as e:
+        print(f"Warning: Legacy backfill of enrollment_index failed: {e}")
 
 
 async def run_migrations(database_url: str) -> None:

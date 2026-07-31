@@ -7,7 +7,7 @@
 * **Version:** 1.0.0-RELEASE
 * **Effective Date:** 2026-07-22
 * **Classification:** GxP Confined / Highly Confidential
-* **Authors:** Frederick de Ruiter (Lead Solutions Architect), Jules (Staff Software Engineer)
+* **Authors:** Frederick de Ruiter (Lead Solutions Architect), Frederick de Ruiter (Lead Architect)
 * **Standards Alignment:**
   * **ISO/IEC/IEEE 29148:2018:** Systems and software engineering — Life cycle processes — Requirements engineering
   * **ISO 14155:2020:** Clinical investigation of medical devices for human subjects — Good clinical practice (GCP)
@@ -18,7 +18,7 @@
 | Version | Date | Description of Change | Author(s) | Reviewer(s) / Approver(s) |
 | :--- | :--- | :--- | :--- | :--- |
 | 0.1.0-DRAFT | 2026-06-01 | Initial skeleton and placeholder generation | F. de Ruiter | SDLC Steering Group |
-| 1.0.0-RELEASE| 2026-07-22 | Comprehensive expansion of all clinical modules, field-level validation, clinical state machines, unblinding protocols, and query lifecycles. Conforms to ISO 29148. | Jules | F. de Ruiter, QA Directorate |
+| 1.0.0-RELEASE| 2026-07-22 | Comprehensive expansion of all clinical modules, field-level validation, clinical state machines, unblinding protocols, and query lifecycles. Conforms to ISO 29148. | F. de Ruiter | F. de Ruiter, QA Directorate |
 
 ### 1.3 Signature & Approval Matrix
 By signing below, the representatives from clinical development, software engineering, and regulatory affairs authorize this document as the definitive functional baseline for the Cadence Clinical Platform.
@@ -130,7 +130,7 @@ The system must implement a data-driven Expected Document List (EDL) reference d
 
 #### PRD-TMF-001: TMF Taxonomy Catalog Hierarchy and Version Selection
 
-The system must support loading different versions of the versioned DIA TMF Reference Model (e.g., v3.2.0, v4.0.0) from the `tmf_reference_model` taxonomy package in memory. Consumers must be able to retrieve any registered catalog version or set the active default catalog version dynamically.
+The system must support loading different versions of the versioned DIA TMF Reference Model (including `v3.2.0`, and `v3.2.0-complete` as active default) from the `tmf_reference_model` taxonomy package in memory. Consumers must be able to retrieve any registered catalog version or set the active default catalog version dynamically.
 
 #### PRD-TMF-002: Strict Taxonomy Validation and Ingestion Rejection
 
@@ -143,6 +143,10 @@ Every ingested document successfully validated against the selected catalog vers
 #### PRD-TMF-004: Catalog-Driven Completeness and Milestone Alignment
 
 Completeness audits and expected document list seeding must dynamically query mandatory artifacts per milestone directly from the catalog's public APIs (e.g., `get_mandatory_artifacts`), matching exact canonical `artifact_code` identities across study and site scopes. For custom or site-specific expectations that cannot be resolved in the standard catalog, the completeness check falls back to case-insensitive name matching.
+
+#### PRD-TMF-005: Automated and Manual Document Redaction & Integrity Verification
+
+The system must support server-side automated and manual redaction of personally identifiable information (PII) and protected health information (PHI) within clinical documents. It must apply de-identification profiles (e.g. HIPAA, GDPR, EU_CTR) and custom terms to redact and shift dates/ages deterministically without changing the original source document. A signed, tamper-evident manifest must be generated for each redaction operation, and signature validation must fail upon any manifest modification. Raw matched values must never be returned or stored in manifest summaries, and unauthorized/read-only roles (such as inspectors and auditors) must be blocked from performing redaction or accessing unredacted original files. (Traced to SRS Trace-12; cross-referenced with ADR-065/ADR-098).
 
 ---
 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Subject Characteristics CRF" FileType="Snapshot" CreationDateTime="2021-02-17T15:35:35-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Subject Characteristics CRF">
+		<GlobalVariables>
+			<StudyName>Subject Characteristics CRF</StudyName>
+			<StudyDescription>Subject Characteristics CRF</StudyDescription>
+			<ProtocolName>Subject Characteristics CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Subject Characteristics CRF" Name="Subject Characteristics">
+			<FormDef OID="SC_HORIZONTAL" Name="Form SC - Implementation Options: HorizontalGeneric" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">SC - Implementation Options: HorizontalGeneric</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_34" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_34" Name="SC - Implementation Options: HorizontalGeneric" Repeating="No" Domain="SC">
+				<Description>
+					<TranslatedText xml:lang="en">SC - Subject Characteristics</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.[SCTESTCD]_SCORRES" Mandatory="Yes" OrderNumber="1"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.[SCTESTCD]_SCORRES" Name="[SCTESTCD]_SCORRES" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">[SCTESTCD]_SCORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the subject&apos;s Fitzpatrick Skin Classification result?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C76351.SCTEST"/>
+				<Alias Context="prompt" Name="[SCTEST] Result"/>
+				<Alias Context="completionInstructions" Name="Record the subject characteristic."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="SKINCLAS_SCORRES" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C76351.SCTEST" Name="Skin Classifcation Codelist" DataType="text">
+				<CodeListItem CodedValue="TYPEI" OrderNumber="1">
+					<Decode>
+						<TranslatedText>TYPE1</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TYPEII" OrderNumber="2">
+					<Decode>
+						<TranslatedText>TYPE2</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TYPEIII" OrderNumber="3">
+					<Decode>
+						<TranslatedText>TYPE3</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TYPEIV" OrderNumber="4">
+					<Decode>
+						<TranslatedText>TYPE4</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TYPEV" OrderNumber="5">
+					<Decode>
+						<TranslatedText>TYPE5</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="TYPE VI" OrderNumber="6">
+					<Decode>
+						<TranslatedText>TYPE6</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

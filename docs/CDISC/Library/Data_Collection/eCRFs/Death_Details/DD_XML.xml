@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Death Details" FileType="Snapshot" CreationDateTime="2021-02-22T08:58:45-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Death Details CRF">
+		<GlobalVariables>
+			<StudyName>Death Details CRF</StudyName>
+			<StudyDescription>Death Details CRF</StudyDescription>
+			<ProtocolName>Death Details CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Death Details CRF" Name="Death Details">
+			<FormDef OID="DD" Name="Form DD - Implementation Options: HorizontalGeneric" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">DD - Implementation Options: HorizontalGeneric</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_15" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_15" Name="DD - Implementation Options: HorizontalGeneric" Repeating="No" Domain="DD">
+				<Description>
+					<TranslatedText xml:lang="en">DD - Death Details</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.DDYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.[DTHDXCD]_DDDAT" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.DTHDAT" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.[DTHDXCD]_DDORRES" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.AUTOPIND_DDORRES" Mandatory="No" OrderNumber="5"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.[DTHDXCD]_DDDAT" Name="DDDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">DDDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the date [DTHDX] assessment was collected?</TranslatedText>
+					<TranslatedText xml:lang="en">Collection Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[DTHDX] Date"/>
+				<Alias Context="completionInstructions" Name="Record the date of collection using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="A single date may be collected for all death detail assessments when they are collected on the same date. The date of collection of each assessment can also be collected using a CDASH variable [DTHDXCD]_DDDAT. The date of the assessment may be determined from a collected date of visit and in such cases a separate assessment date field is not required."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable DDDTC in ISO 8601 format."/>
+				<Alias Name="DDDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.[DTHDXCD]_DDORRES" Name="PRCDTH_DDORRES" DataType="text" Length="15">
+				<Description>
+					<TranslatedText xml:lang="en">PRCDTH_DDORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">What was the primary cause of death?</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Result"/>
+				<Alias Context="completionInstructions" Name="Record the death detail response."/>
+				<Alias Context="implementationNotes" Name="Each test may be collected using the CDASH variable [TESTCD] (e.g., PRCDTH) or [TESTCD]_DDORRES where TESTCD is the appropriate CT for the DD test code e.g., PRCDTH_DDORRES. This CDASH variable name is an example of what &quot;variable name&quot; can be used in a denormalized data structure."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. In addition to the SDTMIG variable DDORRES, create DDTESTCD from the CDASH variable name and determine the value of DDTEST from DDTESTCD. The CDASH prompt may also contain the DDTEST. Use appropriate CDISC Controlled Terminology for the test and test code."/>
+				<Alias Name="PRCDTH_DDORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DDYN" Name="DDYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">DDYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any death detail assessments collected?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Death Detail Assessments"/>
+				<Alias Context="completionInstructions" Name="Indicate if the death details are known. If yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification if all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM Annotated CRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="DDYN" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.AUTOPIND_DDORRES" Name="AUTOPIND_DDORRES" DataType="text" Length="15">
+				<Description>
+					<TranslatedText xml:lang="en">PRCDTH_DDORRES</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Was an autopsy performed?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Result"/>
+				<Alias Context="completionInstructions" Name="Record the death detail response."/>
+				<Alias Context="implementationNotes" Name="Each test may be collected using the CDASH variable [TESTCD] (e.g., PRCDTH) or [TESTCD]_DDORRES where TESTCD is the appropriate CT for the DD test code e.g., PRCDTH_DDORRES. This CDASH variable name is an example of what &quot;variable name&quot; can be used in a denormalized data structure."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. In addition to the SDTMIG variable DDORRES, create DDTESTCD from the CDASH variable name and determine the value of DDTEST from DDTESTCD. The CDASH prompt may also contain the DDTEST. Use appropriate CDISC Controlled Terminology for the test and test code."/>
+				<Alias Name="AUTOPIND_DDORRES" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.DTHDAT" Name="DTHDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">DTHDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What [is/was] the subject&apos;s date of death?</TranslatedText>
+					<TranslatedText xml:lang="en">Death Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Death Date"/>
+				<Alias Context="completionInstructions" Name="Record the date of death."/>
+				<Alias Context="implementationNotes" Name="The CDASH model defines Death Date as a timing variable; this is not included as a timing variable in the SDTMIG. It may be collected on any CRF deemed appropriate by the sponsor, but should only be collected once. The SDTMIG variable DTHDTC is mapped to the DM domain during the SDTM submission dataset creation process. The SDTMIG variable DM.DTHFLG is not a CDASH variable, but it is typically populated during the SDTM submission dataset creation process. Death Date may be mapped to other SDTM domains, as deemed appropriate by the sponsor (e.g., DS)."/>
+				<Alias Context="mappingInstructions" Name="This field does not map directly to an SDTMIG variable. For the SDTM dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTM variable DTHDTC in ISO 8601 format."/>
+				<Alias Name="DTHDAT" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

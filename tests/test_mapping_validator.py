@@ -12,7 +12,7 @@ def get_auth_headers():
     import time
 
     user_id = "test-user"
-    roles = "test-role"
+    roles = "sponsor_designer"
     change_reason = "system_operation"
     timestamp = str(time.time())
     payload = {

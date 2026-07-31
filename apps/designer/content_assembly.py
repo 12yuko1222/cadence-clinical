@@ -248,6 +248,11 @@ def assemble_narrative_sections(
                     )
 
         title = resolve_text_references(nc.sectionTitle or nc.name or "", study)
+        derived_from_soa = getattr(nc, "derived_from_soa", False) or getattr(
+            nc, "_derived_from_soa", False
+        )
+        if isinstance(derived_from_soa, str):
+            derived_from_soa = derived_from_soa.lower() in ("true", "1")
         return NarrativeSectionView(
             section_id=nc.id,
             section_number=nc.sectionNumber,
@@ -255,6 +260,7 @@ def assemble_narrative_sections(
             items=items,
             subsections=subsections,
             order=order_in_parent,
+            derived_from_soa=bool(derived_from_soa),
         )
 
     assembled_roots: List[NarrativeSectionView] = []
@@ -564,6 +570,9 @@ def assemble_soa_matrix(study: usdm_model.Study) -> SoAMatrixView:
                                                 (enc_id, ep_id, act_id)
                                             )
 
+                                    derived_flag = getattr(
+                                        act, "derived_from_soa", False
+                                    ) or getattr(act, "_derived_from_soa", False)
                                     cells.append(
                                         SoACellView(
                                             activity_id=act_id,
@@ -571,6 +580,7 @@ def assemble_soa_matrix(study: usdm_model.Study) -> SoAMatrixView:
                                             epoch_id=ep_id,
                                             is_applicable=is_applicable,
                                             details=details_val,
+                                            derived_from_soa=bool(derived_flag),
                                         )
                                     )
 
@@ -579,6 +589,7 @@ def assemble_soa_matrix(study: usdm_model.Study) -> SoAMatrixView:
                                         activity_id=act_id,
                                         activity_name=act_name,
                                         cells=cells,
+                                        derived_from_soa=bool(derived_flag),
                                     )
                                 )
                                 activity_ids_added.add(act_id)
@@ -615,3 +626,56 @@ def assemble_rendered_protocol_document(
         soa_matrix=soa_matrix,
         source_study=study,
     )
+
+
+def render_synopsis_template_html(
+    rendered_doc: RenderedProtocolDocument,
+) -> str:
+    """Render a RenderedProtocolDocument into HTML using Jinja2 template.
+
+    Requirements: PRD-SYS-001
+    """
+    from pathlib import Path
+
+    from jinja2 import Environment, FileSystemLoader
+
+    template_dir = Path(__file__).resolve().parent / "templates"
+    env = Environment(
+        loader=FileSystemLoader(str(template_dir)),
+        autoescape=True,
+    )
+    template = env.get_template("protocol_synopsis.html.j2")
+    return template.render(
+        metadata=rendered_doc.metadata,
+        synopsis=rendered_doc.synopsis,
+        soa_matrix=rendered_doc.soa_matrix,
+        narrative_sections=rendered_doc.narrative_sections,
+    )
+
+
+class USDMSynopsisAssembler:
+    """High-level assembler service mapping USDM studies to rendered documents.
+
+    Requirements: PRD-SYS-001
+    """
+
+    def assemble_and_render_html(
+        self,
+        study: usdm_model.Study,
+        creator: str = "Cadence Clinical DDF Engine",
+        change_reason: str = "Initial Baseline",
+    ) -> str:
+        """Assemble USDM study and render HTML synopsis.
+
+        Args:
+            study: Input USDM Study model.
+            creator: Document author identifier.
+            change_reason: GxP change reason.
+
+        Returns:
+            Rendered HTML string.
+        """
+        doc = assemble_rendered_protocol_document(
+            study=study, creator=creator, change_reason=change_reason
+        )
+        return render_synopsis_template_html(doc)

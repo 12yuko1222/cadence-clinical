@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Medical History CRF" FileType="Snapshot" CreationDateTime="2021-02-12T18:11:42-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Medical History">
+		<GlobalVariables>
+			<StudyName>Medical History CRF</StudyName>
+			<StudyDescription>Medical History CRF</StudyDescription>
+			<ProtocolName>Medical History CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Medical History" Name="Medical History" Description="Medical History">
+			<FormDef OID="MH" Name="Form MH - Medical History" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">MH - Medical History</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_13" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_13" Name="MH - Medical History" Repeating="No" Domain="MH">
+				<Description>
+					<TranslatedText xml:lang="en">MH - Medical History</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.MHYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.MHDAT" Mandatory="No" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.MHTERM" Mandatory="Yes" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.MHSTDAT" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.MHONGO" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.MHENDAT" Mandatory="No" OrderNumber="6"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.MHDAT" Name="MHDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">MHDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the date the medical history was collected?</TranslatedText>
+					<TranslatedText xml:lang="en">Collection Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Collection Date"/>
+				<Alias Context="completionInstructions" Name="Record the date on which the Medical History was collected using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="This should be a complete date. The date of collection may be determined from a collected visit date."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH DATE and TIME components and populate the SDTMIG variable MHDTC in ISO 8601 format."/>
+				<Alias Name="MHDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.MHENDAT" Name="MHENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">MHENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What[is/was] the[medical event or condition/category of the event] end date?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="End Date"/>
+				<Alias Context="completionInstructions" Name="Record the end date of the medical event or condition using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The sponsor may choose to capture a complete date or any variation thereof (e.g., month and year, year)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable MHENDTC in ISO 8601 format."/>
+				<Alias Name="MHENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.MHONGO" Name="MHONGO" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">MHONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Is the medical condition or event ongoing (as of the
+    [study-specific timepoint or period])?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing (as of the [study-specific timepoint or period])"/>
+				<Alias Context="completionInstructions" Name="Record the medical condition or event as ongoing (&quot;Y&quot;) if it has not ended at the time of data collection. If the medical condition or event, is ongoing, the end date should be left blank."/>
+				<Alias Context="implementationNotes" Name="Completed to indicate that the condition has not resolved at the time of data collection. It is expected that every reported condition has either an End Date or the Ongoing field is populated, but not both. See Section 3.7, Mapping Relative Times from Collection to Submissions, and SDTMIG v3.2 Section 4.1.4.7 for more information."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTM variable. May be used to populate a value into an SDTMIG relative timing variable such as MHENRF or MHENRTPT. When populating MHENRF, if the value of MHONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating MHENRTPT, if the value of MHONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When MHONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTMIG variable MHENRF should be populated. When MHONGO is compared to another time point, the SDTMIG variables MHENRTPT and MHENTPT should be used.   Note: MHENRTPT must refer to a time point anchor described in MHENTPT."/>
+				<Alias Name="MHONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.MHSTDAT" Name="MHSTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">MHSTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What [is/was] the [medical event or condition/category of the event] start date?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the medical event or condition using this format (DD-MON-YYYY)."/>
+				<Alias Context="implementationNotes" Name="The sponsor may choose to capture a complete date or any variation thereof (e.g., month and year, year)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable MHSTDTC in ISO 8601 format."/>
+				<Alias Name="MHSTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.MHTERM" Name="MHTERM" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">MHTERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the medical condition or event term?</TranslatedText>
+					<TranslatedText xml:lang="en">Medical History Term</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Medical History Term"/>
+				<Alias Context="completionInstructions" Name="Record all relevant medical conditions or events, as defined in the protocol. Record only 1 medical condition or event per line. Ensure that the medical conditions or events listed on the Medical History page do not meet any of the exclusion criteria."/>
+				<Alias Context="implementationNotes" Name="Sponsors should collect all relevant medical conditions or events, as defined in the protocol. It is a best practice for sponsors to collect all relevant history of surgeries or procedures using the associated diagnosis in the MH domain, while reporting relevant surgeries and procedures in the SDTM PR domain. Sponsors should provide instructions on how surgeries and procedures will be handled based on the protocol requirements. Information on prespecified surgeries, or procedures should be collected in the PR domain."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="MHTERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.MHYN" Name="MHYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">MHYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any medical conditions or events reported?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Medical History"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject experienced any medical conditions or events. If yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM Annotated CRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="MHYN" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

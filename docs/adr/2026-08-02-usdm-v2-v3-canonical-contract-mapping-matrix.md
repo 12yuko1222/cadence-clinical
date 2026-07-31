@@ -2,8 +2,8 @@
 
 * **Status:** Accepted
 * **Date:** 2026-08-02
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
@@ -11,6 +11,8 @@
 In accordance with GxP validation pipelines and the 21 CFR Part 11 electronic records regulations, the Cadence Clinical platform requires absolute, reproducible, and verifiable transformations of clinical trial definitions. The system unifies clinical study setup via the MDR Designer (with a Neo4j graph back-end) and clinical trial data capture via the EDC Execution engine (with a PostgreSQL relational store).
 
 To support the full import, export, and round-trip of study designs using the Clinical Data Interchange Standards Consortium (CDISC) Unified Study Definitions Model (USDM) versions v2 and v3, we must define a single, stable **Canonical Internal Contract** and a **Mapping Coverage Matrix**. This documented contract is a strict GxP requirement before implementing normalization pipelines and bidirectional mappers. Without a formal field-level specification, lossless vs. lossy mapping behaviors are non-deterministic, potentially introducing regulatory risks, silent data truncation, or audit inconsistencies.
+
+This decision implements requirements under PRD-MDR-001.
 
 ## 2. Decision Drivers & Constraints
 * **Driver 1 (Compliance & Verifiability):** FDA 21 CFR Part 11 and EU Annex 11 mandate precise data trace-to-source trails. Any schema transformation or dynamic mapping must have deterministic, predictable outcomes.

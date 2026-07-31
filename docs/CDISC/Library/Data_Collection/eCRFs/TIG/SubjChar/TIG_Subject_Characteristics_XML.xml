@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-22T16:45:05"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_SUB_CHAR"
+                  Name="Tobacco Implementation Guide-Subject Characteristics"
+                  Repeating="No">
+            <Description>
+               <TranslatedText>This is an example CRF used to collect some basic subject characteristics data.</TranslatedText>
+            </Description>
+            <ItemGroupRef ItemGroupOID="TIG_SC_ANY" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_SC_ITEM" Mandatory="Yes" OrderNumber="2"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_SC_ANY" Name="Any Subject Characteristics" Repeating="No">
+            <ItemRef ItemOID="SC_TIG_ANY.SCPERF" Mandatory="Yes" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_SC_ITEM" Name="Subject Chacteristics" Repeating="No">
+            <ItemRef ItemOID="TIG_SC_ITEM.EDLEVEL_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="1"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.JOBCLAS_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="2"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.INCOME_SCORRES" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.MARISTAT_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="4"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.NATORIG_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="5"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.MILTSTAT_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="6"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.SHSMEXST_SCORRES"
+                     Mandatory="No"
+                     OrderNumber="7"/>
+            <ItemRef ItemOID="TIG_SC_ITEM.AGESTSMK__SCORRES"
+                     Mandatory="No"
+                     OrderNumber="8"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.TBCESSCO__SCORRES"
+                     Mandatory="No"
+                     OrderNumber="9"/>
+            <ItemRef ItemOID="SC_TIG_ITEM.LDURABS__SCORRES"
+                     Mandatory="No"
+                     OrderNumber="10"/>
+         </ItemGroupDef>
+         <ItemDef OID="TIG_SC_ITEM.AGESTSMK__SCORRES"
+                  Name="AGESTSMK__SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What was the age of the subject when they started smoking?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_AGE STARTED SMOKING CAT"/>
+            <Alias Name="Record the Age Category when the subject started smoking"
+                   Context="completionInstructions"/>
+            <Alias Name="AGESTSMK__SCORRES" Context="CDASH"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;AGESTSMK&#34;" Context="SDTM"/>
+            <Alias Name="Age Started Smoking" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="TIG_SC_ITEM.EDLEVEL_SCORRES"
+                  Name="EDLEVEL_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject's education level?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_EDUCATION LEVEL"/>
+            <Alias Name="Indicate the subject's education level."
+                   Context="completionInstructions"/>
+            <Alias Name="EDLEVEL_SCORRES" Context="CDASH"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;EDLEVEL&#34;" Context="SDTM"/>
+            <Alias Name="Education Level" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.INCOME_SCORRES"
+                  Name="INCOME_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject's income?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_INCOME LEVEL"/>
+            <Alias Name="Income" Context="prompt"/>
+            <Alias Name="Indicate the subject's  income." Context="completionInstructions"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;INCOME&#34;" Context="SDTM"/>
+            <Alias Name="INCOME_SCORRES" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.JOBCLAS_SCORRES"
+                  Name="JOBCLAS_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject’s employment status?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SCTEST_Employment Status"/>
+            <Alias Name="Employment Status" Context="prompt"/>
+            <Alias Name="Indicate the subject's employment status."
+                   Context="completionInstructions"/>
+            <Alias Name="JOBCLAS_SCORRES" Context="CDASH"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;JOBCLAS&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.LDURABS__SCORRES"
+                  Name="LDURABS__SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the longest duration of previous abstinence from tobacco use?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_LONGEST DURATION OF ABSTINENCE"/>
+            <Alias Name="Record the longest duration of tobacco abstinence"
+                   Context="completionInstructions"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;LDURABS&#34;" Context="SDTM"/>
+            <Alias Name="LDURABS__SCORRES" Context="CDASH"/>
+            <Alias Name="Longest Duration of  Abstinence" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.MARISTAT_SCORRES"
+                  Name="MARISTAT_SCORRES"
+                  DataType="text"
+                  Length="39"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject's marital status?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_MARRIAGE STATUS RESPONSE"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;MARISTAT&#34;" Context="SDTM"/>
+            <Alias Name="MARISTAT_SCORRES" Context="CDASH"/>
+            <Alias Name="Marital Status" Context="prompt"/>
+            <Alias Name="Indicate the subject's marital status."
+                   Context="completionInstructions"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.MILTSTAT_SCORRES"
+                  Name="MILTSTAT_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject’s military status ?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_MILITARY STATUS"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;MILTSTAT&#34;" Context="SDTM"/>
+            <Alias Name="Military Status" Context="prompt"/>
+            <Alias Name="Indicate the subject's military status."
+                   Context="completionInstructions"/>
+            <Alias Name="MILTSTAT_SCORRES" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.NATORIG_SCORRES"
+                  Name="NATORIG_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>What is the subject's national origin status?</TranslatedText>
+            </Question>
+            <Alias Name="NATORIG_SCORRES" Context="CDASH"/>
+            <Alias Name="National Origin" Context="prompt"/>
+            <Alias Name="Indicate the subject's national origin"
+                   Context="completionInstructions"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;NATORIG&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ANY.SCPERF"
+                  Name="SCPERF"
+                  DataType="text"
+                  Length="3">
+            <Question>
+               <TranslatedText>Were subject characteristics collected?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="Indicate if subject characteristics information was collected. If Yes, record the appropriate details."
+                   Context="completionInstructions"/>
+            <Alias Name="SCPERF" Context="CDASH"/>
+            <Alias Name="Subject Characteristics Collected" Context="prompt"/>
+            <Alias Name="If SCPERF = &#34;Y&#34;, NOT SUBMITTED. If SCPERF = &#34;N&#34;, SCSTAT where SCTESTCD = &#34;SCALL&#34;."
+                   Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.SHSMEXST_SCORRES"
+                  Name="SHSMEXST_SCORRES"
+                  DataType="text"
+                  Length="40"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>Was the subject exposed to second hand smoke ?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_SC_SECOND HAND SMOKE EXPOSURE STATUS"/>
+            <Alias Name="Second Hand Smoke Exposure Status" Context="prompt"/>
+            <Alias Name="SHSMEXST_SCORRES" Context="CDASH"/>
+            <Alias Name="Indicate the subject's exposure to second hand smoke"
+                   Context="completionInstructions"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;SHSMEXST&#34;" Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="SC_TIG_ITEM.TBCESSCO__SCORRES"
+                  Name="TBCESSCO__SCORRES"
+                  DataType="text"
+                  Length="3"
+                  SDSVarName="SCORRES">
+            <Question>
+               <TranslatedText>Did the subject have any tobacco cessation counseling?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL_C66742_NY"/>
+            <Alias Name="SCORRES WHERE SCTESTCD = &#34;TBCESSCO&#34;" Context="SDTM"/>
+            <Alias Name="TBCESSCO__SCORRES" Context="CDASH"/>
+            <Alias Name="Indicate whether the subject had previous tobacco cessation counseling."
+                   Context="completionInstructions"/>
+            <Alias Name="Tobacco Cessation Counseling" Context="prompt"/>
+         </ItemDef>
+         <CodeList OID="TIG_SC_AGE STARTED SMOKING CAT"
+                   Name="AGE STARTED SMOKING CAT"
+                   DataType="text">
+            <EnumeratedItem CodedValue="16-24 years"/>
+            <EnumeratedItem CodedValue="25-34 years"/>
+            <EnumeratedItem CodedValue="45–64 years"/>
+            <EnumeratedItem CodedValue="65 years and older"/>
+         </CodeList>
+         <CodeList OID="TIG_SC_EDUCATION LEVEL" Name="EDUCATION LEVEL" DataType="text">
+            <CodeListItem CodedValue="Did not complete Secondary School or Less than High School"
+                          OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Did not complete Secondary School or Less than High School</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Some Secondary School or High School Education"
+                          OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Some Secondary School or High School Education</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="High School or Secondary School Degree Complete"
+                          OrderNumber="3">
+               <Decode>
+                  <TranslatedText>High School or Secondary School Degree Complete</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Associate’s or Technical Degree Complete; College or Baccalaureate Degree Complete"
+                          OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Associate’s or Technical Degree Complete; College or Baccalaureate Degree Complete</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Doctoral or Postgraduate Education" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Doctoral or Postgraduate Education</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_SCTEST_Employment Status"
+                   Name="Employment Status"
+                   DataType="text">
+            <CodeListItem CodedValue="FULL-TIME" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Full-time</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="PART-TIME" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Part-time</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT EMPLOYED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Not Employed</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_SC_INCOME LEVEL" Name="INCOME LEVEL" DataType="text">
+            <EnumeratedItem CodedValue="&amp;lt;100% poverty guideline"/>
+            <EnumeratedItem CodedValue="100-200% poverty guidelines"/>
+            <EnumeratedItem CodedValue="&amp;gt;200% poverty guidelines;"/>
+         </CodeList>
+         <CodeList OID="TIG_SC_LONGEST DURATION OF ABSTINENCE"
+                   Name="LONGEST DURATION OF ABSTINENCE"
+                   DataType="text">
+            <CodeListItem CodedValue="≤7 DAYS" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>≤7 days</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="8–28 DAYS" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>8–28 Days</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="1–6 MONTHS" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>1–6 months</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="&gt;6 MONTHS" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>&gt;6 Months</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_SC_MARRIAGE STATUS RESPONSE"
+                   Name="MARRIAGE STATUS RESPONSE"
+                   DataType="text">
+            <CodeListItem CodedValue="NEVER MARRIED" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Never Married</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="MARRIED" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Married</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="DIVORCED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Divorced</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="LEGALLY SEPARATED" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Legally Separated</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="WIDOWED" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Widiwed</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_SC_MILITARY STATUS" Name="MILITARY STATUS" DataType="text">
+            <CodeListItem CodedValue="NO MILITARY SEVICE" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No Military Service</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="ACTIVE SERVICE" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Active Service</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="VETERAN" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Veteran</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL_C66742_NY" Name="No Yes Response" DataType="text">
+            <CodeListItem CodedValue="N" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="Y" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Yes</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_SC_SECOND HAND SMOKE EXPOSURE STATUS"
+                   Name="SECOND HAND SMOKE EXPOSURE STATUS"
+                   DataType="text">
+            <CodeListItem CodedValue="NO EXPOSURE TO SECOND HAND SMOKE" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>No Exposure to Second Hand Smoke</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="EXPOSURE AT HOME ONLY" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Exposure at Home Only</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="EXPOSURE AT WORK ONLY" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Exposure at work only</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="EXPOSURE AT WORK AND HOME" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Exposure at Work and Home</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

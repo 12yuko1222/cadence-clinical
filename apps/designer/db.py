@@ -39,6 +39,9 @@ MOCK_STUDIES = {
 # In-memory rule mock store fallback
 MOCK_RULES: Dict[str, List[Dict[str, Any]]] = {}
 
+# In-memory eligibility criteria mock store fallback
+MOCK_ELIGIBILITY_CRITERIA: Dict[str, List[Dict[str, Any]]] = {}
+
 # --- Mock Study Version Content ---
 MOCK_STUDY_VERSIONS: Dict[str, List[Dict[str, Any]]] = {}
 MOCK_STUDY_PROJECTIONS_BY_VERSION: Dict[str, Dict[str, Any]] = {}
@@ -76,6 +79,10 @@ def create_mock_study_version(study_id: str, version_data: Dict[str, Any]):
             payload["created_at"] = str(version_data["created_at"])
         if "parent_version" in version_data:
             payload["parent_version"] = version_data["parent_version"]
+        if "branch_name" in version_data and version_data["branch_name"] is not None:
+            payload["branch_name"] = version_data["branch_name"]
+        if "base_version" in version_data and version_data["base_version"] is not None:
+            payload["base_version"] = version_data["base_version"]
 
         secret = os.getenv(
             "SIGNING_SECRET", "designer-amendment-secure-key-12345"
@@ -101,7 +108,7 @@ def assert_mock_study_mutable(study_id: str):
             raise InvalidSignatureError("INVALID_OR_MISSING_SIGNATURE")
 
         status = latest.get("status")
-        if status in ("LOCKED", "PUBLISHED", "ARCHIVED"):
+        if status in ("APPROVED", "SIGNED", "LOCKED", "PUBLISHED", "ARCHIVED"):
             from apps.designer.delta import ImmutabilityViolationError
 
             raise ImmutabilityViolationError("IMMUTABILITY_VIOLATION")
@@ -130,6 +137,31 @@ def get_study_projection(study_id: str) -> Optional[Dict[str, Any]]:
     study["rules"] = [
         r for r in MOCK_RULES.get(study_id, []) if not r.get("is_deleted", False)
     ]
+    # Dynamically inject non-soft-deleted mock eligibility criteria
+    study["eligibility_criteria"] = [
+        c
+        for c in MOCK_ELIGIBILITY_CRITERIA.get(study_id, [])
+        if not c.get("is_deleted", False)
+    ]
+
+    # Fetch blocks from MOCK_SOA_DATA for the latest version of the study if available
+    versions = MOCK_STUDY_VERSIONS.get(study_id, [])
+    blocks_list = []
+    if versions:
+        # Get the latest version based on version_index
+        latest_ver = sorted(versions, key=lambda x: x.get("version_index", 0))[-1]
+        version_id = latest_ver.get("id")
+        from apps.designer.delta import MOCK_SOA_DATA
+
+        if version_id in MOCK_SOA_DATA:
+            blocks_dict = MOCK_SOA_DATA[version_id].get("blocks", {})
+            # Only non-deleted blocks sorted by order
+            blocks_list = [
+                b for b in blocks_dict.values() if not b.get("is_deleted", False)
+            ]
+            blocks_list.sort(key=lambda x: x.get("order", 0))
+    study["blocks"] = blocks_list
+
     return study
 
 
@@ -184,6 +216,9 @@ def delete_mock_rule(study_id: str, rule_id: str) -> bool:
             r["version_index"] += 1
             return True
     return False
+
+
+MOCK_DESIGNER_AUDIT_LOGS: List[Dict[str, Any]] = []
 
 
 def run_async(coro):
@@ -327,3 +362,74 @@ class TerminologyCache:
 
 
 terminology_cache = TerminologyCache()
+
+
+def check_dict_for_value(d: Any, target: str) -> bool:
+    """
+    Recursively scan nested dictionaries, lists, or custom objects to find if
+    any value matches the target concept ID or code.
+    """
+    if isinstance(d, dict):
+        for k, v in d.items():
+            if v == target:
+                return True
+            if check_dict_for_value(v, target):
+                return True
+    elif isinstance(d, list):
+        for item in d:
+            if item == target:
+                return True
+            if check_dict_for_value(item, target):
+                return True
+    elif hasattr(d, "__dict__"):
+        for k, v in d.__dict__.items():
+            if not k.startswith("_"):
+                if v == target:
+                    return True
+                if check_dict_for_value(v, target):
+                    return True
+    return False
+
+
+async def is_concept_referenced_by_active_recruiting_study(
+    concept_id: str, driver=None
+) -> bool:
+    """
+    Check if a concept code/ID is referenced by any active recruiting study.
+    Looks across both in-memory MOCK_STUDIES / MOCK_STUDY_VERSIONS and Neo4j database (if driver is active).
+    """
+    # 1. Check in-memory mock data
+    for study_id, study_data in MOCK_STUDIES.items():
+        is_active_recruiting = study_data.get("status") == "Active-Recruiting"
+
+        # Check versions of this study
+        versions = MOCK_STUDY_VERSIONS.get(study_id, [])
+        for v in versions:
+            if v.get("status") == "Active-Recruiting":
+                is_active_recruiting = True
+                break
+
+        if is_active_recruiting:
+            if check_dict_for_value(study_data, concept_id):
+                return True
+
+    # 2. Check Neo4j if driver is provided
+    if driver is not None:
+        try:
+            query = """
+            MATCH (s)
+            WHERE (s:Study OR s:StudyVersion) AND s.status = 'Active-Recruiting'
+            MATCH (s)-[*0..5]->(n)
+            WHERE any(key IN keys(n) WHERE n[key] = $concept_id)
+            RETURN count(n) > 0 AS is_referenced
+            """
+            async with driver.session() as session:
+                result = await session.run(query, concept_id=concept_id)
+                record = await result.single()
+                if record:
+                    return bool(record["is_referenced"])
+        except Exception:
+            # Gracefully ignore Neo4j query errors in offline/test mode
+            pass
+
+    return False

@@ -1,8 +1,7 @@
 import asyncio
 import os
-from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import AsyncGenerator, List, Optional
+from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,12 +12,13 @@ from apps.notifications.database import db_manager
 from apps.notifications.models import (
     Base,
     Notification,
-    NotificationAuditLog,
     NotificationCategory,
     NotificationDelivery,
     NotificationPriority,
     NotificationStatus,
+    write_audit_log,
 )
+from packages.database import DatabaseSessionDependency, get_relational_db_lifespan
 from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import get_normalized_roles
 
@@ -45,6 +45,11 @@ class NotificationCreate(BaseModel):
     related_entity_type: Optional[str] = Field(
         None, description="Optional related entity type"
     )
+    subject: Optional[str] = Field(None, description="Optional subject")
+    subject_id: Optional[str] = Field(None, description="Optional related subject ID")
+    visit_id: Optional[str] = Field(None, description="Optional related visit ID")
+    query_id: Optional[str] = Field(None, description="Optional related query ID")
+    site_id: Optional[str] = Field(None, description="Optional related site ID")
 
 
 class NotificationResponse(BaseModel):
@@ -59,6 +64,11 @@ class NotificationResponse(BaseModel):
     message_content: str
     related_entity_id: Optional[str] = None
     related_entity_type: Optional[str] = None
+    subject: Optional[str] = None
+    subject_id: Optional[str] = None
+    visit_id: Optional[str] = None
+    query_id: Optional[str] = None
+    site_id: Optional[str] = None
     status: NotificationStatus
     delivery_state: str
     retries: int
@@ -73,6 +83,7 @@ DATABASE_URL = os.getenv("NOTIFICATIONS_DATABASE_URL", "sqlite+aiosqlite:///:mem
 
 # Global set to track active deliveries in memory
 active_deliveries = set()
+active_tasks = set()
 
 
 async def poll_and_dispatch() -> None:
@@ -104,7 +115,9 @@ async def poll_and_dispatch() -> None:
             if d.id in active_deliveries:
                 continue
             active_deliveries.add(d.id)
-            asyncio.create_task(deliver_channel_wrapper(d.id))
+            task = asyncio.create_task(deliver_channel_wrapper(d.id))
+            active_tasks.add(task)
+            task.add_done_callback(active_tasks.discard)
 
 
 async def deliver_channel_wrapper(delivery_id: str) -> None:
@@ -185,6 +198,14 @@ async def deliver_channel(delivery_id: str) -> None:
             max_attempts = int(os.getenv("NOTIFICATION_MAX_ATTEMPTS", "5"))
             if delivery.attempts >= max_attempts:
                 delivery.retry_eligible = False
+                # Write exhaustion audit entry
+                await write_audit_log(
+                    session=session,
+                    user_id="system",
+                    user_role="system",
+                    action="NOTIFICATION_DELIVERY_EXHAUSTED",
+                    details=f"Delivery exhausted for channel '{delivery.channel}' of notification '{delivery.notification_id}' after {delivery.attempts} attempts. Last error: '{str(e)}'",
+                )
             else:
                 base_delay = float(os.getenv("NOTIFICATION_RETRY_BASE_DELAY", "2.0"))
                 max_delay = float(os.getenv("NOTIFICATION_RETRY_MAX_DELAY", "3600.0"))
@@ -195,6 +216,15 @@ async def deliver_channel(delivery_id: str) -> None:
                     seconds=backoff_delay
                 )
                 delivery.retry_eligible = True
+
+            # Emit a per-failure audit/log record on each failed attempt
+            await write_audit_log(
+                session=session,
+                user_id="system",
+                user_role="system",
+                action="NOTIFICATION_DELIVERY_FAILED",
+                details=f"Delivery failed for channel '{delivery.channel}' of notification '{delivery.notification_id}' on attempt {delivery.attempts}. Error: '{str(e)}'",
+            )
 
         await session.commit()
 
@@ -214,80 +244,47 @@ async def dispatcher_lifecycle_worker() -> None:
         await asyncio.sleep(1.0)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Handle the lifespan events for the Notifications application.
+dispatcher_task: Optional[asyncio.Task] = None
 
-    Initializes the database session manager on startup and securely
-    cleans up connections on shutdown. Creates all tables if sqlite is used.
-    Starts and cancels the dispatcher worker.
-    """
-    db_manager.init_db(DATABASE_URL)
 
-    # Automatically create tables for sqlite in-memory/file databases
-    if DATABASE_URL.startswith("sqlite"):
-        async with db_manager.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+async def start_dispatcher() -> None:
+    """Startup hook to start the notifications background dispatcher."""
+    global dispatcher_task
+    import sys
 
-    # Start the dispatcher background task
+    if "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST"):
+        return
     dispatcher_task = asyncio.create_task(dispatcher_lifecycle_worker())
 
-    yield
 
-    # Stop the dispatcher background task cleanly on shutdown
-    dispatcher_task.cancel()
-    try:
-        await dispatcher_task
-    except asyncio.CancelledError:
-        pass
-
-    await db_manager.close()
+async def stop_dispatcher() -> None:
+    """Shutdown hook to cleanly cancel the notifications background dispatcher."""
+    global dispatcher_task
+    if dispatcher_task:
+        dispatcher_task.cancel()
+        try:
+            await dispatcher_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
     title="Cadence Clinical - Notifications Service",
     version="0.1.0",
-    lifespan=lifespan,
+    lifespan=get_relational_db_lifespan(
+        db_manager=db_manager,
+        database_url=DATABASE_URL,
+        base_metadata=Base.metadata,
+        startup_hooks=[start_dispatcher],
+        shutdown_hooks=[stop_dispatcher],
+    ),
 )
 
 # Enforce secure gateway authentication middleware
 app.add_middleware(GatewayAuthMiddleware)
 
 
-# Dependable to obtain database session
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency to yield an asynchronous database session.
-    """
-    session_maker = db_manager.get_session_maker()
-    async with session_maker() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-async def write_audit_log(
-    session: AsyncSession,
-    user_id: str,
-    user_role: str,
-    action: str,
-    details: str,
-) -> None:
-    """
-    Utility helper to write to the append-only NotificationAuditLog.
-    """
-    log_entry = NotificationAuditLog(
-        user_id=user_id,
-        user_role=user_role,
-        action=action,
-        details=details,
-    )
-    session.add(log_entry)
-    await session.flush()
+get_db_session = DatabaseSessionDependency(db_manager)
 
 
 def map_notification_to_response(notif: Notification) -> NotificationResponse:
@@ -301,6 +298,11 @@ def map_notification_to_response(notif: Notification) -> NotificationResponse:
         message_content=notif.message_content,
         related_entity_id=notif.related_entity_id,
         related_entity_type=notif.related_entity_type,
+        subject=notif.subject,
+        subject_id=notif.subject_id,
+        visit_id=notif.visit_id,
+        query_id=notif.query_id,
+        site_id=notif.site_id,
         status=notif.status,
         delivery_state=notif.delivery_state,
         retries=notif.retries,
@@ -348,6 +350,11 @@ async def create_notification(
         message_content=payload.message_content,
         related_entity_id=payload.related_entity_id,
         related_entity_type=payload.related_entity_type,
+        subject=payload.subject,
+        subject_id=payload.subject_id,
+        visit_id=payload.visit_id,
+        query_id=payload.query_id,
+        site_id=payload.site_id,
         status=NotificationStatus.OPEN,
         delivery_state=initial_delivery_state,
         retries=0,
@@ -377,6 +384,22 @@ async def create_notification(
         action="NOTIFICATION_CREATE",
         details=f"Created notification ID '{notif.id}' targeting user '{payload.recipient_user_id}' / role '{payload.recipient_role}'.",
     )
+
+    # GxP compliance: Explicitly identify direct Sponsor Medical Monitor alerts to bypass NotificationRouter and record PII-safe attempt
+    if payload.recipient_role and payload.recipient_role.lower() in (
+        "sponsor_mm",
+        "sponsor medical monitor",
+        "medical_monitor",
+        "medical monitor",
+        "mm",
+    ):
+        await write_audit_log(
+            session=session,
+            user_id=user_id,
+            user_role=user_role,
+            action="MEDICAL_MONITOR_ALERT_ATTEMPT",
+            details=f"Direct PII-safe Sponsor Medical Monitor notification attempt recorded for notification '{notif.id}'. Bypassed NotificationRouter.",
+        )
 
     return map_notification_to_response(notif)
 

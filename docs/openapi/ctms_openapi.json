@@ -1,0 +1,2944 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cadence Clinical - CTMS",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Service health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/studies": {
+      "get": {
+        "summary": "List Studies",
+        "operationId": "list_studies_api_v1_ctms_studies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CTMSStudyResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Studies Api V1 Ctms Studies Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Study",
+        "operationId": "create_study_api_v1_ctms_studies_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CTMSStudyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CTMSStudyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/audit-logs": {
+      "get": {
+        "summary": "Get Audit Trail",
+        "operationId": "get_audit_trail_api_v1_ctms_audit_logs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CTMSAuditLogResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Get Audit Trail Api V1 Ctms Audit Logs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits": {
+      "post": {
+        "summary": "Schedule Monitoring Visit",
+        "description": "Schedules a clinical site monitoring visit and automatically generates/persists\na corresponding confirmation letter.",
+        "operationId": "schedule_monitoring_visit_api_v1_ctms_monitoring_visits_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoringVisitCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoringVisitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Monitoring Visits",
+        "description": "Lists and filters clinical trial site monitoring visits.",
+        "operationId": "list_monitoring_visits_api_v1_ctms_monitoring_visits_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Site Id"
+            }
+          },
+          {
+            "name": "cra_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cra Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MonitoringVisitResponse"
+                  },
+                  "title": "Response List Monitoring Visits Api V1 Ctms Monitoring Visits Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/{visit_id}/complete": {
+      "post": {
+        "summary": "Complete Monitoring Visit",
+        "description": "Completes a scheduled monitoring visit, records findings and action items,\nand automatically generates/persists a follow-up letter.",
+        "operationId": "complete_monitoring_visit_api_v1_ctms_monitoring_visits__visit_id__complete_post",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Visit Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoringVisitComplete"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoringVisitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/{visit_id}/letters": {
+      "get": {
+        "summary": "Get Monitoring Visit Letters",
+        "description": "Retrieves all generated letters associated with a specific monitoring visit.\nGuarantees no re-rendering of previously issued letters by returning stored content.",
+        "operationId": "get_monitoring_visit_letters_api_v1_ctms_monitoring_visits__visit_id__letters_get",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Visit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GeneratedLetterResponse"
+                  },
+                  "title": "Response Get Monitoring Visit Letters Api V1 Ctms Monitoring Visits  Visit Id  Letters Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/{visit_id}/letters/{letter_type}": {
+      "get": {
+        "summary": "Get Monitoring Visit Letter By Type",
+        "description": "Retrieves a specific letter (e.g. CONFIRMATION or FOLLOW_UP) associated with a monitoring visit.\nGuarantees no re-rendering of previously issued letters by returning stored content.",
+        "operationId": "get_monitoring_visit_letter_by_type_api_v1_ctms_monitoring_visits__visit_id__letters__letter_type__get",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Visit Id"
+            }
+          },
+          {
+            "name": "letter_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Letter Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedLetterResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/{visit_id}/sign-off": {
+      "post": {
+        "summary": "Sign Off Monitoring Visit",
+        "description": "Allows a clinical Monitor to perform a supervisory sign-off on a completed monitoring visit.",
+        "operationId": "sign_off_monitoring_visit_api_v1_ctms_monitoring_visits__visit_id__sign_off_post",
+        "parameters": [
+          {
+            "name": "visit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Visit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoringVisitResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/recruitment": {
+      "post": {
+        "summary": "Record Recruitment",
+        "description": "Record or update recruitment metrics for a site and study.",
+        "operationId": "record_recruitment_api_v1_ctms_recruitment_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecruitmentRecordCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecruitmentRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Recruitment Records",
+        "description": "List recorded recruitment metrics, optionally filtered by site and/or study.",
+        "operationId": "list_recruitment_records_api_v1_ctms_recruitment_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Site Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecruitmentRecordResponse"
+                  },
+                  "title": "Response List Recruitment Records Api V1 Ctms Recruitment Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/site-milestones": {
+      "post": {
+        "summary": "Create Site Milestone",
+        "description": "Create a new site lifecycle milestone.",
+        "operationId": "create_site_milestone_api_v1_ctms_site_milestones_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteMilestoneCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteMilestoneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Site Milestones",
+        "description": "List site milestones, optionally filtered by site and/or study.",
+        "operationId": "list_site_milestones_api_v1_ctms_site_milestones_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Site Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SiteMilestoneResponse"
+                  },
+                  "title": "Response List Site Milestones Api V1 Ctms Site Milestones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/site-milestones/{milestone_id}": {
+      "put": {
+        "summary": "Update Site Milestone",
+        "description": "Update site lifecycle milestones.",
+        "operationId": "update_site_milestone_api_v1_ctms_site_milestones__milestone_id__put",
+        "parameters": [
+          {
+            "name": "milestone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Milestone Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteMilestoneUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteMilestoneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/cra-allocations": {
+      "post": {
+        "summary": "Allocate Cra",
+        "description": "Allocate or reallocate a CRA to a site and study.\nRestricted to Sponsor Admin.",
+        "operationId": "allocate_cra_api_v1_ctms_cra_allocations_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CRAAllocationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CRAAllocationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Cra Allocations",
+        "description": "List CRA allocations, optionally filtered.",
+        "operationId": "list_cra_allocations_api_v1_ctms_cra_allocations_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Site Id"
+            }
+          },
+          {
+            "name": "cra_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cra Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CRAAllocationResponse"
+                  },
+                  "title": "Response List Cra Allocations Api V1 Ctms Cra Allocations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/cra-allocations/{allocation_id}": {
+      "put": {
+        "summary": "Update Cra Allocation",
+        "description": "Update or reassign an existing CRA allocation.\nRestricted to Sponsor Admin.",
+        "operationId": "update_cra_allocation_api_v1_ctms_cra_allocations__allocation_id__put",
+        "parameters": [
+          {
+            "name": "allocation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Allocation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CRAAllocationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CRAAllocationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/cra-allocations/workload": {
+      "get": {
+        "summary": "Retrieve Workload Summaries",
+        "description": "Retrieve workload summaries reflecting active CRA allocations.",
+        "operationId": "retrieve_workload_summaries_api_v1_ctms_cra_allocations_workload_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CRAWorkloadItem"
+                  },
+                  "type": "array",
+                  "title": "Response Retrieve Workload Summaries Api V1 Ctms Cra Allocations Workload Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants": {
+      "post": {
+        "summary": "Create Grant",
+        "operationId": "create_grant_api_v1_ctms_grants_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigatorGrantCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigatorGrantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Grants",
+        "operationId": "list_grants_api_v1_ctms_grants_get",
+        "parameters": [
+          {
+            "name": "study_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "name": "site_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Site Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvestigatorGrantResponse"
+                  },
+                  "title": "Response List Grants Api V1 Ctms Grants Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}": {
+      "get": {
+        "summary": "Get Grant",
+        "operationId": "get_grant_api_v1_ctms_grants__grant_id__get",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigatorGrantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Grant",
+        "operationId": "update_grant_api_v1_ctms_grants__grant_id__put",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigatorGrantUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigatorGrantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}/budget-items": {
+      "post": {
+        "summary": "Create Budget Line Item",
+        "operationId": "create_budget_line_item_api_v1_ctms_grants__grant_id__budget_items_post",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetLineItemCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetLineItemResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Budget Line Items",
+        "operationId": "list_budget_line_items_api_v1_ctms_grants__grant_id__budget_items_get",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BudgetLineItemResponse"
+                  },
+                  "title": "Response List Budget Line Items Api V1 Ctms Grants  Grant Id  Budget Items Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}/milestones": {
+      "post": {
+        "summary": "Create Payment Milestone",
+        "operationId": "create_payment_milestone_api_v1_ctms_grants__grant_id__milestones_post",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentMilestoneCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMilestoneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Payment Milestones",
+        "operationId": "list_payment_milestones_api_v1_ctms_grants__grant_id__milestones_get",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentMilestoneResponse"
+                  },
+                  "title": "Response List Payment Milestones Api V1 Ctms Grants  Grant Id  Milestones Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}/milestones/{milestone_id}/trigger": {
+      "post": {
+        "summary": "Trigger Manual Milestone",
+        "operationId": "trigger_manual_milestone_api_v1_ctms_grants__grant_id__milestones__milestone_id__trigger_post",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          },
+          {
+            "name": "milestone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Milestone Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMilestoneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}/evaluate": {
+      "post": {
+        "summary": "Evaluate Grant Milestones",
+        "description": "Manually run the milestone evaluation engine for a specific condition.",
+        "operationId": "evaluate_grant_milestones_api_v1_ctms_grants__grant_id__evaluate_post",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          },
+          {
+            "name": "condition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "STUDY_APPROVED",
+              "title": "Condition"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Evaluate Grant Milestones Api V1 Ctms Grants  Grant Id  Evaluate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/grants/{grant_id}/payables": {
+      "get": {
+        "summary": "List Investigator Payables",
+        "operationId": "list_investigator_payables_api_v1_ctms_grants__grant_id__payables_get",
+        "parameters": [
+          {
+            "name": "grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Grant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvestigatorPayableResponse"
+                  },
+                  "title": "Response List Investigator Payables Api V1 Ctms Grants  Grant Id  Payables Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/sync": {
+      "post": {
+        "summary": "Sync Monitoring Visit",
+        "description": "Secure sync endpoint for offline monitoring visits completion and findings.",
+        "operationId": "sync_monitoring_visit_api_v1_ctms_monitoring_visits_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitoringVisitOfflineSync"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Sync Monitoring Visit Api V1 Ctms Monitoring Visits Sync Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ctms/monitoring-visits/bulk-sync": {
+      "post": {
+        "summary": "Bulk Sync Monitoring Visits",
+        "description": "Secure bulk sync endpoint for offline monitoring visits completion and findings.",
+        "operationId": "bulk_sync_monitoring_visits_api_v1_ctms_monitoring_visits_bulk_sync_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/MonitoringVisitOfflineSync"
+                },
+                "type": "array",
+                "title": "Payloads"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Bulk Sync Monitoring Visits Api V1 Ctms Monitoring Visits Bulk Sync Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BudgetLineItemCreate": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Category of budget item (VISIT_COST, EQUIPMENT, etc.)"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Description of budget line item"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "description": "Budget item cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "description",
+          "amount"
+        ],
+        "title": "BudgetLineItemCreate"
+      },
+      "BudgetLineItemResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "grant_id": {
+            "type": "string",
+            "title": "Grant Id"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "grant_id",
+          "category",
+          "description",
+          "amount",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "BudgetLineItemResponse"
+      },
+      "CRAAllocationCreate": {
+        "properties": {
+          "cra_id": {
+            "type": "string",
+            "title": "Cra Id",
+            "description": "CRA ID being allocated"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id",
+            "description": "Site ID"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Study ID"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Allocation status",
+            "default": "ACTIVE"
+          },
+          "effective_start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Start Date",
+            "description": "Effective start date"
+          },
+          "effective_end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective End Date",
+            "description": "Effective end date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cra_id",
+          "site_id",
+          "study_id"
+        ],
+        "title": "CRAAllocationCreate"
+      },
+      "CRAAllocationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "cra_id": {
+            "type": "string",
+            "title": "Cra Id"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "effective_start_date": {
+            "type": "string",
+            "title": "Effective Start Date"
+          },
+          "effective_end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective End Date"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cra_id",
+          "site_id",
+          "study_id",
+          "status",
+          "effective_start_date",
+          "effective_end_date",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "CRAAllocationResponse"
+      },
+      "CRAAllocationUpdate": {
+        "properties": {
+          "cra_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cra Id",
+            "description": "CRA ID being allocated"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Allocation status"
+          },
+          "effective_start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Start Date",
+            "description": "Effective start date"
+          },
+          "effective_end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective End Date",
+            "description": "Effective end date"
+          }
+        },
+        "type": "object",
+        "title": "CRAAllocationUpdate"
+      },
+      "CRAWorkloadItem": {
+        "properties": {
+          "cra_id": {
+            "type": "string",
+            "title": "Cra Id"
+          },
+          "active_allocations_count": {
+            "type": "integer",
+            "title": "Active Allocations Count"
+          },
+          "allocated_sites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allocated Sites"
+          },
+          "allocated_studies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allocated Studies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cra_id",
+          "active_allocations_count",
+          "allocated_sites",
+          "allocated_studies"
+        ],
+        "title": "CRAWorkloadItem"
+      },
+      "CTMSAuditLogResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "user_role": {
+            "type": "string",
+            "title": "User Role"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "details": {
+            "type": "string",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "user_id",
+          "user_role",
+          "action",
+          "details"
+        ],
+        "title": "CTMSAuditLogResponse"
+      },
+      "CTMSStudyCreate": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Unique clinical study ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Descriptive name of the clinical study"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Initial status of the study",
+            "default": "ACTIVE"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "name"
+        ],
+        "title": "CTMSStudyCreate"
+      },
+      "CTMSStudyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "name",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "CTMSStudyResponse"
+      },
+      "ConflictStrategy": {
+        "type": "string",
+        "enum": [
+          "CLIENT_WINS",
+          "SERVER_WINS",
+          "MERGE"
+        ],
+        "title": "ConflictStrategy",
+        "description": "Explicit validated conflict resolution strategies."
+      },
+      "FindingCreate": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The observation or action item text"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "Finding severity (MINOR, MAJOR, CRITICAL)"
+          },
+          "resolution_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Status",
+            "description": "Resolution status",
+            "default": "OPEN"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "severity"
+        ],
+        "title": "FindingCreate"
+      },
+      "GeneratedLetterResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "visit_id": {
+            "type": "string",
+            "title": "Visit Id"
+          },
+          "letter_type": {
+            "type": "string",
+            "title": "Letter Type"
+          },
+          "rendered_content": {
+            "type": "string",
+            "title": "Rendered Content"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "visit_id",
+          "letter_type",
+          "rendered_content",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "GeneratedLetterResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InvestigatorGrantCreate": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Clinical study ID"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id",
+            "description": "Site ID"
+          },
+          "total_budget": {
+            "type": "number",
+            "title": "Total Budget",
+            "description": "Overall budget allocated for the site",
+            "default": 0.0
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "Currency code",
+            "default": "USD"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "site_id"
+        ],
+        "title": "InvestigatorGrantCreate"
+      },
+      "InvestigatorGrantResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id"
+          },
+          "total_budget": {
+            "type": "number",
+            "title": "Total Budget"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "site_id",
+          "total_budget",
+          "currency",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "InvestigatorGrantResponse"
+      },
+      "InvestigatorGrantUpdate": {
+        "properties": {
+          "total_budget": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Budget",
+            "description": "Updated budget"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "Updated currency"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Updated status (DRAFT, APPROVED)"
+          }
+        },
+        "type": "object",
+        "title": "InvestigatorGrantUpdate"
+      },
+      "InvestigatorPayableResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "grant_id": {
+            "type": "string",
+            "title": "Grant Id"
+          },
+          "milestone_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestone Id"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "payment_status": {
+            "type": "string",
+            "title": "Payment Status"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "grant_id",
+          "milestone_id",
+          "amount",
+          "payment_status",
+          "due_date",
+          "paid_at",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "InvestigatorPayableResponse"
+      },
+      "MonitoringVisitComplete": {
+        "properties": {
+          "actual_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Actual Date",
+            "description": "Actual date/time when the visit was conducted"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingCreate"
+            },
+            "type": "array",
+            "title": "Findings",
+            "description": "List of recorded findings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "actual_date"
+        ],
+        "title": "MonitoringVisitComplete"
+      },
+      "MonitoringVisitCreate": {
+        "properties": {
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Study ID associated with the visit"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id",
+            "description": "Site ID where the monitoring visit occurs"
+          },
+          "cra_id": {
+            "type": "string",
+            "title": "Cra Id",
+            "description": "CRA performing the monitoring visit"
+          },
+          "visit_type": {
+            "type": "string",
+            "title": "Visit Type",
+            "description": "Type of monitoring visit (e.g. SIV, IMV, COV)"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled Date",
+            "description": "Scheduled date/time of the visit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "study_id",
+          "site_id",
+          "cra_id",
+          "visit_type",
+          "scheduled_date"
+        ],
+        "title": "MonitoringVisitCreate"
+      },
+      "MonitoringVisitOfflineSync": {
+        "properties": {
+          "visit_id": {
+            "type": "string",
+            "title": "Visit Id",
+            "description": "Unique ID of the target MonitoringVisit"
+          },
+          "study_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Study Id",
+            "description": "Optional study ID"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id",
+            "description": "Optional site ID"
+          },
+          "actual_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Actual Date",
+            "description": "Actual date/time when the visit was conducted"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingCreate"
+            },
+            "type": "array",
+            "title": "Findings",
+            "description": "List of recorded findings",
+            "default": []
+          },
+          "device_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Device Timestamp",
+            "description": "ISO 8601 timestamp when the entry was created on device"
+          },
+          "offline_sync_markers": {
+            "$ref": "#/components/schemas/OfflineSyncMarkers",
+            "description": "The offline sync queue conflict tracking parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "visit_id",
+          "actual_date",
+          "device_timestamp",
+          "offline_sync_markers"
+        ],
+        "title": "MonitoringVisitOfflineSync",
+        "description": "Offline synchronization payload for a site monitoring visit completion and findings."
+      },
+      "MonitoringVisitResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id"
+          },
+          "cra_id": {
+            "type": "string",
+            "title": "Cra Id"
+          },
+          "visit_type": {
+            "type": "string",
+            "title": "Visit Type"
+          },
+          "scheduled_date": {
+            "type": "string",
+            "title": "Scheduled Date"
+          },
+          "actual_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Date"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "study_id",
+          "site_id",
+          "cra_id",
+          "visit_type",
+          "scheduled_date",
+          "actual_date",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "MonitoringVisitResponse"
+      },
+      "OfflineSyncMarkers": {
+        "properties": {
+          "sequence_number": {
+            "type": "integer",
+            "title": "Sequence Number",
+            "description": "The queue order sequence from device"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id",
+            "description": "Unique identifier for the mobile device"
+          },
+          "conflict_strategy": {
+            "$ref": "#/components/schemas/ConflictStrategy",
+            "description": "Conflict strategy to resolve duplicate submissions. Supported: CLIENT_WINS, SERVER_WINS, MERGE",
+            "default": "CLIENT_WINS"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature",
+            "description": "Optional HMAC-SHA256 signature of the payload for cryptographic integrity"
+          },
+          "timestamps": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamps",
+            "description": "Optional per-field UTC timestamps indicating when each field in 'answers' was modified"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sequence_number",
+          "client_id"
+        ],
+        "title": "OfflineSyncMarkers",
+        "description": "Offline queue reconciliation and conflict resolution parameters."
+      },
+      "PaymentMilestoneCreate": {
+        "properties": {
+          "milestone_name": {
+            "type": "string",
+            "title": "Milestone Name",
+            "description": "Descriptive name of the payment milestone"
+          },
+          "trigger_condition": {
+            "type": "string",
+            "title": "Trigger Condition",
+            "description": "Trigger condition (VISIT_COMPLETED, STUDY_APPROVED, MANUAL)"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount",
+            "description": "Payment amount associated with the milestone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "milestone_name",
+          "trigger_condition",
+          "amount"
+        ],
+        "title": "PaymentMilestoneCreate"
+      },
+      "PaymentMilestoneResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "grant_id": {
+            "type": "string",
+            "title": "Grant Id"
+          },
+          "milestone_name": {
+            "type": "string",
+            "title": "Milestone Name"
+          },
+          "trigger_condition": {
+            "type": "string",
+            "title": "Trigger Condition"
+          },
+          "amount": {
+            "type": "number",
+            "title": "Amount"
+          },
+          "is_triggered": {
+            "type": "boolean",
+            "title": "Is Triggered"
+          },
+          "triggered_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triggered At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "grant_id",
+          "milestone_name",
+          "trigger_condition",
+          "amount",
+          "is_triggered",
+          "triggered_at",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "PaymentMilestoneResponse"
+      },
+      "RecruitmentRecordCreate": {
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "title": "Site Id",
+            "description": "Site ID being tracked"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Study ID associated with the site"
+          },
+          "screened_count": {
+            "type": "integer",
+            "title": "Screened Count",
+            "description": "Total number of screened subjects",
+            "default": 0
+          },
+          "enrolled_count": {
+            "type": "integer",
+            "title": "Enrolled Count",
+            "description": "Total number of enrolled subjects",
+            "default": 0
+          },
+          "target_count": {
+            "type": "integer",
+            "title": "Target Count",
+            "description": "Target enrollment count",
+            "default": 0
+          },
+          "as_of_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date",
+            "description": "The date/time as of which metrics apply"
+          }
+        },
+        "type": "object",
+        "required": [
+          "site_id",
+          "study_id"
+        ],
+        "title": "RecruitmentRecordCreate"
+      },
+      "RecruitmentRecordResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "screened_count": {
+            "type": "integer",
+            "title": "Screened Count"
+          },
+          "enrolled_count": {
+            "type": "integer",
+            "title": "Enrolled Count"
+          },
+          "target_count": {
+            "type": "integer",
+            "title": "Target Count"
+          },
+          "as_of_date": {
+            "type": "string",
+            "title": "As Of Date"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "site_id",
+          "study_id",
+          "screened_count",
+          "enrolled_count",
+          "target_count",
+          "as_of_date",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "RecruitmentRecordResponse"
+      },
+      "SiteMilestoneCreate": {
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "title": "Site Id",
+            "description": "Site ID"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id",
+            "description": "Study ID"
+          },
+          "milestone_type": {
+            "type": "string",
+            "title": "Milestone Type",
+            "description": "The type of milestone"
+          },
+          "planned_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Date",
+            "description": "Planned milestone date"
+          },
+          "actual_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Date",
+            "description": "Actual milestone date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Status of the milestone",
+            "default": "PLANNED"
+          }
+        },
+        "type": "object",
+        "required": [
+          "site_id",
+          "study_id",
+          "milestone_type"
+        ],
+        "title": "SiteMilestoneCreate"
+      },
+      "SiteMilestoneResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "site_id": {
+            "type": "string",
+            "title": "Site Id"
+          },
+          "study_id": {
+            "type": "string",
+            "title": "Study Id"
+          },
+          "milestone_type": {
+            "type": "string",
+            "title": "Milestone Type"
+          },
+          "planned_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Date"
+          },
+          "actual_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Date"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "reason_for_change": {
+            "type": "string",
+            "title": "Reason For Change"
+          },
+          "version_index": {
+            "type": "integer",
+            "title": "Version Index"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "site_id",
+          "study_id",
+          "milestone_type",
+          "planned_date",
+          "actual_date",
+          "status",
+          "created_at",
+          "created_by",
+          "reason_for_change",
+          "version_index"
+        ],
+        "title": "SiteMilestoneResponse"
+      },
+      "SiteMilestoneUpdate": {
+        "properties": {
+          "planned_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Date",
+            "description": "Planned milestone date"
+          },
+          "actual_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Date",
+            "description": "Actual milestone date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "Status of the milestone"
+          }
+        },
+        "type": "object",
+        "title": "SiteMilestoneUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

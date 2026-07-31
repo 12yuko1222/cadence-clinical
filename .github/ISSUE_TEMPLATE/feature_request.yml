@@ -1,0 +1,60 @@
+name: Feature Request / Scope Update
+description: Propose a new feature, clinical module enhancement, or requirement change.
+title: "[FEAT]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing to Cadence Clinical! Please fill out the template below to ensure full alignment with our system requirements and architectural traceability.
+
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Functional Domain
+      description: Select the system domain affected by this feature.
+      options:
+        - "Core Platform & Execution Engine"
+        - "API Gateway, Security & Identity"
+        - "Clinical Data Interoperability & Standards"
+        - "Clinical Operations & Business Modules"
+        - "Compliance, Audit & Governance"
+        - "Frontend & Design System"
+        - "DevOps, Tooling & CI/CD"
+    validations:
+      required: true
+
+  - type: input
+    id: requirement_id
+    attributes:
+      label: Target Requirement ID (PRD / SRS)
+      description: Specify the traced Requirement ID (e.g., PRD-SYS-001, PRD-EDC-005, Trace-3) or state "NEW".
+      placeholder: "e.g. PRD-SYS-001"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement & Clinical Context
+      description: Describe the clinical workflow, user need, or problem being solved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution & Scope Changes
+      description: Explain the technical approach and changes required across apps, packages, or docs.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: doc_alignment
+    attributes:
+      label: Documentation & Compliance Checklist
+      options:
+        - label: "I acknowledge that architectural changes require scaffolding an ADR via `pnpm adr:new`."
+          required: true
+        - label: "I will update the PRD/SRS document if system scope or contracts are altered."
+          required: true

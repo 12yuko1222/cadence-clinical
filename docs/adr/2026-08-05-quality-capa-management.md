@@ -2,14 +2,16 @@
 
 * **Status:** Accepted
 * **Date:** 2026-08-05
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
 ## 1. Context & Problem Statement
 Quality assurance, deviation reporting, Root Cause Analysis (RCA), and Corrective and Preventive Actions (CAPA) are crucial for GxP-regulated clinical trials. When protocol deviations occur (such as eligibility violations, IP temperature excursions, or informed consent errors), they must be logged, thoroughly investigated, and linked to systematic CAPA measures to ensure participant safety and study integrity.
 Under FDA 21 CFR Part 11 and EU Annex 11, all deviations, RCAs, and CAPAs must remain strictly auditable, with changes recorded in a chronological append-only audit ledger containing explicit user identities, roles, timestamps, and change justification reasons. Additionally, the Quality & CAPA subsystem must be isolated to prevent database schema leakage and domain coupling with clinical trial execution (EDC) or administrative databases (CTMS).
+
+This decision implements requirements under Trace-7.
 
 ## 2. Decision Drivers & Constraints
 * **Compliance & Auditability:** Enforce mandatory change justifications, OIDC identities, and role contexts inside an immutable, chronological, append-only audit trail (`QualityAuditLog`).

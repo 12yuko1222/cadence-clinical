@@ -2,14 +2,16 @@
 
 * **Status:** Accepted
 * **Date:** 2026-08-04
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
 ## 1. Context & Problem Statement
 Administrative, financial, operational, and site monitoring activities (such as scheduling monitoring visits, recording findings, issuing follow-up correspondence, tracking milestones, and maintaining CRA workloads) are crucial parts of running a clinical trial. However, mixing these operational workflows with the core eCRF/EDC execution databases or the metadata graph designer violates our separation of concerns and complicates GxP system validation.
 We need to establish a dedicated operational service boundary for the Clinical Trial Management System (CTMS), while exposing a robust, visible demonstration surface in the interactive web workspace.
+
+This decision implements requirements under Trace-6.
 
 ## 2. Decision Drivers & Constraints
 * **Compliance & Separation of Concerns:** Core clinical data capture (EDC) and administrative trial tracking (CTMS) have distinct lifecycles and compliance audit scopes.
@@ -50,5 +52,5 @@ We need to establish a dedicated operational service boundary for the Clinical T
 * **Affected Repositories / Services:** `apps/ctms/`, `apps/web/`, `packages/ui/`
 * **Verification Plan:**
   * Automated backend unit tests via `pytest tests/test_ctms.py`.
-  * Automated frontend rendering tests in `apps/web/tests/ctms_ui.test.js`.
+  * Automated frontend rendering tests in `apps/web/tests/component_migration.test.js`.
   * Automated indexing and validation check using `scripts/validate_adrs.py`.

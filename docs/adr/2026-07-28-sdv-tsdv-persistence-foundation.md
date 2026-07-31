@@ -2,13 +2,15 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-28
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
 ## 1. Context & Problem Statement
 The Cadence Clinical trial execution engine needs support for Source Data Verification (SDV) and Targeted SDV (TSDV) as required by clinical data monitoring and compliance standards. This requires establishing audited persistence models to track field-level verification state, aggregate (page/visit-level) sign-offs, and study-level targeted sampling configurations.
+
+This decision implements requirements under Trace-1.
 
 ## 2. Decision Drivers & Constraints
 * **Driver 1 (Compliance):** GxP and FDA 21 CFR Part 11 require full audit logs and version index tracking for all modifications to clinical state and clinical trials.

@@ -4,6 +4,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: cadence-postgres
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=300
     environment:
       POSTGRES_USER: cadence
       POSTGRES_PASSWORD: cadence_password
@@ -92,16 +93,51 @@ services:
       postgres:
         condition: service_healthy
 
+  org:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-org
+    command: ["uvicorn", "apps.org.main:app", "--host", "0.0.0.0", "--port", "8010", "--reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - ORG_DATABASE_URL=postgresql+asyncpg://cadence:cadence_password@postgres:5432/cadence_edc
+    ports:
+      - "8012:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  eisf:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-eisf
+    command: ["sh", "-c", "python -m apps.eisf.database.migrate && uvicorn apps.eisf.main:app --host 0.0.0.0 --port 8010 --reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - EISF_DATABASE_URL=sqlite+aiosqlite:////app/eisf.db
+    ports:
+      - "8010:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   etmf:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: cadence-etmf
-    command: ["uvicorn", "apps.etmf.main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]
+    command: ["sh", "-c", "python -m apps.etmf.database.migrate && uvicorn apps.etmf.main:app --host 0.0.0.0 --port 8003 --reload"]
     volumes:
       - ..:/app
     environment:
       - ETMF_DATABASE_URL=sqlite+aiosqlite:////app/tmf.db
+      - INBOUND_EMAIL_HMAC_SECRET=dev-default-secret-inbound-email-hmac
+      - INBOUND_EMAIL_MAX_SIZE_BYTES=10485760
+      - NOTIFICATIONS_URL=http://notifications:8006
     ports:
       - "8003:8003"
     depends_on:
@@ -140,6 +176,94 @@ services:
       postgres:
         condition: service_healthy
 
+  interop:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-interop
+    command: ["uvicorn", "apps.interop.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - INTEROP_DATABASE_URL=sqlite+aiosqlite:////app/interop.db
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  tickets:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-tickets
+    command: ["uvicorn", "apps.tickets.main:app", "--host", "0.0.0.0", "--port", "8009", "--reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - TICKETS_DATABASE_URL=sqlite+aiosqlite:////app/tickets.db
+    ports:
+      - "8009:8009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  safety:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-safety
+    command: ["uvicorn", "apps.safety.main:app", "--host", "0.0.0.0", "--port", "8008", "--reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - SAFETY_DATABASE_URL=sqlite+aiosqlite:////app/safety.db
+      - SAFETY_SALT=internal-safety-salt-12345
+    ports:
+      - "8008:8008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  notifications:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: cadence-notifications
+    command: ["uvicorn", "apps.notifications.main:app", "--host", "0.0.0.0", "--port", "8006", "--reload"]
+    volumes:
+      - ..:/app
+    environment:
+      - NOTIFICATIONS_DATABASE_URL=sqlite+aiosqlite:////app/notifications.db
+      - SMTP_HOST=smtp.mailhog.local
+      - SMTP_PORT=1025
+      - SMTP_USERNAME=dev_user
+      - SMTP_PASSWORD=dev_password
+      - SMTP_USE_TLS=false
+      - SMTP_USE_SSL=false
+      - SMTP_SENDER=no-reply@cadenceclinical.com
+      - WEBHOOK_URL=http://webhooks.local/receiver
+      - WEBHOOK_SIGNING_SECRET=dev_webhook_secret_key_12345
+      - WEBHOOK_TIMEOUT=5.0
+    ports:
+      - "8006:8006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  subject-portal:
+    image: node:20-alpine
+    container_name: cadence-subject-portal
+    working_dir: /app
+    command: ["sh", "-c", "npm install -g pnpm && pnpm install && pnpm --filter subject-portal dev --host 0.0.0.0 --port 5174"]
+    volumes:
+      - ..:/app
+    ports:
+      - "5174:5174"
+    depends_on:
+      gateway:
+        condition: service_started
+
   gateway:
     build:
       context: ..
@@ -154,6 +278,12 @@ services:
       - ETMF_URL=http://etmf:8003
       - CTMS_URL=http://ctms:8005
       - QUALITY_URL=http://quality:8005
+      - INTEROP_URL=http://interop:8004
+      - TICKETS_URL=http://tickets:8009
+      - NOTIFICATIONS_URL=http://notifications:8006
+      - SAFETY_URL=http://safety:8008
+      - ORG_URL=http://org:8010
+      - EISF_URL=http://eisf:8010
     ports:
       - "8000:8000"
     depends_on:
@@ -166,6 +296,18 @@ services:
       ctms:
         condition: service_started
       quality:
+        condition: service_started
+      interop:
+        condition: service_started
+      tickets:
+        condition: service_started
+      notifications:
+        condition: service_started
+      safety:
+        condition: service_started
+      org:
+        condition: service_started
+      eisf:
         condition: service_started
       keycloak:
         condition: service_healthy

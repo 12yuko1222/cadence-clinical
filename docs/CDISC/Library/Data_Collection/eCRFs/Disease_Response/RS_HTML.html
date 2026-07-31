@@ -1,0 +1,92 @@
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>"Form RS - Disease Response [RS]" Form Preview
+
+      </title>
+   </head>
+   <body link="#6666aa" vlink="#8888ff" alink="#8888ff" style="margin: 0em 1em">
+      <form action="javascript:">
+         <table width="100%" align="center" cellspacing="0" cellpadding="4" bgcolor="#bad8eb" style="clear: right; color: #000000; margin-top: 1em">
+            <tr bgcolor="#0090b2" align="left" valign="top" style="font-size: 1em; color: #ffffff; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="100%" nowrap>Form RS - Disease Response</td>
+            </tr>
+            <tr bgcolor="#bad8eb" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="2"><b>RS - Disease Response</b></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What is the category for the disease response?</td>
+               <td width="75%"><input type="text" name="IT.RSCAT" size="20" title="Field Name: IT.RSCAT"><font color="#d5e7f3">&nbsp;</font>RECIST 1.1
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Was the disease response assessment performed?</td>
+               <td width="75%"><input type="radio" name="IT.RSPERF" title="Field Name: IT.RSPERF" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.RSPERF" title="Field Name: IT.RSPERF" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Why was the disease response assessment not performed?</td>
+               <td width="75%"><input type="text" name="IT.RSREASND" size="20" title="Field Name: IT.RSREASND"></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the role of the person performing the disease response assessment?</td>
+               <td width="75%"><input type="radio" name="IT.RSEVAL" title="Field Name: IT.RSEVAL" value="INDEPENDENT ASSESSOR">Independent Assessor<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.RSEVAL" title="Field Name: IT.RSEVAL" value="INVESTIGATOR">Investigator<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What is the evaluator identifier?</td>
+               <td width="75%"><input type="radio" name="IT.RSEVALID" title="Field Name: IT.RSEVALID" value="RADIOLOGIST 1">Radiologist 1<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.RSEVALID" title="Field Name: IT.RSEVALID" value="RADIOLOGIST 2">Radiologist 2<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="IT.RSEVALID" title="Field Name: IT.RSEVALID" value="RADIOLOGIST 3">Radiologist 3<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Target Response</td>
+               <td width="75%"><select id="IT.TRGRESP_RSORRES" name="IT.TRGRESP_RSORRES" title="Field Name: IT.TRGRESP_RSORRES">
+                     <option value="" title="Field Name: IT.TRGRESP_RSORRES">Choose</option>
+                     <option value="CR">Complete Response (CR)</option>
+                     <option value="PR">Partial Response (PR)</option>
+                     <option value="SD">Stable Disease (SD)</option>
+                     <option value="PD">Progressive Disease (PD)</option>
+                     <option value="NE">Not Evaluable (NE)</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Non-Target Response</td>
+               <td width="75%"><select id="IT.NTRGRESP_RSORRES" name="IT.NTRGRESP_RSORRES" title="Field Name: IT.NTRGRESP_RSORRES">
+                     <option value="" title="Field Name: IT.NTRGRESP_RSORRES">Choose</option>
+                     <option value="CR">Complete Response (CR)</option>
+                     <option value="NON-CR/NON-PD">Non Complete Response/Non Progressive Disease (NON-CR/NON-PD)</option>
+                     <option value="PD">Progressive Disease (PD)</option>
+                     <option value="NE">Not Evaluable (NE)</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Overall Response</td>
+               <td width="75%"><select id="IT.OVRLRESP_RSORRES" name="IT.OVRLRESP_RSORRES" title="Field Name: IT.OVRLRESP_RSORRES">
+                     <option value="" title="Field Name: IT.OVRLRESP_RSORRES">Choose</option>
+                     <option value="CR">Complete Response (CR)</option>
+                     <option value="PR">Partial Response (PR)</option>
+                     <option value="SD">Stable Disease (SD)</option>
+                     <option value="NON-CR/NON-PD">Non Complete Response/Non Progressive Disease (NON-CR/NON-PD)</option>
+                     <option value="PD">Progressive Disease (PD)</option>
+                     <option value="NE">Not Evaluable (NE)</option>
+                     <option value="NED">No Evidence of Disease (NED)</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Best Overall Response</td>
+               <td width="75%"><select id="IT.BESTRESP_RSORRES" name="IT.BESTRESP_RSORRES" title="Field Name: IT.BESTRESP_RSORRES">
+                     <option value="" title="Field Name: IT.BESTRESP_RSORRES">Choose</option>
+                     <option value="CR">Complete Response (CR)</option>
+                     <option value="PR">Partial Response (PR)</option>
+                     <option value="SD">Stable Disease (SD)</option>
+                     <option value="NON-CR/NON-PD">Non Complete Response/Non Progressive Disease (NON-CR/NON-PD)</option>
+                     <option value="PD">Progressive Disease (PD)</option>
+                     <option value="NE">Not Evaluable (NE)</option>
+                     <option value="NED">No Evidence of Disease (NED)</option></select></td>
+            </tr>
+         </table>
+         <table width="100%" align="center">
+            <tr style="font-size: 8pt; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td><font color="red">*</font> Mandatory field
+               </td>
+            </tr>
+         </table>
+      </form>
+   </body>
+</html>

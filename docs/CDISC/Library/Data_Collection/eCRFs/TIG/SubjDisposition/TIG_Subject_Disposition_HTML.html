@@ -1,0 +1,72 @@
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>"Tobacco Implementation Guide -Disposition [TIG_DISP]" Form Preview
+				</title>
+   </head>
+   <body link="#6666aa" vlink="#8888ff" alink="#8888ff" style="margin: 0em 1em">
+      <form action="javascript:">
+         <table width="100%" align="center" cellspacing="0" cellpadding="4" bgcolor="#bad8eb" style="clear: right; color: #000000; margin-top: 1em">
+            <tr bgcolor="#0090b2" align="left" valign="top" style="font-size: 1em; color: #ffffff; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="100%" nowrap>Tobacco Implementation Guide -Disposition</td>
+            </tr>
+            <tr bgcolor="#bad8eb" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td colspan="2"><b>Disposition</b></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the category of the disposition?</td>
+               <td width="75%"><input type="text" name="DS_TIG_DISP.DSCAT" size="20" title="Field Name: DS_TIG_DISP.DSCAT"></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What is the study epoch for this disposition event?</td>
+               <td width="75%"><input type="radio" name="DS_TIG_DISP.EPOCH" title="Field Name: DS_TIG_DISP.EPOCH" value="SCREENING">Screening<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="DS_TIG_DISP.EPOCH" title="Field Name: DS_TIG_DISP.EPOCH" value="PRODUCT EXPOURE EPOCH">Product Exposure<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="DS_TIG_DISP.EPOCH" title="Field Name: DS_TIG_DISP.EPOCH" value="FOLLOW-UP">Follow-up<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the subject's status?</td>
+               <td width="75%"><select id="DS_TIG_DISP.DSDECOD" name="DS_TIG_DISP.DSDECOD" title="Field Name: DS_TIG_DISP.DSDECOD">
+                     <option value="" title="Field Name: DS_TIG_DISP.DSDECOD">Choose</option>
+                     <option value="COMPLETED">Completed</option>
+                     <option value="ADVERSE EXPERIENCE">Adverse Experience</option>
+                     <option value="DEATH">Death</option>
+                     <option value="LOST TO FOLLOW-UP">Lost To Follow-up</option>
+                     <option value="PROTOCOL DEVIATION">Protocol Deviation</option>
+                     <option value="SCREEN FAILURE">Screen Failure</option>
+                     <option value="SITE TERMINATED BY APPLICANT">Site Terminated by Applicant</option>
+                     <option value="WITHDRAWAL BY SUBJECT">Withdrawal by Subject</option>
+                     <option value="STUDY TERMINATED BY APPLICANT">Study Terminated by Applicant</option>
+                     <option value="OTHER">Other</option></select></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the verbatim reason for the subject status?</td>
+               <td width="75%"><input type="text" name="DS_TIG_DISP.DSTERM" size="20" title="Field Name: DS_TIG_DISP.DSTERM"></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What was the completion/discontinuation date?</td>
+               <td width="75%">
+                  <table border="0" cellspacing="0" cellpadding="0" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+                     <tr>
+                        <td width="35"><input type="submit" name="DS_TIG_DISP.DSSTDAT" value="Set Date" title="Field Name: DS_TIG_DISP.DSSTDAT" style="background-color: #d5e7f3; color: #000000"></td>
+                        <td><font color="#d5e7f3">&nbsp;</font>01 Jan 2000</td>
+                     </tr>
+                  </table>
+               </td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">Will the subject continue into the next epoch?</td>
+               <td width="75%"><input type="radio" name="DS_TIG_DISP.DSCONT" title="Field Name: DS_TIG_DISP.DSCONT" value="N">No<font color="#d5e7f3">&nbsp;&nbsp;</font><input type="radio" name="DS_TIG_DISP.DSCONT" title="Field Name: DS_TIG_DISP.DSCONT" value="Y">Yes<font color="#d5e7f3">&nbsp;&nbsp;</font></td>
+            </tr>
+            <tr bgcolor="#d5e7f3" align="left" valign="top" style="font-size: 0.9em; color: #000000; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td width="25%">What is the next epoch the subject will continue to enter?</td>
+               <td width="75%"><input type="text" name="DS_TIG_DISP.DSNEXT" size="20" title="Field Name: DS_TIG_DISP.DSNEXT"></td>
+            </tr>
+         </table>
+         <table width="100%" align="center">
+            <tr style="font-size: 8pt; font-family: Arial, Helvetica, Verdana, sans-serif">
+               <td><font color="red">*</font> Mandatory field</td>
+            </tr>
+         </table>
+      </form>
+   </body>
+</html>

@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timezone
 
@@ -8,7 +9,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import select
 
-from apps.econsent.database import EConsentDatabaseManager, db_manager
+from apps.econsent.database import db_manager
 from apps.econsent.main import ConsentDocumentCreate, app
 from apps.econsent.models import (
     Base,
@@ -18,6 +19,7 @@ from apps.econsent.models import (
     ConsentTemplate,
 )
 from apps.gateway.main import generate_signature
+from packages.database import RelationalDatabaseManager
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -88,7 +90,7 @@ def test_uninitialized_database_manager_econsent():
     """
     Ensure the eConsent database manager raises an exception when accessed before initialization.
     """
-    mgr = EConsentDatabaseManager()
+    mgr = RelationalDatabaseManager(service_name="eConsent")
     with pytest.raises(Exception) as exc_info:
         mgr.get_session_maker()
     assert "eConsent database session manager is not initialized" in str(exc_info.value)
@@ -100,8 +102,9 @@ async def test_database_url_override_and_init(monkeypatch):
     Verify that database lifecycle supports ECONSENT_DATABASE_URL override.
     """
     monkeypatch.setenv("ECONSENT_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
-    mgr = EConsentDatabaseManager()
-    mgr.init_db()  # Should pick up ECONSENT_DATABASE_URL from env
+    mgr = RelationalDatabaseManager(service_name="eConsent")
+    db_url = os.environ.get("ECONSENT_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    mgr.init_db(db_url)  # Should pick up ECONSENT_DATABASE_URL from env
     assert mgr.engine is not None
     assert mgr.session_maker is not None
     await mgr.close()
@@ -671,6 +674,97 @@ def test_authoring_mutations_rejected_for_auditors():
         "Auditor personas are restricted to read-only access"
         in response.json()["detail"]
     )
+
+
+def test_clause_category_persists_and_maps():
+    """
+    Verify that the 'category' field is correctly persisted and mapped across creation,
+    updating, and composing of ConsentClause.
+    """
+    client = TestClient(app)
+
+    # 1. Create a clause with a category
+    clause_payload = {
+        "clause_id": "clause-category-test",
+        "study_id": "study-555",
+        "title": "Category Test Clause",
+        "text": "This clause has a category.",
+        "category": "Risk/Benefit Info",
+        "reason_for_change": "Testing category persistence",
+        "created_by": "category_tester",
+    }
+    headers = get_auth_headers(
+        user_id="tester",
+        roles="Grants Manager",
+        change_reason="Creating clause with category",
+    )
+
+    response = client.post(
+        "/api/v1/econsent/clauses", json=clause_payload, headers=headers
+    )
+    assert response.status_code == 201
+    clause = response.json()
+    assert clause["clause_id"] == "clause-category-test"
+    assert clause["category"] == "Risk/Benefit Info"
+
+    # 2. Update/Version the clause with a new category
+    update_payload = {
+        "study_id": "study-555",
+        "title": "Category Test Clause V2",
+        "text": "This clause has an updated category.",
+        "category": "Confidentiality Policy",
+        "reason_for_change": "Updating category",
+        "created_by": "category_tester",
+    }
+
+    response = client.put(
+        "/api/v1/econsent/clauses/clause-category-test",
+        json=update_payload,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    clause_v2 = response.json()
+    assert clause_v2["clause_id"] == "clause-category-test"
+    assert clause_v2["category"] == "Confidentiality Policy"
+    assert clause_v2["version_index"] == 2
+
+    # 3. Retrieve latest version and verify category is present
+    response = client.get(
+        "/api/v1/econsent/clauses/clause-category-test",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["category"] == "Confidentiality Policy"
+
+    # 4. Compose template referencing this clause and verify category resolves
+    template_payload = {
+        "template_id": "template-category-test",
+        "study_id": "study-555",
+        "template_name": "Category Composed Form",
+        "protocol_version": "v1.0",
+        "requires_reconsent": True,
+        "clauses": ["clause-category-test"],
+        "workflow_steps": [
+            {"type": "comprehension_check"},
+            {"type": "signature_placeholder"},
+        ],
+        "reason_for_change": "Initial creation",
+        "created_by": "tester",
+    }
+    response = client.post(
+        "/api/v1/econsent/templates", json=template_payload, headers=headers
+    )
+    assert response.status_code == 201
+
+    response = client.get(
+        "/api/v1/econsent/templates/template-category-test/compose",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    composed = response.json()
+    assert len(composed["clauses"]) == 1
+    assert composed["clauses"][0]["clause_id"] == "clause-category-test"
+    assert composed["clauses"][0]["category"] == "Confidentiality Policy"
 
     # regulatory_inspector role -> 403 Forbidden
     headers_regulatory = get_auth_headers(

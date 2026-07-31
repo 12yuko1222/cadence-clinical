@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM xmlns="http://www.cdisc.org/ns/odm/v1.3"
+     FileOID="Tobacco Implementation Guide_1"
+     FileType="Snapshot"
+     CreationDateTime="2024-05-14T16:22:24"
+     ODMVersion="1.3.2"
+     SourceSystem="Formedix ryze"
+     SourceSystemVersion="">
+   <Study OID="STD_20">
+      <GlobalVariables>
+         <StudyName>Tobacco Implementation Guide</StudyName>
+         <StudyDescription/>
+         <ProtocolName/>
+      </GlobalVariables>
+      <BasicDefinitions/>
+      <MetaDataVersion OID="ODM Exports" Name="ODM Exports" Description="">
+         <FormDef OID="TIG_DM"
+                  Name="Tobacco Implementation Guide-Demography"
+                  Repeating="No">
+            <ItemGroupRef ItemGroupOID="TIG_DM_GENERAL" Mandatory="No" OrderNumber="1"/>
+            <ItemGroupRef ItemGroupOID="TIG_RACE_ASIAN" Mandatory="No" OrderNumber="2"/>
+            <ItemGroupRef ItemGroupOID="DM_TIG_RACE_Black or African American"
+                          Mandatory="No"
+                          OrderNumber="3"/>
+         </FormDef>
+         <ItemGroupDef OID="TIG_DM_GENERAL" Name="General Demography" Repeating="No">
+            <ItemRef ItemOID="DM_TIG.BRTHDAT" Mandatory="No" OrderNumber="1"/>
+            <ItemRef ItemOID="DM_TIG.SEX" Mandatory="No" OrderNumber="2"/>
+            <ItemRef ItemOID="DM_TIG.ETHNIC" Mandatory="No" OrderNumber="3"/>
+            <ItemRef ItemOID="DM_TIG_.RACE" Mandatory="No" OrderNumber="4"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="TIG_RACE_ASIAN" Name="If Race: Asian" Repeating="No">
+            <ItemRef ItemOID="DM_TIG_RACE_ASIAN" Mandatory="No" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemGroupDef OID="DM_TIG_RACE_Black or African American"
+                       Name="If Race:Black or African American"
+                       Repeating="No">
+            <ItemRef ItemOID="DM_TIG_RACE_BAA" Mandatory="No" OrderNumber="1"/>
+         </ItemGroupDef>
+         <ItemDef OID="DM_TIG_RACE_ASIAN" Name="ACRACE" DataType="text">
+            <Question>
+               <TranslatedText>Which of the following Asian racial designations best describes you? (More than 1 choice is acceptable.)</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_RACE_ASIAN_DETAILS"/>
+            <Alias Name="Select each value that applies." Context="completionInstructions"/>
+            <Alias Name="CRACE05-CRACE10" Context="CDASH"/>
+            <Alias Name="For each value that applies, SUPPDM.QVAL where SUPPDM.QNAM =&#34;CRACEn&#34; and SUPPDM.QLABEL = &#34;Collected Race n&#34; where n is the choice value."
+                   Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="DM_TIG_RACE_BAA" Name="BAACRACE" DataType="text">
+            <Question>
+               <TranslatedText>Which of the following black or african american racial designations best describes you? (More than 1 choice is acceptable.)</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="TIG_RACE_BLACK OR AFRICAN AMERICAN"/>
+            <Alias Name="CRACE11-CRACE17" Context="CDASH"/>
+            <Alias Name="Select each value that applies." Context="completionInstructions"/>
+            <Alias Name="For each value that applies, SUPPDM.QVAL where SUPPDM.QNAM =&#34;CRACEn&#34; and SUPPDM.QLABEL = &#34;Collected Race n&#34; where n is the choice value."
+                   Context="SDTM"/>
+         </ItemDef>
+         <ItemDef OID="DM_TIG.BRTHDAT"
+                  Name="BRTHDAT"
+                  DataType="date"
+                  SDSVarName="BRTHDTC">
+            <Question>
+               <TranslatedText>What is the subject's date of birth?</TranslatedText>
+            </Question>
+            <Alias Name="Record the date of birth to the level of precision known (e.g., day/month/year, year, month/year, etc.) in this format (DD-MON-YYYY)."
+                   Context="completionInstructions"/>
+            <Alias Name="Birth Date" Context="prompt"/>
+            <Alias Name="BRTHDTC" Context="SDTM"/>
+            <Alias Name="BRTHDAT" Context="CDASH"/>
+         </ItemDef>
+         <ItemDef OID="DM_TIG.ETHNIC"
+                  Name="ETHNIC"
+                  DataType="text"
+                  Length="23"
+                  SDSVarName="ETHNIC">
+            <Question>
+               <TranslatedText>Do you consider yourself Hispanic/Latino or not Hispanic/Latino?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66790.ETHNIC"/>
+            <Alias Name="ETHNIC" Context="SDTM"/>
+            <Alias Name="Study participants should self-report ethnicity, with ethnicity being asked about before race."
+                   Context="completionInstructions"/>
+            <Alias Name="ETHNIC" Context="CDASH"/>
+            <Alias Name="Ethnicity" Context="prompt"/>
+         </ItemDef>
+         <ItemDef OID="DM_TIG_.RACE"
+                  Name="RACE"
+                  DataType="text"
+                  Length="25"
+                  SDSVarName="RACE">
+            <Description>
+               <TranslatedText xml:lang="en">RACE</TranslatedText>
+            </Description>
+            <Question>
+               <TranslatedText>Which of the following five racial designations best describes you?
+    (More than one choice is acceptable.)</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C74457.RACE"/>
+            <Alias Name="Use RACE when the 5 designations for race used by the FDA are collected (American Indian or Alaska Native; Asian; Black or African American; Native Hawaiian or Other Pacific Islander ; White).* Sponsors should refer to the FDA Guidance. See SDTMIG v3.2 Section 5, DM Domain.   *For studies where data are collected outside the US, the recommended categories are the same except for Black instead of Black or African American. If multiple races are collected, an alternate sponsor-defined variable structure would be required. Sponsors may record multiple self-reported races for a subject by appending a suffix to denote multiple collected races (e.g. RACE1, RACE2) and populate RACE with the value MULTIPLE."
+                   Context="implementationNotes"/>
+            <Alias Name="Race" Context="prompt"/>
+            <Alias Name="RACE" Context="CDASH"/>
+            <Alias Name="RACE or RACE=&#34;MULTIPLE&#34; and each Race is represented as a SUPPDM.QVAL where SUPPDM.QNAM = RACE(n)  and SUPPDM.QLABEL = Race (n)"
+                   Context="SDTM"/>
+            <Alias Name="Study participants should self-report race, with race being asked about after ethnicity."
+                   Context="completionInstructions"/>
+            <Alias Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."
+                   Context="mappingInstructions"/>
+         </ItemDef>
+         <ItemDef OID="DM_TIG.SEX" Name="SEX" DataType="text" Length="15">
+            <Question>
+               <TranslatedText>What is the sex of the subject?</TranslatedText>
+            </Question>
+            <CodeListRef CodeListOID="CL.C66731.SEX"/>
+            <Alias Name="SEX" Context="CDASH"/>
+            <Alias Name="Collect the subject's sex or gender, as reported by the investigator. This is a phenotypic assessment and not a genotypic assessment."
+                   Context="implementationNotes"/>
+            <Alias Name="Record the appropriate sex (e.g., F (female), M (male)."
+                   Context="completionInstructions"/>
+            <Alias Name="Sex" Context="prompt"/>
+            <Alias Name="SEX" Context="SDTM"/>
+         </ItemDef>
+         <CodeList OID="CL.C66790.ETHNIC" Name="Ethnic Group" DataType="text">
+            <Description>
+               <TranslatedText>A social group characterized by a distinctive social and cultural tradition maintained from generation to generation, a common history and origin and a sense of identification with the group; members of the group have distinctive features in their way of life, shared experiences and often a common genetic heritage; these features may be reflected in their experience of health and disease. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="HISPANIC OR LATINO" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Hispanic or Latino</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT HISPANIC OR LATINO" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Not Hispanic or Latino</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT REPORTED" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Not Reported</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNKNOWN" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Unknown</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C74457.RACE" Name="Race" DataType="text">
+            <Description>
+               <TranslatedText>Terminology codelist used to identify the race of an individual within the Clinical Data Interchange Standards Consortium Study Data Tabulation Model.</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="AMERICAN INDIAN OR ALASKA NATIVE" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>American Indian or Alaska Native</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="ASIAN" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Asian</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BLACK OR AFRICAN AMERICAN" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Black or African American</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Native Hawaiian or Other Pacific Islander</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="WHITE" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>White</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="NOT REPORTED" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Not Reported</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNKNOWN" OrderNumber="7">
+               <Decode>
+                  <TranslatedText>Unknown</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="OTHER" OrderNumber="8">
+               <Decode>
+                  <TranslatedText>Other</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="CL.C66731.SEX" Name="Sex" DataType="text">
+            <Description>
+               <TranslatedText>The assemblage of physical properties or qualities by which male is distinguished from female; the physical difference between male and female; the distinguishing peculiarity of male or female. (NCI)</TranslatedText>
+            </Description>
+            <CodeListItem CodedValue="F" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Female</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="M" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Male</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="U" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Unknown</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="UNDIFFERENTIATED" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Undifferentiated</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_RACE_ASIAN_DETAILS"
+                   Name="TIG_RACE_ASIAN DETAILS"
+                   DataType="text">
+            <CodeListItem CodedValue="ASIAN AMERICAN" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>Asian American</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="ASIAN INDIAN" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>Asian Indian</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BANGLADESHI" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>Bangladesh</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="CHINESE" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Chinese</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="JAPANESE" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Japanese</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="KOREAN" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Korean</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+         <CodeList OID="TIG_RACE_BLACK OR AFRICAN AMERICAN"
+                   Name="TIG_RACE_BLACK OR AFRICAN AMERICAN"
+                   DataType="text">
+            <CodeListItem CodedValue="AFRICAN" OrderNumber="1">
+               <Decode>
+                  <TranslatedText>African</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="AFRICAN AMERICAN" OrderNumber="2">
+               <Decode>
+                  <TranslatedText>African American</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="AFRICAN CARIBBEAN" OrderNumber="3">
+               <Decode>
+                  <TranslatedText>African Caribbean</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BAHAMIAN" OrderNumber="4">
+               <Decode>
+                  <TranslatedText>Bahamian</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BARBADIAN" OrderNumber="5">
+               <Decode>
+                  <TranslatedText>Barbadian</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BLACK" OrderNumber="6">
+               <Decode>
+                  <TranslatedText>Black</TranslatedText>
+               </Decode>
+            </CodeListItem>
+            <CodeListItem CodedValue="BLACK CENTRAL AMERICAN" OrderNumber="7">
+               <Decode>
+                  <TranslatedText>Black Central American</TranslatedText>
+               </Decode>
+            </CodeListItem>
+         </CodeList>
+      </MetaDataVersion>
+   </Study>
+</ODM>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ODM FileOID="Clinical Events CRF" FileType="Snapshot" CreationDateTime="2021-02-17T15:44:05-07:00" ODMVersion="1.3.2" Originator="Formedix" SourceSystem="Data Acquisition Designer" SourceSystemVersion="4.8.0" xmlns:xml="http://www.w3.org/XML/1998/namespace" xmlns="http://www.cdisc.org/ns/odm/v1.3">
+	<Study OID="Clinical Events">
+		<GlobalVariables>
+			<StudyName>Clinical Events CRF</StudyName>
+			<StudyDescription>Clinical Events CRF</StudyDescription>
+			<ProtocolName>Clinical Events CRF</ProtocolName>
+		</GlobalVariables>
+		<BasicDefinitions/>
+		<MetaDataVersion OID="Clinical Events CRF" Name="Clinical Events">
+			<FormDef OID="CE" Name="Form CE - Clinical Events" Repeating="No">
+				<Description>
+					<TranslatedText xml:lang="en">CE - Clinical Events</TranslatedText>
+				</Description>
+				<ItemGroupRef ItemGroupOID="CDASH_2-1_IG_9" Mandatory="Yes" OrderNumber="1"/>
+			</FormDef>
+			<ItemGroupDef OID="CDASH_2-1_IG_9" Name="CE - Clinical Events" Repeating="No" Domain="CE">
+				<Description>
+					<TranslatedText xml:lang="en">CE - Clinical Events</TranslatedText>
+				</Description>
+				<ItemRef ItemOID="IT.CEYN" Mandatory="No" OrderNumber="1"/>
+				<ItemRef ItemOID="IT.CETERM" Mandatory="Yes" OrderNumber="2"/>
+				<ItemRef ItemOID="IT.CESTDAT" Mandatory="No" OrderNumber="3"/>
+				<ItemRef ItemOID="IT.CEONGO" Mandatory="No" OrderNumber="4"/>
+				<ItemRef ItemOID="IT.CEENDAT" Mandatory="No" OrderNumber="5"/>
+				<ItemRef ItemOID="IT.CESEV" Mandatory="No" OrderNumber="6"/>
+			</ItemGroupDef>
+			<ItemDef OID="IT.CEONGO" Name="CEONGO" DataType="text" Length="25">
+				<Description>
+					<TranslatedText xml:lang="en">CEONGO</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>Was the [clinical event] ongoing (as of [the study-specific timepoint or period]?</TranslatedText>
+					<TranslatedText xml:lang="en">Ongoing</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Ongoing (as of the [study-specific timepoint or period])"/>
+				<Alias Context="completionInstructions" Name="Indicate if the clinical event has not resolved at the time of data collection. If ongoing leave the End Date blank."/>
+				<Alias Context="implementationNotes" Name="Completed to indicate that the CE has not resolved at the time of data collection, when no End Date is collected. In some cases the ongoing status may be determined from CE Outcome. The purpose of collecting this field is to help with data cleaning and monitoring; this field provides further confirmation that the End Date was deliberately left blank. Often used as a tick/checkbox."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. May be used to populate a value into an SDTMIG relative timing variable such as CEENRF or CEENRTPT. When populating CEENRF, if the value of CEONGO is &quot;Y&quot;, the value of &quot;DURING&quot;, &quot;AFTER&quot; or &quot;DURING/AFTER&quot; may be used. When populating CEENRTPT, if the value of CEONGO is &quot;Y&quot;, the value of &quot;ONGOING&quot; may be used. When CEONGO refers to the Study Reference Period (defined in DM.RFSTDTC to DM.RFENDTC) the SDTMIG variable CEENRF should be populated. When CEONGO is compared to another time point, the SDTMIG variables CEENRTPT and CEENTPT should be used. Note: CEENRTPT must refer to a time point anchor described in CEENTPT."/>
+				<Alias Name="CEONGO" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CESEV" Name="CESEV" DataType="text" Length="8">
+				<Description>
+					<TranslatedText xml:lang="en">CESEV</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the severity of the [clinical event]?</TranslatedText>
+					<TranslatedText xml:lang="en">Severity</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.CC165643.SEVRS"/>
+				<Alias Context="prompt" Name="Severity"/>
+				<Alias Context="completionInstructions" Name="The reporting physician/healthcare professional will assess the severity of the event using the sponsor-defined categories. This assessment is subjective and the reporting physician/ healthcare professional should use medical judgment to compare the reported clinical event to similar type events observed in clinical practice."/>
+				<Alias Context="implementationNotes" Name="Some studies may collect Severity and/or Toxicity Grade."/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target. The sponsor is expected to provide the toxicity scale name and version used to map the terms utilizing the Define-XML external code list attributes."/>
+				<Alias Name="CESEV" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CESTDAT" Name="CESTDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">CESTDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the [clinical event] start date?</TranslatedText>
+					<TranslatedText xml:lang="en">Start Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="Start Date"/>
+				<Alias Context="completionInstructions" Name="Record the start date of the [clinical event ] using this format (DD-MON-YYYY)."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH START DATE and TIME components and populate the SDTMIG variable CESTDTC in ISO 8601 format."/>
+				<Alias Name="CESTDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CETERM" Name="CETERM" DataType="text" Length="25">
+				<Description>
+					<TranslatedText xml:lang="en">CETERM</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What is the clinical event term?</TranslatedText>
+					<TranslatedText xml:lang="en">Clinical Event</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="[Clinical Event]; Specify (Other/Details)"/>
+				<Alias Context="completionInstructions" Name="Record the clinical event or [insert text corresponding to the specific clinical event]."/>
+				<Alias Context="implementationNotes" Name="Can be represented either as an open-entry field to capture verbatim terms reported by subjects or could be preprinted in the situation where solicited CEs of interest are captured. May be used as Specify Other field to collect more details on a prespecified CEDECOD value, or when CEDECOD=Other. In most cases, the verbatim term (i.e., investigator-reported term) will be coded to a standard medical dictionary such as MedDRA or WHO ART, after the data have been collected on the CRF"/>
+				<Alias Context="mappingInstructions" Name="Maps directly to the SDTMIG variable listed in the column with the heading SDTMIG Target."/>
+				<Alias Name="CETERM" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CEENDAT" Name="CEENDAT" DataType="date">
+				<Description>
+					<TranslatedText xml:lang="en">CEENDAT</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText>What was the [clinical event] end date?</TranslatedText>
+					<TranslatedText xml:lang="en">End Date</TranslatedText>
+				</Question>
+				<Alias Context="prompt" Name="End Date"/>
+				<Alias Context="completionInstructions" Name="Record the date that the [clinical event] resolved using this format (DD-MON-YYYY). If the [clinical event] is ongoing, leave the field blank."/>
+				<Alias Context="implementationNotes" Name="The definition of resolved is sponsor-specific. The preferred method is to collect a complete end date. Partial dates (e.g., providing year only, month and year only) may be acceptable."/>
+				<Alias Context="mappingInstructions" Name="This does not map directly to an SDTMIG variable. For the SDTM submission dataset, concatenate all collected CDASH END DATE and TIME components and populate the SDTMIG variable CEENDTC in ISO 8601 format."/>
+				<Alias Name="CEENDAT" Context="CDASH"/>
+			</ItemDef>
+			<ItemDef OID="IT.CEYN" Name="CEYN" DataType="text" Length="3">
+				<Description>
+					<TranslatedText xml:lang="en">CEYN</TranslatedText>
+				</Description>
+				<Question>
+					<TranslatedText xml:lang="en">Were any clinical events experienced?</TranslatedText>
+				</Question>
+				<CodeListRef CodeListOID="CL.C66742.NY.NY"/>
+				<Alias Context="prompt" Name="Any Clinical Events"/>
+				<Alias Context="completionInstructions" Name="Indicate if the subject experienced any clinical events. If yes, include the appropriate details where indicated on the CRF."/>
+				<Alias Context="implementationNotes" Name="The intent/purpose of collecting this field is to help with data cleaning and monitoring. It provides verification that all other fields on the CRF were deliberately left blank."/>
+				<Alias Context="mappingInstructions" Name="Does not map to an SDTMIG variable. The SDTM aCRF is annotated to indicate that this field is NOT SUBMITTED."/>
+				<Alias Name="CEYN" Context="CDASH"/>
+			</ItemDef>
+			<CodeList OID="CL.CC165643.SEVRS" Name="Severity Response" DataType="text">
+				<CodeListItem CodedValue="MILD" OrderNumber="1">
+					<Decode>
+						<TranslatedText>Mild</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="MODERATE" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Moderate</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="SEVERE" OrderNumber="3">
+					<Decode>
+						<TranslatedText>Severe</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+			<CodeList OID="CL.C66742.NY.NY" Name="No Yes Response Only" DataType="text">
+				<Description>
+					<TranslatedText>A term that is used to indicate a question with permissible values of yes/no/unknown/not applicable.</TranslatedText>
+				</Description>
+				<CodeListItem CodedValue="N" OrderNumber="1">
+					<Decode>
+						<TranslatedText>No</TranslatedText>
+					</Decode>
+				</CodeListItem>
+				<CodeListItem CodedValue="Y" OrderNumber="2">
+					<Decode>
+						<TranslatedText>Yes</TranslatedText>
+					</Decode>
+				</CodeListItem>
+			</CodeList>
+		</MetaDataVersion>
+	</Study>
+</ODM>

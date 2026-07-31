@@ -88,29 +88,61 @@ Traditional clinical trial builds require manual, error-prone translation of pro
   * Immutable, append-only, chronological quality logs (`QualityAuditLog`) of all viewed records, updates, and transitions.
   * Restricts access to read-only roles (`auditor`, `inspector`, `regulatory_inspector`) from all mutating operations, gates general write access, and authorizes terminal CAPA approvals or closures only to Quality Oversight roles (`quality_manager`, `qa_lead`, `quality_oversight`, `admin`).
 
+### J. Interoperability & Sync Gateway Service (`apps/interop`)
+* **Role:** EHR FHIR Data Adapter & ePRO Submission Sync Gateway.
+* **Datastore:** SQLite / PostgreSQL Relational Database.
+* **Core Responsibilities:**
+  * Ingests HL7 FHIR bundles, performs PII stripping and pseudonymization, and CDASH mappings to pre-fill observations.
+  * Receives single or bulk ePRO/eCOA submissions from active study subjects.
+  * Implements multi-strategy offline reconciliation (`CLIENT_WINS`, `SERVER_WINS`, `MERGE`) and isolates/logs conflict details in `EPROSubmissionDefeated`.
+  * Triggers auditable open clinical queries automatically for submissions with structural mismatches.
+  * Computes subject compliance schedules and triggers async background notifications (EMAIL, SMS, WEBHOOK, IN_APP).
+  * Exposes secure least-privilege APIs for patient self-service (instrument details, assignments, compliance, and notification lists) and notification acknowledgement.
+
+### K. Patient/Subject Portal (`apps/subject-portal`)
+* **Role:** Standalone Patient-Facing ePRO Web Application.
+* **Core Responsibilities:**
+  * Serves as an isolated, secure Progressive Web App (PWA) client optimized for mobile environments.
+  * Integrates with Keycloak OIDC for authenticated login under the strict `Subject` role.
+  * Implements offline-first caching via service workers and queues signed submissions chronologically inside IndexedDB.
+  * Provides a visual Sync Queue Panel allowing subjects to view transmission logs and online reconciliation decisions.
+  * Supports read capabilities (assigned instruments, compliance rates, assignments, and notification inbox) and interactive notification acknowledgement alongside diary submit and sync operations.
+
+### L. eISF Module (`apps/eisf`)
+* **Role:** Electronic Investigator Site File (eISF) Repository.
+* **Datastore:** SQLite / PostgreSQL Relational Database.
+* **Core Responsibilities:**
+  * Ingests, taxonomy-classifies, and versions clinical trial site documents mapped to binder structures.
+  * Enforces rigid site-scoped role authorization and site-isolation boundaries via `enforce_site_isolation` centrally.
+  * Computes site-level completeness checks matching present versus required classifications inside standard binder sections.
+  * Restricts write mutations to CRC/Investigator roles, and blocks read-only Auditor/Inspector roles from modifying files.
+  * Maintains a 21 CFR Part 11 compliant audit trail (`ISFAuditLog`) capturing user contexts, timestamps, and justifications for all site operations.
+  * Supports bidirectional offline sync with automated conflict reconciliation strategies and deduplication mechanisms.
+  * Integrated on host port `8010` and aggregated into the gateway's unified OpenAPI specification.
+
 ---
 
 ## 3. Data Transformation Flow
 
-```text
-[ Study Designer Authors Protocol ]
-                 │
-                 ▼
- [ Saved to Neo4j Graph (USDM) ]
-                 │
-                 ▼
- [ DDF Event: "Study Published" ]
-                 │
-                 ▼
- [ Transformer: USDM -> ODM/XForm ]
-                 │
-                 ▼
- [ Provisioned into PostgreSQL EDC ]
-                 │
-                 ▼
- [ Live Site Data Entry & Audit Log ]
-                 │
-                 ▼
- [ SDTM Export Engine (Dataset-JSON Export) ]
+```mermaid
+flowchart TD
+    A[Study Designer Authors Protocol] --> B[(Saved to Neo4j Graph - USDM)]
+    B --> C[DDF Event: "Study Published"]
+    C --> D[Transformer: USDM ──► ODM/XForm]
+    D --> E[(Provisioned into PostgreSQL EDC)]
 
+    E --> F[eCOA Instrument Definition Assigned]
+    E --> G[Live Site Data Entry & Audit Log]
+
+    F --> H[Patient Completes ePRO Assessment - PWA]
+
+    G --> I[CDASH Extractor: SDTM Domains]
+    H --> I
+
+    I --> J[Analysis Derivation: ADaM Datasets]
+    J --> K[Serializer: CDISC Dataset-JSON 1.0]
+    K --> L{Validator: Conformance Verification}
+
+    L -->|If Valid| M[Log SUCCESS in BiostatExport]
+    L -->|If Invalid| N[Log FAILED & Raise HTTP 422]
 ```

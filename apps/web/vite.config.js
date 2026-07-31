@@ -12,6 +12,18 @@ export default defineConfig({
   resolve: {
     alias: {
       ui: path.resolve(__dirname, "../../packages/ui/index.js"),
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  server: {
+    port: 3000,
+    strictPort: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   build: {
@@ -21,5 +33,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./tests/setup.js"],
   },
 });

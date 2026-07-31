@@ -568,3 +568,30 @@ def test_soa_matrix_assembly(base_study):
     assert row_blood.cells[1].encounter_id == "enc-v2"
     assert row_blood.cells[1].is_applicable is True
     assert row_blood.cells[1].details == "Vitals and lab blood draw."
+
+
+def test_render_synopsis_template_html(base_study):
+    """Validate Jinja2 HTML synopsis rendering from USDM study.
+
+    Requirements: PRD-SYS-001
+    """
+    from apps.designer.content_assembly import (
+        USDMSynopsisAssembler,
+        assemble_rendered_protocol_document,
+        render_synopsis_template_html,
+    )
+
+    rendered_doc = assemble_rendered_protocol_document(
+        base_study, creator="Dr. Test User", change_reason="Initial Baseline Setup"
+    )
+    html_output = render_synopsis_template_html(rendered_doc)
+
+    assert "<!DOCTYPE html>" in html_output
+    assert "Clinical Protocol Synopsis" in html_output
+    assert "Dr. Test User" in html_output
+    assert "Initial Baseline Setup" in html_output
+    assert "Schedule of Activities" in html_output
+
+    assembler = USDMSynopsisAssembler()
+    html_output_2 = assembler.assemble_and_render_html(base_study)
+    assert "<!DOCTYPE html>" in html_output_2

@@ -7,6 +7,7 @@ import MdrView from "../src/views/MdrView.vue";
 import EcrfView from "../src/views/EcrfView.vue";
 import CtmsView from "../src/views/CtmsView.vue";
 import AuditView from "../src/views/AuditView.vue";
+import RulesView from "../src/views/RulesView.vue";
 
 // Setup router for testing App.vue with all routes
 const router = createRouter({
@@ -17,6 +18,7 @@ const router = createRouter({
     { path: "/ecrf", name: "ecrf", component: EcrfView },
     { path: "/ctms", name: "ctms", component: CtmsView },
     { path: "/audit", name: "audit", component: AuditView },
+    { path: "/rules", name: "rules", component: RulesView },
   ],
 });
 
@@ -87,9 +89,23 @@ describe("Vue SPA Smoke Tests", () => {
       },
     });
 
-    expect(wrapper.html()).toContain("Cryptographic Audit Log Inspector");
     expect(wrapper.html()).toContain(
-      "21 CFR Part 11 Cryptographic Audit Ledger"
+      "Regulatory Auditor &amp; Inspection Portal"
     );
+    expect(wrapper.html()).toContain("GxP Execution Ledger Chain Verification");
+  });
+
+  it("mounts RulesView and renders Interactive Rules Designer", () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    const wrapper = mount(RulesView, {
+      global: {
+        plugins: [pinia, router],
+      },
+    });
+
+    expect(wrapper.html()).toContain("Interactive Rules Designer");
+    expect(wrapper.html()).toContain("Study Active Ruleset");
   });
 });

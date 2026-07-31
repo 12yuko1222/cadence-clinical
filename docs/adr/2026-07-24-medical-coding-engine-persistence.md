@@ -2,14 +2,16 @@
 
 * **Status:** Accepted
 * **Date:** 2026-07-24
-* **Authors:** @jules
-* **Deciders:** @fderuiter, @jules
+* **Authors:** @fderuiter
+* **Deciders:** @fderuiter
 
 ---
 
 ## 1. Context & Problem Statement
 
 The Cadence Clinical platform requires a standardized, validated, and high-performance mechanism to code clinical verbatim terms (such as adverse events, concomitant medications, medical history) against industry-standard medical dictionaries (MedDRA, WHODrug, etc.). We need to define the relational database models for these terminologies, manage dictionary import execution/status, track investigator coding decisions, and maintain complete 21 CFR Part 11 and GxP compliant auditing.
+
+This decision implements requirements under Trace-1.
 
 ## 2. Decision Drivers & Constraints
 
@@ -61,4 +63,6 @@ The following entities are registered under `apps/execution/database/models.py`:
 ## 6. Implementation & Verification
 
 * **Affected Repositories / Services:** `apps/execution/`
-* **Verification Plan:** Unit tests added in `tests/test_medical_coding.py` covering model creation, dictionary import job status flows, verification of constraint triggers, and clinical coding assignments.
+* **Verification Plan:**
+  * Unit tests added in `tests/test_medical_coding.py` covering model creation, dictionary import job status flows, verification of constraint triggers, and clinical coding assignments.
+  * Comprehensive integration tests added in `tests/test_medical_coding_lifecycle.py` verifying automatic coding during observation capture, mid-confidence suggestion preservation, and manual coder actions (ACCEPT/OVERRIDE) with roles and Part 11 checks.

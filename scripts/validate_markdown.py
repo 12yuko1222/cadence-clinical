@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+# CI Trigger
 """
 Repository-Wide Custom Markdown Linter
 Statically validates workspace paths/links and dry-runs CLI subcommands.
 """
 
+import ast
+import importlib.util
+import json
 import os
 import re
 import shlex
@@ -11,6 +15,16 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+# Add packages subfolders and apps to sys.path to resolve imports within modules
+for p in Path("/app/packages").glob("*"):
+    if p.is_dir() and str(p) not in sys.path:
+        sys.path.insert(0, str(p))
+for p in Path("/app/apps").glob("*"):
+    if p.is_dir() and str(p) not in sys.path:
+        sys.path.insert(0, str(p))
+if "/app" not in sys.path:
+    sys.path.insert(0, "/app")
 
 # Common developer tools/executables we whitelist even if not natively installed
 ALLOWED_COMMON_TOOLS = {
@@ -40,6 +54,8 @@ ALLOWED_COMMON_TOOLS = {
     "ls",
     "source",
     "export",
+    "powershell",
+    "pre-commit",
     "poetry",
     "make",
     "chmod",
@@ -63,6 +79,8 @@ ALLOWED_COMMON_TOOLS = {
     "cypher-shell",
     "EOF",
     "tee",
+    "powershell",
+    "pre-commit",
 }
 
 # Regex to check if a flag is syntactically well-formed (cannot start with triple dashes)
@@ -115,6 +133,8 @@ def is_potential_path_ref(token, root_dirs, root_files):
         "placeholder" in token.lower()
         or "your-" in token.lower()
         or "example" in token.lower()
+        or "templates" in token.lower()
+        or "node.js" in token.lower()
     ):
         return False
 
@@ -196,6 +216,11 @@ def resolve_path(path_str, md_file_path, repo_root, root_dirs, root_files):
     ):
         return None
 
+    # Strip query parameters or anchors (e.g., # or ?)
+    path_str = path_str.split("#")[0].split("?")[0].strip()
+    if not path_str:
+        return None
+
     # Ignore environment variables and placeholder syntax
     if any(char in path_str for char in ("$", "*", "<", ">", "{", "}", "[", "]")):
         return None
@@ -203,6 +228,8 @@ def resolve_path(path_str, md_file_path, repo_root, root_dirs, root_files):
         "placeholder" in path_str.lower()
         or "your-" in path_str.lower()
         or "example" in path_str.lower()
+        or "templates" in path_str.lower()
+        or "node.js" in path_str.lower()
     ):
         return None
 
@@ -212,21 +239,31 @@ def resolve_path(path_str, md_file_path, repo_root, root_dirs, root_files):
     # Strip leading slash for workspace relative resolve
     stripped_path = path_str.lstrip("/")
 
-    # Absolute repo-level path starting with /app/
-    if path_str.startswith("/app/"):
-        rel_path = path_str[5:]
-        return repo_root / rel_path
+    # Absolute repo-level path starting with /app/ or any custom leading slash
+    if path_str.startswith("/"):
+        # Ignore absolute system/container paths
+        if not path_str.startswith(
+            (
+                "/dev/",
+                "/opt/",
+                "/bin/",
+                "/usr/",
+                "/etc/",
+                "/proc/",
+                "/sys/",
+                "/var/",
+                "/tmp/",  # nosec B108
+            )
+        ):
+            if path_str.startswith("/app/"):
+                stripped_path = path_str[5:]
+            return repo_root / stripped_path
+        return None
 
     # If it starts with a known root dir or root file, resolve relative to root
     first_part = stripped_path.split("/")[0]
     if first_part in root_dirs or first_part in root_files:
         return repo_root / stripped_path
-
-    # If starts with leading slash and is not system path, treat as workspace-relative only if first component is in root_dirs or root_files
-    if path_str.startswith("/"):
-        if first_part in root_dirs or first_part in root_files:
-            return repo_root / stripped_path
-        return None
 
     # Relative path starts with ./ or ../
     if path_str.startswith(("./", "../")):
@@ -415,8 +452,469 @@ def validate_cli_command(args, line_no, md_file_path, repo_root, root_dirs, root
                     )
 
 
-def process_markdown_file(file_path, repo_root, root_dirs, root_files):
+def build_codebase_map(repo_root):
+    # Map of name -> list of dicts: {'file_path': Path, 'type': 'function'|'class', 'node': AST_node}
+    codebase_map = {}
+    for root, dirs, files in os.walk(repo_root):
+        dirs[:] = [
+            d
+            for d in dirs
+            if d
+            not in {
+                ".git",
+                ".venv",
+                "node_modules",
+                ".ruff_cache",
+                ".pytest_cache",
+                ".coverage",
+                ".mypy_cache",
+                "build",
+                "dist",
+            }
+            and not d.startswith(".")
+        ]
+        for f in files:
+            if f.endswith(".py"):
+                file_path = Path(root) / f
+                try:
+                    tree = ast.parse(file_path.read_text(encoding="utf-8"))
+                    for node in ast.walk(tree):
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            codebase_map.setdefault(node.name, []).append(
+                                {
+                                    "file_path": file_path,
+                                    "type": "function",
+                                    "node": node,
+                                }
+                            )
+                        elif isinstance(node, ast.ClassDef):
+                            codebase_map.setdefault(node.name, []).append(
+                                {"file_path": file_path, "type": "class", "node": node}
+                            )
+                except Exception:
+                    pass
+    return codebase_map
+
+
+def find_init_method(class_node):
+    for item in class_node.body:
+        if (
+            isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and item.name == "__init__"
+        ):
+            return item
+    return None
+
+
+def get_args_list(func_node):
+    args = []
+    if hasattr(func_node.args, "posonlyargs") and func_node.args.posonlyargs:
+        args.extend([a.arg for a in func_node.args.posonlyargs])
+    if hasattr(func_node.args, "args") and func_node.args.args:
+        args.extend([a.arg for a in func_node.args.args])
+    if hasattr(func_node.args, "kwonlyargs") and func_node.args.kwonlyargs:
+        args.extend([a.arg for a in func_node.args.kwonlyargs])
+    if hasattr(func_node.args, "vararg") and func_node.args.vararg:
+        args.append("*" + func_node.args.vararg.arg)
+    if hasattr(func_node.args, "kwarg") and func_node.args.kwarg:
+        args.append("**" + func_node.args.kwarg.arg)
+    return args
+
+
+def get_model_fields_ast_from_map(class_name, codebase_map):
+    occurrences = codebase_map.get(class_name, [])
+    for occ in occurrences:
+        if occ["type"] == "class":
+            node = occ["node"]
+            fields = {}
+            for item in node.body:
+                if isinstance(item, ast.AnnAssign) and isinstance(
+                    item.target, ast.Name
+                ):
+                    field_name = item.target.id
+                    required = True
+                    if item.value is not None:
+                        if isinstance(item.value, ast.Call):
+                            if (
+                                isinstance(item.value.func, ast.Name)
+                                and item.value.func.id == "Field"
+                            ):
+                                is_required = True
+                                if item.value.args:
+                                    first_arg = item.value.args[0]
+                                    if (
+                                        isinstance(first_arg, ast.Constant)
+                                        and first_arg.value is not Ellipsis
+                                    ):
+                                        is_required = False
+                                    elif (
+                                        isinstance(first_arg, ast.Name)
+                                        and first_arg.id != "..."
+                                    ):
+                                        is_required = False
+                                for kw in item.value.keywords:
+                                    if kw.arg == "default":
+                                        if (
+                                            isinstance(kw.value, ast.Constant)
+                                            and kw.value.value is not Ellipsis
+                                        ):
+                                            is_required = False
+                                        elif (
+                                            isinstance(kw.value, ast.Name)
+                                            and kw.value.id != "..."
+                                        ):
+                                            is_required = False
+                                required = is_required
+                        else:
+                            required = False
+                    fields[field_name] = required
+            return fields
+    return {}
+
+
+def import_class_by_name_from_map(class_name, codebase_map):
+    occurrences = codebase_map.get(class_name, [])
+    for occ in occurrences:
+        if occ["type"] == "class":
+            p = occ["file_path"]
+            try:
+                module_name = p.stem
+                temp_mod_name = f"gxp_import_temp_{module_name}"
+                spec = importlib.util.spec_from_file_location(temp_mod_name, str(p))
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[temp_mod_name] = module
+                spec.loader.exec_module(module)
+                cls = getattr(module, class_name, None)
+                if cls is not None:
+                    return cls
+            except Exception:
+                pass
+    return None
+
+
+def clean_json_text(text):
+    text = text.replace("\t", "    ")
+    text = re.sub(r"(?<!:)\/\/.*$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\.\.\.", "null", text)
+    text = re.sub(r",\s*([\]}])", r"\1", text)
+    return text
+
+
+def validate_python_block(
+    file_path,
+    start_line,
+    content,
+    codebase_map,
+    lines,
+    repo_root,
+    root_dirs,
+    root_files,
+):
+    try:
+        doc_tree = ast.parse(content)
+    except SyntaxError as e:
+        add_error(
+            file_path,
+            start_line + e.lineno - 1,
+            f"Python SyntaxError in markdown code block: {e}",
+        )
+        return
+
+    for node in doc_tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            name = node.name
+            preceding_text = "".join(lines[max(0, start_line - 11) : start_line - 1])
+            path_matches = re.findall(r"([\w\-\./]+\.py)", preceding_text)
+            candidate_file = None
+            for match in path_matches:
+                resolved = resolve_path(
+                    match, file_path, repo_root, root_dirs, root_files
+                )
+                if resolved and resolved.exists():
+                    candidate_file = resolved
+                    break
+
+            if candidate_file:
+                try:
+                    codebase_tree = ast.parse(
+                        candidate_file.read_text(encoding="utf-8")
+                    )
+                    found_in_referenced = False
+                    for cb_node in ast.walk(codebase_tree):
+                        if (
+                            isinstance(cb_node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                            and cb_node.name == name
+                        ):
+                            found_in_referenced = True
+                            doc_args = [
+                                a
+                                for a in get_args_list(node)
+                                if a not in ("self", "cls")
+                            ]
+                            code_args = [
+                                a
+                                for a in get_args_list(cb_node)
+                                if a not in ("self", "cls")
+                            ]
+                            if doc_args != code_args:
+                                add_error(
+                                    file_path,
+                                    start_line + node.lineno - 1,
+                                    f"Mismatched Python signature for function '{name}': documented arguments: {doc_args}, codebase arguments: {code_args} in '{candidate_file.relative_to(repo_root)}'.",
+                                )
+                            break
+                    if not found_in_referenced:
+                        add_error(
+                            file_path,
+                            start_line + node.lineno - 1,
+                            f"Counterpart function '{name}' not found in referenced file '{candidate_file.relative_to(repo_root)}'.",
+                        )
+                except Exception as e:
+                    add_error(
+                        file_path,
+                        start_line + node.lineno - 1,
+                        f"Error parsing referenced file '{candidate_file}': {e}",
+                    )
+            else:
+                if name in codebase_map:
+                    for occ in codebase_map[name]:
+                        if occ["type"] == "function":
+                            cb_node = occ["node"]
+                            cb_file = occ["file_path"]
+                            doc_args = [
+                                a
+                                for a in get_args_list(node)
+                                if a not in ("self", "cls")
+                            ]
+                            code_args = [
+                                a
+                                for a in get_args_list(cb_node)
+                                if a not in ("self", "cls")
+                            ]
+                            if doc_args != code_args:
+                                add_error(
+                                    file_path,
+                                    start_line + node.lineno - 1,
+                                    f"Mismatched Python signature for function '{name}': documented arguments: {doc_args}, codebase arguments: {code_args} in '{cb_file.relative_to(repo_root)}'.",
+                                )
+
+        elif isinstance(node, ast.ClassDef):
+            name = node.name
+            preceding_text = "".join(lines[max(0, start_line - 11) : start_line - 1])
+            path_matches = re.findall(r"([\w\-\./]+\.py)", preceding_text)
+            candidate_file = None
+            for match in path_matches:
+                resolved = resolve_path(
+                    match, file_path, repo_root, root_dirs, root_files
+                )
+                if resolved and resolved.exists():
+                    candidate_file = resolved
+                    break
+
+            if candidate_file:
+                try:
+                    codebase_tree = ast.parse(
+                        candidate_file.read_text(encoding="utf-8")
+                    )
+                    found_in_referenced = False
+                    for cb_node in ast.walk(codebase_tree):
+                        if isinstance(cb_node, ast.ClassDef) and cb_node.name == name:
+                            found_in_referenced = True
+                            doc_init = find_init_method(node)
+                            code_init = find_init_method(cb_node)
+                            if doc_init and code_init:
+                                doc_args = [
+                                    a
+                                    for a in get_args_list(doc_init)
+                                    if a not in ("self", "cls")
+                                ]
+                                code_args = [
+                                    a
+                                    for a in get_args_list(code_init)
+                                    if a not in ("self", "cls")
+                                ]
+                                if doc_args != code_args:
+                                    add_error(
+                                        file_path,
+                                        start_line + doc_init.lineno - 1,
+                                        f"Mismatched Python signature for class '{name}' constructor: documented arguments: {doc_args}, codebase arguments: {code_args} in '{candidate_file.relative_to(repo_root)}'.",
+                                    )
+                            break
+                    if not found_in_referenced:
+                        add_error(
+                            file_path,
+                            start_line + node.lineno - 1,
+                            f"Counterpart class '{name}' not found in referenced file '{candidate_file.relative_to(repo_root)}'.",
+                        )
+                except Exception as e:
+                    add_error(
+                        file_path,
+                        start_line + node.lineno - 1,
+                        f"Error parsing referenced file '{candidate_file}': {e}",
+                    )
+            else:
+                if name in codebase_map:
+                    for occ in codebase_map[name]:
+                        if occ["type"] == "class":
+                            cb_node = occ["node"]
+                            cb_file = occ["file_path"]
+                            doc_init = find_init_method(node)
+                            code_init = find_init_method(cb_node)
+                            if doc_init and code_init:
+                                doc_args = [
+                                    a
+                                    for a in get_args_list(doc_init)
+                                    if a not in ("self", "cls")
+                                ]
+                                code_args = [
+                                    a
+                                    for a in get_args_list(code_init)
+                                    if a not in ("self", "cls")
+                                ]
+                                if doc_args != code_args:
+                                    add_error(
+                                        file_path,
+                                        start_line + doc_init.lineno - 1,
+                                        f"Mismatched Python signature for class '{name}' constructor: documented arguments: {doc_args}, codebase arguments: {code_args} in '{cb_file.relative_to(repo_root)}'.",
+                                    )
+
+
+def validate_json_block(
+    file_path,
+    start_line,
+    content,
+    codebase_map,
+    lines,
+    repo_root,
+    root_dirs,
+    root_files,
+):
+    cleaned = clean_json_text(content)
+    try:
+        doc_dict = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        add_error(
+            file_path,
+            start_line + e.lineno - 1,
+            f"JSON SyntaxError in markdown code block: {e}",
+        )
+        return
+
+    pydantic_class_names = []
+    for name, occurrences in codebase_map.items():
+        for occ in occurrences:
+            if occ["type"] == "class":
+                node = occ["node"]
+                is_pydantic = False
+                for base in node.bases:
+                    if isinstance(base, ast.Name) and base.id == "BaseModel":
+                        is_pydantic = True
+                    elif isinstance(base, ast.Attribute) and base.attr == "BaseModel":
+                        is_pydantic = True
+                if is_pydantic and name not in pydantic_class_names:
+                    pydantic_class_names.append(name)
+
+    matched_model_name = None
+    matched_explicitly = False
+
+    if isinstance(doc_dict, dict) and len(doc_dict) == 1:
+        key = list(doc_dict.keys())[0]
+        val = list(doc_dict.values())[0]
+        if isinstance(val, dict):
+            camel_key = "".join(w.capitalize() for w in key.split("_"))
+            for cname in pydantic_class_names:
+                if cname.lower() == camel_key.lower():
+                    matched_model_name = cname
+                    matched_explicitly = True
+                    doc_dict = val
+                    break
+
+    if not matched_model_name:
+        preceding_lines = lines[max(0, start_line - 11) : start_line - 1]
+        preceding_text_lower = " ".join(preceding_lines).lower()
+        for cname in pydantic_class_names:
+            if len(cname) <= 5:
+                # Require title case or backtick matching for short class names
+                if (
+                    f"`{cname}`" in "".join(preceding_lines)
+                    or f"'{cname}'" in "".join(preceding_lines)
+                    or cname in "".join(preceding_lines)
+                ):
+                    matched_model_name = cname
+                    matched_explicitly = True
+                    break
+            else:
+                if re.search(
+                    r"\b" + re.escape(cname.lower()) + r"\b", preceding_text_lower
+                ):
+                    matched_model_name = cname
+                    matched_explicitly = True
+                    break
+
+    if not matched_model_name and isinstance(doc_dict, dict):
+        best_score = 0
+        best_model = None
+        json_keys = set(doc_dict.keys())
+        if json_keys:
+            for cname in pydantic_class_names:
+                fields = get_model_fields_ast_from_map(cname, codebase_map)
+                if fields:
+                    model_keys = set(fields.keys())
+                    overlap = json_keys.intersection(model_keys)
+                    if len(overlap) >= 2:
+                        score = len(overlap) / len(model_keys)
+                        if score > best_score:
+                            best_score = score
+                            best_model = cname
+            if best_score > 0.3:
+                matched_model_name = best_model
+
+    if matched_model_name:
+        success = False
+        err_msgs = []
+        try:
+            cls = import_class_by_name_from_map(matched_model_name, codebase_map)
+            if cls is not None:
+                try:
+                    cls.model_validate(doc_dict)
+                    success = True
+                except Exception as val_err:
+                    if hasattr(val_err, "errors"):
+                        for err in val_err.errors():
+                            loc = ".".join(str(item) for item in err.get("loc", []))
+                            err_msgs.append(f"field '{loc}' - {err.get('msg')}")
+                    else:
+                        err_msgs.append(str(val_err))
+                    success = False
+                else:
+                    success = True
+        except Exception:
+            pass
+
+        if not success and not err_msgs:
+            fields = get_model_fields_ast_from_map(matched_model_name, codebase_map)
+            missing = [f for f, req in fields.items() if req and f not in doc_dict]
+            if missing:
+                err_msgs.append(f"Missing required fields: {missing}")
+
+        if not success and err_msgs:
+            if not matched_explicitly:
+                return  # Discard implicit key overlap matches that failed to avoid false positives!
+
+            for msg in err_msgs:
+                add_error(
+                    file_path,
+                    start_line,
+                    f"JSON example mismatch with Pydantic model '{matched_model_name}': {msg}",
+                )
+
+
+def process_markdown_file(
+    file_path, repo_root, root_dirs, root_files, codebase_map=None
+):
     """Parses a markdown file to validate inline paths, links, and code blocks."""
+    if codebase_map is None:
+        codebase_map = {}
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -428,11 +926,20 @@ def process_markdown_file(file_path, repo_root, root_dirs, root_files):
     # [label](path)
     link_pattern = re.compile(r"\[[^\]]*\]\(([^)#\s]+)(?:#[^)]*)?\)")
 
+    # Reference-style link pattern: e.g. [label]: path
+    ref_link_pattern = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*(\S+)")
+
     # Track any code block state
     in_code_block = False
     is_bash_block = False
+    is_python_block = False
+    is_json_block = False
+    is_skip_block = False
     code_block_lines = []
     code_block_start_line = 1
+
+    # Track HTML comment state across lines
+    in_html_comment = False
 
     for line_idx, raw_line in enumerate(lines, 1):
         line = raw_line.strip()
@@ -496,23 +1003,132 @@ def process_markdown_file(file_path, repo_root, root_dirs, root_files):
                                 f"Failed to parse shell command (shlex error): {e}",
                             )
 
+                elif is_python_block:
+                    block_content = "".join(line for _, line in code_block_lines)
+                    has_skip_comment = any(
+                        any(
+                            w in cl.strip().lower() for w in ("skip", "raw-text", "raw")
+                        )
+                        for _, cl in code_block_lines
+                        if cl.strip().startswith("#")
+                    )
+                    has_preceding_skip = False
+                    if code_block_start_line >= 2:
+                        preceding_line = (
+                            lines[code_block_start_line - 2].strip().lower()
+                        )
+                        has_preceding_skip = any(
+                            w in preceding_line for w in ("skip", "raw-text", "raw")
+                        )
+
+                    if (
+                        not is_skip_block
+                        and not has_skip_comment
+                        and not has_preceding_skip
+                    ):
+                        if (
+                            "docs" in Path(file_path).parts
+                            and "adr" not in Path(file_path).parts
+                        ):
+                            validate_python_block(
+                                file_path,
+                                code_block_start_line,
+                                block_content,
+                                codebase_map,
+                                lines,
+                                repo_root,
+                                root_dirs,
+                                root_files,
+                            )
+
+                elif is_json_block:
+                    block_content = "".join(line for _, line in code_block_lines)
+                    has_preceding_skip = False
+                    if code_block_start_line >= 2:
+                        preceding_line = (
+                            lines[code_block_start_line - 2].strip().lower()
+                        )
+                        has_preceding_skip = any(
+                            w in preceding_line for w in ("skip", "raw-text", "raw")
+                        )
+
+                    if not is_skip_block and not has_preceding_skip:
+                        if (
+                            "docs" in Path(file_path).parts
+                            and "adr" not in Path(file_path).parts
+                        ):
+                            validate_json_block(
+                                file_path,
+                                code_block_start_line,
+                                block_content,
+                                codebase_map,
+                                lines,
+                                repo_root,
+                                root_dirs,
+                                root_files,
+                            )
+
                 in_code_block = False
                 is_bash_block = False
+                is_python_block = False
+                is_json_block = False
+                is_skip_block = False
                 code_block_lines = []
             else:
                 in_code_block = True
-                lang = line[3:].strip().lower()
-                is_bash_block = lang in ("bash", "sh", "shell")
+                lang_line = line[3:].strip().lower()
+                is_bash_block = lang_line in ("bash", "sh", "shell")
+                is_python_block = lang_line.startswith("python") or lang_line == "py"
+                is_json_block = lang_line.startswith("json")
+                is_skip_block = any(w in lang_line for w in ("skip", "raw-text", "raw"))
                 code_block_start_line = line_idx
             continue
 
         if in_code_block:
-            if is_bash_block:
+            if is_bash_block or is_python_block or is_json_block:
                 code_block_lines.append((line_idx, raw_line))
             continue
 
-        # Outside Code Blocks: Extract Standard Markdown Links
-        for match in link_pattern.finditer(raw_line):
+        # --- OUTSIDE CODE BLOCKS ---
+
+        # 1. Multi-Line & Single-Line HTML Comment State Machine
+        line_to_process = raw_line
+        if in_html_comment:
+            if "-->" in line_to_process:
+                in_html_comment = False
+                line_to_process = line_to_process.split("-->", 1)[1]
+            else:
+                continue
+        else:
+            line_to_process = re.sub(r"<!--.*?-->", "", line_to_process)
+            if "<!--" in line_to_process:
+                in_html_comment = True
+                line_to_process = line_to_process.split("<!--", 1)[0]
+
+        if not line_to_process.strip():
+            continue
+
+        # 2. Outside Code Blocks: Extract Reference-Style Links
+        # E.g. [my-doc]: ./docs/SDLC/guidelines.md
+        ref_match = ref_link_pattern.match(line_to_process)
+        if ref_match:
+            path_str = ref_match.group(1)
+            cleaned = clean_token(path_str)
+            if cleaned:
+                validate_path(
+                    cleaned,
+                    file_path,
+                    line_idx,
+                    repo_root,
+                    root_dirs,
+                    root_files,
+                    ref_type="reference-link",
+                )
+            # Skip plain text token parsing on this line to avoid duplicates
+            continue
+
+        # 3. Outside Code Blocks: Extract Standard Markdown Links
+        for match in link_pattern.finditer(line_to_process):
             path_str = match.group(1)
             # Standard links are checked with high priority
             cleaned = clean_token(path_str)
@@ -527,9 +1143,9 @@ def process_markdown_file(file_path, repo_root, root_dirs, root_files):
                     ref_type="link",
                 )
 
-        # Outside Code Blocks: Extract Workspace/Path References in Inline Code or Plain Text
+        # 4. Outside Code Blocks: Extract Workspace/Path References in Inline Code or Plain Text
         # Split line by whitespace to scan for potential path words
-        tokens = raw_line.split()
+        tokens = line_to_process.split()
         for token in tokens:
             cleaned = clean_token(token)
             if is_potential_path_ref(cleaned, root_dirs, root_files):
@@ -545,7 +1161,8 @@ def process_markdown_file(file_path, repo_root, root_dirs, root_files):
 
 
 def main():
-    repo_root = Path("/app").resolve()
+    # Compute repository root dynamically relative to the script's location to be environment-agnostic
+    repo_root = Path(__file__).resolve().parent.parent
 
     # Dynamically build current root level directories and files
     try:
@@ -577,18 +1194,42 @@ def main():
         "dist",
     }
 
-    # Scan and process all .md files
+    # Scan and process target .md files
     md_files = []
-    for root, dirs, files in os.walk(repo_root):
-        # Exclude directories in-place to optimize walk
-        dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith(".")]
-        for f in files:
-            if f.endswith(".md"):
-                md_files.append(Path(root) / f)
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            p = Path(arg).resolve()
+            if p.is_file() and p.suffix == ".md":
+                if "docs/SDLC" in p.as_posix() or "docs\\SDLC" in p.as_posix():
+                    continue
+                md_files.append(p)
+    else:
+        for root, dirs, files in os.walk(repo_root):
+            # Exclude directories in-place to optimize walk
+            dirs[:] = [
+                d for d in dirs if d not in exclude_dirs and not d.startswith(".")
+            ]
+            for f in files:
+                if f.endswith(".md"):
+                    file_path = Path(root) / f
+                    # Skip SDLC documentation suite from standard CLI validation as they contain intentional
+                    # compliance drifts used for testing the linter in gxp_compliance_suite.py
+                    if (
+                        "docs/SDLC" in file_path.as_posix()
+                        or "docs\\SDLC" in file_path.as_posix()
+                    ):
+                        continue
+                    md_files.append(file_path)
 
-    print(f"Scanning {len(md_files)} markdown files across the repository...")
+    print("Building codebase map for targeted validations...")
+    codebase_map = build_codebase_map(repo_root)
+
+    if len(sys.argv) > 1:
+        print(f"Scanning {len(md_files)} specified markdown file(s)...")
+    else:
+        print(f"Scanning {len(md_files)} markdown files across the repository...")
     for md_file in sorted(md_files):
-        process_markdown_file(md_file, repo_root, root_dirs, root_files)
+        process_markdown_file(md_file, repo_root, root_dirs, root_files, codebase_map)
 
     if errors:
         print(f"\n[!] Markdown Validation Failed with {len(errors)} error(s):")

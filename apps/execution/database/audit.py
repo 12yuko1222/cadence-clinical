@@ -25,17 +25,55 @@ def get_primary_key(obj):
 
 @event.listens_for(Session, "before_flush")
 def receive_before_flush(session: Session, flush_context, instances):
+    """
+    Enforces write restrictions and records audited changes before a session flush.
+
+    Parameters:
+        session (Session): SQLAlchemy session containing pending changes.
+        flush_context: SQLAlchemy flush context.
+        instances: Instances involved in the flush.
+
+    Raises:
+        PermissionError: If the trial or referenced site, visit, subject, or form is locked, re-consent is required, or a prohibited unblinded-subject write is attempted.
+        ValueError: If a verified observation is modified without a meaningful change reason, or a protected record is hard-deleted.
+    """
     if not session.is_modified:
         return
 
+    # Propagate thread-safe context variables into PostgreSQL session if database trigger is active
+    if session.bind and session.bind.dialect.name == "postgresql":
+        try:
+            from sqlalchemy import text
+
+            user_id_val = current_user_id.get()
+            reason_val = current_change_reason.get()
+            session.connection().execute(
+                text("SELECT set_config('cadence.current_user_id', :user_id, true);"),
+                {"user_id": user_id_val or "system"},
+            )
+            session.connection().execute(
+                text(
+                    "SELECT set_config('cadence.current_change_reason', :reason, true);"
+                ),
+                {"reason": reason_val or "system_operation"},
+            )
+        except Exception:
+            pass
+
     # If the session contains eTMF, Interop, CTMS, Quality, eISF, or Notifications objects, skip execution auditing
     for obj in list(session.new) + list(session.dirty) + list(session.deleted):
+        module_name = getattr(obj.__class__, "__module__", "")
+        if "apps.econsent" in module_name:
+            return
+
         if hasattr(obj, "__tablename__") and obj.__tablename__ in (
             "tmf_documents",
             "tmf_audit_logs",
             "tmf_expected_documents",
             "tmf_document_qc_transitions",
+            "tmf_document_expiration_alert_states",
             "epro_submissions",
+            "epro_defeated_submissions",
             "interop_audit_logs",
             "instruments",
             "subject_assignments",
@@ -52,6 +90,8 @@ def receive_before_flush(session: Session, flush_context, instances):
             "ctms_budget_line_items",
             "ctms_payment_milestones",
             "ctms_investigator_payables",
+            "ctms_clinical_queries",
+            "ctms_defeated_monitoring_visits",
             "quality_deviations",
             "quality_root_cause_analyses",
             "quality_capa_records",
@@ -65,11 +105,25 @@ def receive_before_flush(session: Session, flush_context, instances):
             "consent_audit_logs",
             "consent_clauses",
             "consent_templates",
+            "consent_translations",
+            "comprehension_checks",
+            "comprehension_results",
+            "consent_signatures",
             "organizations",
             "sites",
             "personnel",
+            "personnel_assignments",
             "delegations_of_authority",
             "org_audit_logs",
+            "safety_cases",
+            "safety_export_jobs",
+            "safety_audit_logs",
+            "sae_reconciliation_runs",
+            "sae_discrepancies",
+            "sae_reconciliation_jobs",
+            "tickets",
+            "ticket_audit_logs",
+            "ticket_comments",
         ):
             return
 
@@ -81,10 +135,139 @@ def receive_before_flush(session: Session, flush_context, instances):
             "Trial is currently locked in a read-only state due to a security violation."
         )
 
+    # Propagate site_id for subject-derived records if not specified
+    for obj in list(session.new) + list(session.dirty):
+        if not hasattr(obj, "__tablename__") or obj.__tablename__ == "audit_logs":
+            continue
+        tablename = obj.__tablename__
+        if tablename in (
+            "clinical_visits",
+            "clinical_observations",
+            "clinical_queries",
+            "form_submissions",
+            "sdv_sign_offs",
+        ):
+            current_site = getattr(obj, "site_id", None)
+            if not current_site:
+                subject_id = getattr(obj, "subject_id", None)
+                if subject_id:
+                    subj_obj = None
+                    for new_obj in list(session.new) + list(
+                        session.identity_map.values()
+                    ):
+                        if (
+                            hasattr(new_obj, "__tablename__")
+                            and new_obj.__tablename__ == "clinical_subjects"
+                            and (
+                                getattr(new_obj, "subject_id", None) == subject_id
+                                or getattr(new_obj, "id", None) == subject_id
+                            )
+                        ):
+                            subj_obj = new_obj
+                            break
+                    if not subj_obj:
+                        with session.no_autoflush:
+                            from sqlalchemy import select
+
+                            from .models import ClinicalSubject
+
+                            stmt_subj = select(ClinicalSubject).where(
+                                (ClinicalSubject.subject_id == subject_id)
+                                | (ClinicalSubject.id == subject_id)
+                            )
+                            subj_obj = session.execute(stmt_subj).scalars().first()
+                    if subj_obj and subj_obj.site_id:
+                        obj.site_id = subj_obj.site_id
+
     # Check for site-level and visit-level locks
     for obj in list(session.new) + list(session.dirty) + list(session.deleted):
         if not hasattr(obj, "__tablename__") or obj.__tablename__ == "audit_logs":
             continue
+
+        # Check standard re-consent requirements for subject-covered records
+        tablename = getattr(obj, "__tablename__", None)
+        if tablename in (
+            "clinical_subjects",
+            "clinical_visits",
+            "clinical_observations",
+            "form_submissions",
+        ):
+            # Avoid blocking new subjects on initial insert
+            if not (obj in session.new and tablename == "clinical_subjects"):
+                subject_id = getattr(obj, "subject_id", None) or getattr(
+                    obj, "subject", None
+                )
+                if tablename == "clinical_subjects" and not subject_id:
+                    subject_id = getattr(obj, "subject_id", None) or getattr(
+                        obj, "id", None
+                    )
+
+                study_id = getattr(obj, "study_id", None) or getattr(obj, "study", None)
+
+                if subject_id:
+                    from sqlalchemy import select
+
+                    from .models import ClinicalSubject, SubjectConsent
+
+                    try:
+                        with session.no_autoflush:
+                            if not study_id:
+                                stmt_subj = select(ClinicalSubject).where(
+                                    (ClinicalSubject.subject_id == subject_id)
+                                    | (ClinicalSubject.id == subject_id)
+                                )
+                                subj_res = session.execute(stmt_subj).scalars().first()
+                                if subj_res:
+                                    study_id = subj_res.study_id
+                                    subject_id = subj_res.subject_id
+
+                            if study_id:
+                                # 1. Fetch user's consented versions
+                                stmt_user_consents = select(SubjectConsent).where(
+                                    SubjectConsent.subject_id == subject_id,
+                                    SubjectConsent.study_id == study_id,
+                                    SubjectConsent.icf_signed.is_(True),
+                                )
+                                user_consents = (
+                                    session.execute(stmt_user_consents).scalars().all()
+                                )
+                                user_consented_indices = {
+                                    c.version_index for c in user_consents
+                                }
+                                max_consented_v = (
+                                    max(user_consented_indices)
+                                    if user_consented_indices
+                                    else 0
+                                )
+
+                                # 2. Check direct re-consent flag on any S's consent record
+                                stmt_direct = select(SubjectConsent).where(
+                                    SubjectConsent.subject_id == subject_id,
+                                    SubjectConsent.study_id == study_id,
+                                    SubjectConsent.requires_reconsent.is_(True),
+                                )
+                                direct_reconsent = (
+                                    session.execute(stmt_direct).scalars().first()
+                                )
+
+                                # 3. Check for any newer version defined for this study that requires re-consent but is not consented by S
+                                stmt_higher = select(SubjectConsent).where(
+                                    SubjectConsent.study_id == study_id,
+                                    SubjectConsent.version_index > max_consented_v,
+                                    SubjectConsent.requires_reconsent.is_(True),
+                                )
+                                higher_reconsent = (
+                                    session.execute(stmt_higher).scalars().first()
+                                )
+
+                                if direct_reconsent or higher_reconsent:
+                                    raise PermissionError(
+                                        "Re-Consent Required - Demographics & Visit Forms Locked"
+                                    )
+                    except PermissionError:
+                        raise
+                    except Exception:
+                        pass
 
         site_id = getattr(obj, "site_id", None) or getattr(obj, "site", None)
         if site_id is not None and TrialLockManager.is_site_locked(str(site_id)):
@@ -111,6 +294,43 @@ def receive_before_flush(session: Session, flush_context, instances):
             raise PermissionError(
                 f"Form {form_id} is currently locked in a read-only state."
             )
+
+        # Check if subject is unblinded and restrict subsequent non-safety writes
+        if tablename in (
+            "clinical_observations",
+            "form_submissions",
+        ):
+            sub_id = getattr(obj, "subject_id", None)
+            if sub_id:
+                subj_obj = None
+                with session.no_autoflush:
+                    from sqlalchemy import select
+
+                    from .models import ClinicalSubject
+
+                    stmt_subj = select(ClinicalSubject).where(
+                        (ClinicalSubject.subject_id == sub_id)
+                        | (ClinicalSubject.id == sub_id)
+                    )
+                    subj_obj = session.execute(stmt_subj).scalars().first()
+
+                if subj_obj and subj_obj.is_unblinded:
+                    # Check safety-data exception path
+                    is_safety_data = False
+                    if tablename == "clinical_observations":
+                        # If domain is AE or SAE, allow it as a safety exception
+                        domain = getattr(obj, "domain", "").upper()
+                        if domain in ("AE", "SAE"):
+                            is_safety_data = True
+                    elif tablename == "form_submissions":
+                        form_id = getattr(obj, "form_id", "").upper()
+                        if "AE" in form_id or "SAFETY" in form_id:
+                            is_safety_data = True
+
+                    if not is_safety_data:
+                        raise PermissionError(
+                            f"Subject {sub_id} is unblinded. Subsequent non-safety clinical write operations are blocked."
+                        )
 
     # GxP compliance: Centralized automatic verification drop
     user_id = current_user_id.get()
@@ -283,6 +503,15 @@ def receive_before_flush(session: Session, flush_context, instances):
                 obj.version += 1
                 new_values["version"] = obj.version
 
+            # FORCE change reason for auto-resolved edit check queries
+            obj_reason = reason
+            if (
+                obj.__tablename__ == "clinical_queries"
+                and obj.status == "CLOSED"
+                and obj.resolver == "SYSTEM"
+            ):
+                obj_reason = "Edit Check Auto-Resolution"
+
             kwargs = {
                 "table_name": obj.__tablename__,
                 "record_id": get_primary_key(obj),
@@ -292,7 +521,7 @@ def receive_before_flush(session: Session, flush_context, instances):
                 "old_values": old_values,
                 "new_values": new_values,
                 "version_index": getattr(obj, "version", 1),
-                "change_reason": reason,
+                "change_reason": obj_reason,
             }
             if timestamp is not None:
                 kwargs["timestamp"] = timestamp
