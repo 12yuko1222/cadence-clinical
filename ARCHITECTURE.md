@@ -27,6 +27,7 @@ Traditional clinical trial builds require manual, error-prone translation of pro
   * Subject enrollment, matrix tracking, and event scheduling.
   * Real-time edit-check evaluation during site data entry.
   * Discrepancy (query) workflow management.
+  * Authenticated SDTM/ADaM Dataset-JSON export, structural/referential export validation, and BiostatExport audit logging.
 
 ### C. Web Client (`apps/web`)
 * **Role:** Primary User Interface.
@@ -63,7 +64,7 @@ Traditional clinical trial builds require manual, error-prone translation of pro
 * **Core Responsibilities:**
   * Ingests, taxonomy-classifies, and versions clinical trial artifacts mapped to DIA TMF Reference Model Zones 1-11.
   * Implements Expected Document Lists (EDLs) through the `ExpectedDocument` data model to replace static, hardcoded milestone rules.
-  * Computes site-aware, data-driven milestone completeness checks by querying active EDLs and combining study-scope and site-scope required artifacts.
+  * Computes site-aware, da ta-driven milestone completeness checks by querying active EDLs and combining study-scope and site-scope required artifacts.
   * Enforces role-based access control and trial lock restrictions via the Gateway and `GatewayAuthMiddleware` to block read-only inspector roles from mutating definitions or archives.
   * Maintains a 21 CFR Part 11 compliant audit trail (`TMFAuditLog`) capturing user contexts, timestamps, and justifications for all eTMF views, downloads, EDL updates, and completeness checks.
 
@@ -108,3 +109,8 @@ Traditional clinical trial builds require manual, error-prone translation of pro
                  │
                  ▼
  [ Live Site Data Entry & Audit Log ]
+                 │
+                 ▼
+ [ SDTM Export Engine (Dataset-JSON Export) ]
+
+```
