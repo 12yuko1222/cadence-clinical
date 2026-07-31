@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1661
-- **Passed:** 1661 🟢
+- **Total Automated Test Cases Run:** 1665
+- **Passed:** 1665 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -607,6 +607,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_language_code_validation` | `tests.test_econsent_translations` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_translation_crud_and_validation` | `tests.test_econsent_translations` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_translation_status_workflow_and_rbac` | `tests.test_econsent_translations` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_consent_record_immutability` | `tests.test_econsent_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_econsent_signature_audit_compliance` | `tests.test_econsent_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_econsent_signature_capture_success` | `tests.test_econsent_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_protocol_amendment_triggers_reconsent` | `tests.test_econsent_workflow` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_authored_cross_form_rule_lifecycle` | `tests.test_edit_checks` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_authored_longitudinal_predecessor_handling` | `tests.test_edit_checks` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cross_form_temporal_consistency_and_context_propagation` | `tests.test_edit_checks` | *Regression/Helper* | 🟢 PASSED | < 1s |
