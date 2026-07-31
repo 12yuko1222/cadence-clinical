@@ -1267,7 +1267,9 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
     assert result.returncode == 0
 
 
-def test_gateway_comprehensive_scope_spoofing_prevention(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_gateway_comprehensive_scope_spoofing_prevention(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     Test that the gateway successfully extracts, normalizes, and propagates scope/identity claims,
     while completely stripping/overriding any spoofed client headers:
@@ -1325,7 +1327,6 @@ def test_gateway_comprehensive_scope_spoofing_prevention(monkeypatch: pytest.Mon
         assert sent_headers.get("X-Sponsor-Id") == "spon-biotech-99"
         # "yes" coerced to "true"
         assert sent_headers.get("X-Unblinded-Access") == "true"
-
 
     # 2. Empty-scope legitimate JWT
     unscoped_token = jwt.encode(

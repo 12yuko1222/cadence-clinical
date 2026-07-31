@@ -830,9 +830,13 @@ def get_principal_sync(request: Request) -> Principal:
     sponsor_id = None
     if sponsor_id_val:
         if isinstance(sponsor_id_val, list):
-            sponsor_id = ",".join(str(s).strip() for s in sponsor_id_val if str(s).strip())
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
         else:
-            sponsor_id = ",".join(s.strip() for s in str(sponsor_id_val).split(",") if s.strip())
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
         if not sponsor_id:
             sponsor_id = None
 
@@ -969,9 +973,13 @@ async def get_principal(request: Request) -> Principal:
     sponsor_id = None
     if sponsor_id_val:
         if isinstance(sponsor_id_val, list):
-            sponsor_id = ",".join(str(s).strip() for s in sponsor_id_val if str(s).strip())
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
         else:
-            sponsor_id = ",".join(s.strip() for s in str(sponsor_id_val).split(",") if s.strip())
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
         if not sponsor_id:
             sponsor_id = None
 

@@ -905,9 +905,10 @@ async def verify_context_vars():
     from packages.security.context import (
         current_site_id,
         current_sponsor_id,
-        current_unblinded_access,
         current_tenant_id,
+        current_unblinded_access,
     )
+
     return {
         "site_id": current_site_id.get(),
         "sponsor_id": current_sponsor_id.get(),
@@ -1246,13 +1247,14 @@ def test_verify_gateway_signature_tenant_and_multishape_restrictions() -> None:
     - Scope-free 7-field payload (all scopes defaulted, tenant_id=None)
     - Legacy 4-field payload (identity-only)
     """
+    import hashlib
+    import hmac
+    import json
+
     from packages.security.signing import (
         generate_gateway_signature,
         verify_gateway_signature,
     )
-    import hashlib
-    import hmac
-    import json
 
     secret = b"test-secret-key-12345"
     user_id = "user_abc"
@@ -1309,109 +1311,133 @@ def test_verify_gateway_signature_tenant_and_multishape_restrictions() -> None:
         tenant_id="tenant_active",
     )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=legacy_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id=None,
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id="tenant_other",
-    ) is False
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_other",
+        )
+        is False
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=scope_free_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id=None,
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id="tenant_other",
-    ) is False
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_free_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_other",
+        )
+        is False
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=legacy_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id=None,
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id="tenant_default",
-    ) is True
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is True
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=scope_free_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id=None,
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id="tenant_default",
-    ) is True
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_free_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is True
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=legacy_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id="site_01",
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id=None,
-    ) is False
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id=None,
+        )
+        is False
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=canonical_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id=None,
-        sponsor_id=None,
-        unblinded_access=False,
-        tenant_id="tenant_default",
-    ) is False
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=canonical_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is False
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=canonical_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id="site_01",
-        sponsor_id="spon_01",
-        unblinded_access=True,
-        tenant_id="tenant_active",
-    ) is True
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=canonical_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id="spon_01",
+            unblinded_access=True,
+            tenant_id="tenant_active",
+        )
+        is True
+    )
 
-    assert verify_gateway_signature(
-        user_id=user_id,
-        roles=roles,
-        timestamp=timestamp,
-        signature=scope_bearing_7_sig,
-        secret=secret,
-        change_reason=change_reason,
-        site_id="site_01",
-        sponsor_id="spon_01",
-        unblinded_access=True,
-        tenant_id="tenant_active",
-    ) is True
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_bearing_7_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id="spon_01",
+            unblinded_access=True,
+            tenant_id="tenant_active",
+        )
+        is True
+    )
 
 
 def test_middleware_unblinded_access_edge_cases() -> None:
@@ -1423,7 +1449,11 @@ def test_middleware_unblinded_access_edge_cases() -> None:
     roles = "sponsor_designer"
     change_reason = "gxp signoff"
 
-    def make_headers(unblinded_hdr_val: Optional[str], expected_bool: bool, other_headers: dict = None) -> dict:
+    def make_headers(
+        unblinded_hdr_val: Optional[str],
+        expected_bool: bool,
+        other_headers: dict = None,
+    ) -> dict:
         timestamp = str(time.time())
         sig = generate_signature(
             user_id=user_id,
@@ -1618,8 +1648,7 @@ def test_middleware_cross_request_scope_isolation() -> None:
     response_dm = client.post("/datalock-protected", headers=dm_headers)
     assert response_dm.status_code == 200
     assert response_dm.json() == {"status": "locked"}
-=======
-    # Verify Request B observes default/empty scope and default tenant
+
     res_b_scope = client.get("/verify-context-scope", headers=headers_b)
     assert res_b_scope.status_code == 200
     assert res_b_scope.json() == {
@@ -1632,13 +1661,13 @@ def test_middleware_cross_request_scope_isolation() -> None:
     assert res_b_tenant.status_code == 200
     assert res_b_tenant.json() == {"context_tenant_id": "tenant_default"}
 
-    # Outside request handling, context variables must be reset
     from packages.security.context import (
         current_site_id,
         current_sponsor_id,
-        current_unblinded_access,
         current_tenant_id,
+        current_unblinded_access,
     )
+
     assert current_site_id.get() is None
     assert current_sponsor_id.get() is None
     assert current_unblinded_access.get() is False
@@ -1658,7 +1687,6 @@ def test_middleware_scope_header_mutation_and_injection_rejection() -> None:
     roles = "sponsor_designer"
     change_reason = "gxp signoff"
 
-    # --- Part 1: Mutation Variant ---
     timestamp = str(time.time())
     valid_sig = generate_signature(
         user_id=user_id,
@@ -1684,27 +1712,21 @@ def test_middleware_scope_header_mutation_and_injection_rejection() -> None:
         "X-Unblinded-Access": "true",
     }
 
-    # 1. Mutate X-Site-Id
     headers_mutated_site = base_headers.copy()
     headers_mutated_site["X-Site-Id"] = "site_tampered"
     res = client.get("/verify-context-scope", headers=headers_mutated_site)
     assert res.status_code in (401, 403)
 
-    # 2. Mutate X-Sponsor-Id
     headers_mutated_sponsor = base_headers.copy()
     headers_mutated_sponsor["X-Sponsor-Id"] = "spon_tampered"
     res = client.get("/verify-context-scope", headers=headers_mutated_sponsor)
     assert res.status_code in (401, 403)
 
-    # 3. Mutate X-Unblinded-Access
     headers_mutated_unblinded = base_headers.copy()
     headers_mutated_unblinded["X-Unblinded-Access"] = "false"
     res = client.get("/verify-context-scope", headers=headers_mutated_unblinded)
     assert res.status_code in (401, 403)
 
-
-    # --- Part 2: Injection Variant ---
-    # Sign a scope-free request (all scopes are defaulted/None, tenant_id=tenant_default)
     scope_free_sig = generate_signature(
         user_id=user_id,
         roles=roles,
@@ -1726,21 +1748,17 @@ def test_middleware_scope_header_mutation_and_injection_rejection() -> None:
         "X-Change-Reason": change_reason,
     }
 
-    # 1. Inject X-Site-Id
     headers_injected_site = base_scope_free_headers.copy()
     headers_injected_site["X-Site-Id"] = "site_injected"
     res = client.get("/verify-context-scope", headers=headers_injected_site)
     assert res.status_code in (401, 403)
 
-    # 2. Inject X-Sponsor-Id
     headers_injected_sponsor = base_scope_free_headers.copy()
     headers_injected_sponsor["X-Sponsor-Id"] = "spon_injected"
     res = client.get("/verify-context-scope", headers=headers_injected_sponsor)
     assert res.status_code in (401, 403)
 
-    # 3. Inject X-Unblinded-Access
     headers_injected_unblinded = base_scope_free_headers.copy()
     headers_injected_unblinded["X-Unblinded-Access"] = "true"
     res = client.get("/verify-context-scope", headers=headers_injected_unblinded)
     assert res.status_code in (401, 403)
->>>>>>> origin/harden-scoped-gateway-trust-chain-14370489699841576693

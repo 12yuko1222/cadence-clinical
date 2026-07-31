@@ -1,8 +1,9 @@
 import time
+from typing import Optional
 
 import pytest
 import pytest_asyncio
-from fastapi import HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
@@ -13,8 +14,12 @@ from apps.execution.database.core import db_manager as exec_db_manager
 from apps.execution.database.models import Base as ExecBase
 from apps.execution.main import app as exec_app
 from apps.gateway.main import generate_signature
+from packages.security.middleware import GatewayAuthMiddleware
 from packages.security.rbac import (
+    Principal,
     get_normalized_roles,
+    get_principal,
+    get_principal_sync,
     verify_is_auditor,
     verify_not_auditor,
 )
@@ -1103,17 +1108,14 @@ async def test_cross_site_query_read_isolation(monkeypatch) -> None:
         assert q_boston.id not in query_ids
 
 
-from typing import Optional
-from fastapi import FastAPI, Depends, Request
-from packages.security.rbac import Principal, get_principal, get_principal_sync
-from packages.security.middleware import GatewayAuthMiddleware
-
 rbac_test_app = FastAPI()
 rbac_test_app.add_middleware(GatewayAuthMiddleware)
+
 
 @rbac_test_app.get("/test-principal")
 async def handle_get_test_principal(principal: Principal = Depends(get_principal)):
     return principal.model_dump()
+
 
 @rbac_test_app.get("/test-principal-sync")
 async def handle_get_test_principal_sync(request: Request):
@@ -1197,7 +1199,6 @@ def test_principal_agreement_with_middleware_coercion() -> None:
     assert data_sync["sponsor_id"] == "sponsor_01"
     assert data_sync["unblinded_access"] is True
 
-
     # --- Part 2: Mismatch / Normalization Case (coercion agreement) ---
     # We pass duplicate unblinded-access headers, spaces in sponsor CSV, etc.
     # Note: TestClient headers list can simulate multiple headers/whitespace.
@@ -1234,7 +1235,6 @@ def test_principal_agreement_with_middleware_coercion() -> None:
     assert data_norm["assigned_sites"] == ["site_X", "site_Y"]
     assert data_norm["sponsor_id"] == "sponsor_X,sponsor_Y"
     assert data_norm["unblinded_access"] is True
-
 
     # --- Part 3: Scope-free Case ---
     headers_free = get_scoped_auth_headers(
