@@ -250,6 +250,10 @@ class ProblemDetails(BaseModel):
 
 app = FastAPI(title="Cadence Clinical - Designer (MDR/SDR)", version="0.1.0")
 
+from apps.designer.routers.synopsis import router as synopsis_router
+
+app.include_router(synopsis_router)
+
 
 class StudyScopeChecker:
     async def __call__(
