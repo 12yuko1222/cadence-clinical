@@ -21,6 +21,11 @@ from cdisc.usdm_models import (
     SyntaxTemplate,
     USDMStudy,
 )
+from cdisc.usdm_transport_models import (
+    UsdmExportResponse,
+    UsdmImportRequest,
+    UsdmImportResponse,
+)
 
 __all__ = [
     "Activity",
@@ -40,4 +45,7 @@ __all__ = [
     "StudyEpoch",
     "SyntaxTemplate",
     "USDMStudy",
+    "UsdmExportResponse",
+    "UsdmImportRequest",
+    "UsdmImportResponse",
 ]
