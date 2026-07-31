@@ -185,6 +185,14 @@ async def deliver_channel(delivery_id: str) -> None:
             max_attempts = int(os.getenv("NOTIFICATION_MAX_ATTEMPTS", "5"))
             if delivery.attempts >= max_attempts:
                 delivery.retry_eligible = False
+                # Write exhaustion audit entry
+                await write_audit_log(
+                    session=session,
+                    user_id="system",
+                    user_role="system",
+                    action="NOTIFICATION_DELIVERY_EXHAUSTED",
+                    details=f"Delivery exhausted for channel '{delivery.channel}' of notification '{delivery.notification_id}' after {delivery.attempts} attempts. Last error: '{str(e)}'",
+                )
             else:
                 base_delay = float(os.getenv("NOTIFICATION_RETRY_BASE_DELAY", "2.0"))
                 max_delay = float(os.getenv("NOTIFICATION_RETRY_MAX_DELAY", "3600.0"))
@@ -195,6 +203,15 @@ async def deliver_channel(delivery_id: str) -> None:
                     seconds=backoff_delay
                 )
                 delivery.retry_eligible = True
+
+            # Emit a per-failure audit/log record on each failed attempt
+            await write_audit_log(
+                session=session,
+                user_id="system",
+                user_role="system",
+                action="NOTIFICATION_DELIVERY_FAILED",
+                details=f"Delivery failed for channel '{delivery.channel}' of notification '{delivery.notification_id}' on attempt {delivery.attempts}. Error: '{str(e)}'",
+            )
 
         await session.commit()
 

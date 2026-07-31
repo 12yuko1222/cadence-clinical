@@ -1267,6 +1267,59 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
     assert result.returncode == 0
 
 
+def test_gateway_notifications_header_enforcement_and_spoofing_prevention(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    # @req:PRD-SYS-004
+    Verify that client-supplied spoofed identity/signature headers sent to `/notifications/*` or
+    `/api/v1/notifications/*` are stripped and cleanly re-signed by the gateway.
+    """
+    monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
+    token = jwt.encode(
+        {
+            "sub": "gateway_secured_user",
+            "realm_access": {"roles": ["admin"]},
+            "tenant_id": "tenant_pfizer_123",
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    mock_send = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{"status": "ok"}'
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_send.return_value = mock_resp
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_send)
+
+    with TestClient(app) as client:
+        # Spoofed header payload
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-User-Id": "malicious_spoof",
+            "X-User-Roles": "malicious_role",
+            "X-Gateway-Signature": "fake_sig",
+            "X-Signature-Version": "fake_ver",
+            "X-Tenant-Id": "malicious_tenant",
+        }
+
+        # Request notifications endpoint
+        res = client.get("/api/v1/notifications", headers=headers)
+        assert res.status_code == 200
+
+        # Retrieve mock_send call arguments to inspect forwarded headers
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Verify spoofed headers were overwritten/stripped by gateway
+        assert sent_headers.get("X-User-Id") == "gateway_secured_user"
+        assert sent_headers.get("X-User-Roles") == "admin"
+        assert sent_headers.get("X-Tenant-Id") == "tenant_pfizer_123"
+        assert sent_headers.get("X-Signature-Version") == "2"
+        assert sent_headers.get("X-Gateway-Signature") != "fake_sig"
+        assert sent_headers.get("X-Gateway-Signature") is not None
+
+
 @pytest.mark.asyncio
 async def test_eisf_gateway_site_isolation_propagation(
     monkeypatch: pytest.MonkeyPatch,
