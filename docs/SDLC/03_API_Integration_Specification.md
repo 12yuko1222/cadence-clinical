@@ -285,7 +285,7 @@ Creates a new Biomedical Concept. Requires the role `STUDY_DESIGNER` or `TERMINO
 }
 ```
 
-#### 4.1.3 PUT /api/v1/mdr/concepts/{id}
+#### 4.1.3 `PUT /api/v1/mdr/concepts/{id}`
 Updates an existing Biomedical Concept, incrementing its version index. Requires standard 21 CFR Part 11 parameters (`reason_for_change`).
 
 **Request Body**:
@@ -339,7 +339,7 @@ Updates an existing Biomedical Concept, incrementing its version index. Requires
 ### 4.2 Standards Governance & USDM Integration
 The Cadence Clinical MDR enforces CDISC USDM (Unified Study Definitions Model) alignment. A study design graph constructed in `apps/designer` consists of studies, study elements, workflow steps, arms, epochs, visits, and activities.
 
-#### 4.2.1 GET /api/v1/mdr/studies/{study_id}/usdm
+#### 4.2.1 `GET /api/v1/mdr/studies/{study_id}/usdm`
 Extracts the fully resolved, CDISC USDM JSON-compliant representation of a study.
 
 **Response (HTTP 200)**:
@@ -434,7 +434,7 @@ Searches across loaded clinical metadata vocabularies.
 
 The Rules Engine endpoints manage the creation, retrieval, updates, soft-deletion, and preview validation of version-controlled skip logic, constraint check, and cross-form clinical edit check rules.
 
-#### 4.4.1 GET /api/v1/studies/{study_id}/rules
+#### 4.4.1 `GET /api/v1/studies/{study_id}/rules`
 Fetches all non-soft-deleted active rules associated with a clinical study.
 
 **Response (HTTP 200)**:
@@ -468,7 +468,7 @@ Fetches all non-soft-deleted active rules associated with a clinical study.
 ]
 ```
 
-#### 4.4.2 POST /api/v1/studies/{study_id}/rules
+#### 4.4.2 `POST /api/v1/studies/{study_id}/rules`
 Creates a new rule under the specified clinical study.
 
 **Request Body**:
@@ -525,7 +525,7 @@ Creates a new rule under the specified clinical study.
 }
 ```
 
-#### 4.4.3 POST /api/v1/studies/{study_id}/rules/preview
+#### 4.4.3 `POST /api/v1/studies/{study_id}/rules/preview`
 Compiles and validates a rule expression, returning the compiled XPath representation and identifying unknown fields or circular skip-logic dependencies.
 
 **Request Body**:
@@ -619,7 +619,7 @@ curl -X POST https://api.cadence-clinical.com/api/v1/dictionaries/import \
 }
 ```
 
-#### 5.1.2 GET /api/v1/dictionaries/jobs/{job_id}
+#### 5.1.2 `GET /api/v1/dictionaries/jobs/{job_id}`
 Monitors the import progress.
 
 **Response (HTTP 200)**:
@@ -818,7 +818,7 @@ To fulfill bulk clinical integrations and system synchronizations, Cadence Clini
 ### 6.1 Bulk Dataset Extraction
 Extraction of capture data supports clinical formats (CDISC ODM JSON / XML) and standard row-structured JSON/CSV exports.
 
-#### 6.1.1 GET /api/v1/execution/studies/{study_id}/export
+#### 6.1.1 `GET /api/v1/execution/studies/{study_id}/export`
 Exports patient capturing datasets in bulk.
 
 **Query Parameters**:
@@ -847,7 +847,7 @@ Exports patient capturing datasets in bulk.
 ### 6.2 21 CFR Part 11 Audit Trail Exports
 Every transactional write is logged in a cryptographically sealed relational model. These records can be exported in human-readable and machine-verifiable formats to fulfill regulatory inspection obligations.
 
-#### 6.2.1 GET /api/v1/execution/studies/{study_id}/audit-trail
+#### 6.2.1 `GET /api/v1/execution/studies/{study_id}/audit-trail`
 Retrieves the immutable audit trail log.
 
 **Query Parameters**:
@@ -1785,7 +1785,7 @@ Retrieves a filtered list of tickets scoped to the user's site permissions. Gene
   * `200 OK`: Returns a list of matching `TicketResponse` structures.
   * `403 Forbidden`: Querying out-of-scope site IDs.
 
-#### 11.2.3 GET /api/v1/tickets/{id}
+#### 11.2.3 `GET /api/v1/tickets/{id}`
 Retrieves details of a specific ticket by its ID or sequential reference (e.g. `TKT-00001`). Generates a `TICKET_VIEW` audit log.
 
 * **Status Codes:**
@@ -1793,7 +1793,7 @@ Retrieves details of a specific ticket by its ID or sequential reference (e.g. `
   * `403 Forbidden`: Ticket belongs to a site outside user's assigned scope.
   * `404 Not Found`: Ticket reference/ID does not exist.
 
-#### 11.2.4 PUT /api/v1/tickets/{id}
+#### 11.2.4 `PUT /api/v1/tickets/{id}`
 Updates general fields of a ticket. Checks status transitions and optimistic locking version.
 
 * **Status Codes:**
@@ -1801,7 +1801,7 @@ Updates general fields of a ticket. Checks status transitions and optimistic loc
   * `400 Bad Request`: Ticket in terminal state and request is not a reopen transition, or invalid status transition path.
   * `409 Conflict`: Missing or stale `version_index`.
 
-#### 11.2.5 POST /api/v1/tickets/{id}/transition
+#### 11.2.5 `POST /api/v1/tickets/{id}/transition`
 Transitions a ticket's status explicitly. Emits transition notifications asynchronously.
 
 * **Request Body Summary:**
@@ -1817,7 +1817,7 @@ Transitions a ticket's status explicitly. Emits transition notifications asynchr
   * `400 Bad Request`: Invalid transition path from current state.
   * `409 Conflict`: Stale version index.
 
-#### 11.2.6 POST /api/v1/tickets/{id}/assign
+#### 11.2.6 `POST /api/v1/tickets/{id}/assign`
 Assigns a ticket to a user and/or role-based target explicitly.
 
 * **Request Body Summary:**
@@ -1829,7 +1829,7 @@ Assigns a ticket to a user and/or role-based target explicitly.
 }
 ```
 
-#### 11.2.7 POST /api/v1/tickets/{id}/comments
+#### 11.2.7 `POST /api/v1/tickets/{id}/comments`
 Appends an auditable comment to a ticket. Enqueues a notification to other stakeholders.
 
 * **Request Body Summary:**
@@ -1843,7 +1843,7 @@ Appends an auditable comment to a ticket. Enqueues a notification to other stake
   * `211 Created`: Comment appended (Note: returns HTTP 201).
   * `403 Forbidden`: Missing change justification or out of scope.
 
-#### 11.2.8 GET /api/v1/tickets/{id}/comments
+#### 11.2.8 `GET /api/v1/tickets/{id}/comments`
 Lists comments for a ticket in ascending chronological order. Generates a `TICKET_COMMENTS_VIEW` audit log.
 
 #### 11.2.9 GET /api/v1/tickets/audit-logs
@@ -1910,7 +1910,7 @@ Lists and filters tickets with pagination and scope isolation.
 * **Expected Response:** `200 OK` with an array of `TicketResponse` objects.
 * **Read-Audit Log:** Writes `TICKET_LIST` entry.
 
-#### GET /api/v1/tickets/{id}
+#### `GET /api/v1/tickets/{id}`
 Retrieves a specific ticket by ID or unique human-readable reference (e.g., `TKT-00001`).
 * **Expected Response:** `200 OK` with `TicketResponse` object.
 * **Error Codes:**
@@ -1918,7 +1918,7 @@ Retrieves a specific ticket by ID or unique human-readable reference (e.g., `TKT
   - `403 Forbidden`: Insufficient site or study scope.
 * **Read-Audit Log:** Writes `TICKET_VIEW` entry.
 
-#### PUT /api/v1/tickets/{id}
+#### `PUT /api/v1/tickets/{id}`
 Updates general fields of a ticket, applying optimistic locking and transition checks.
 * **Request Body:** `TicketUpdate` (title, description, category, priority, status, assignee_user, assignee_role, org_id, site_id, study_id, related_entity_type, related_entity_id, due_date, is_deleted, version_index).
 * **Expected Response:** `200 OK` with updated `TicketResponse`.
@@ -1927,24 +1927,24 @@ Updates general fields of a ticket, applying optimistic locking and transition c
   - `409 Conflict`: Missing or stale expected version.
   - `403 Forbidden`: Missing change justification.
 
-#### POST /api/v1/tickets/{id}/transition
+#### `POST /api/v1/tickets/{id}/transition`
 Explicitly transitions a ticket status.
 * **Request Body:** `TicketTransitionPayload` (status, version_index).
 * **Expected Response:** `200 OK` with updated `TicketResponse`.
 * **Error Codes:** `400 Bad Request` (invalid transition), `409 Conflict` (locking violation).
 
-#### POST /api/v1/tickets/{id}/assign
+#### `POST /api/v1/tickets/{id}/assign`
 Explicitly updates assignee user and/or role on a non-terminal ticket.
 * **Request Body:** `TicketAssignPayload` (assignee_user, assignee_role, version_index).
 * **Expected Response:** `200 OK` with updated `TicketResponse`.
 
-#### POST /api/v1/tickets/{id}/comments
+#### `POST /api/v1/tickets/{id}/comments`
 Appends an auditable comment to a specific ticket.
 * **Request Body:** `CommentCreate` (body).
 * **Expected Response:** `201 Created` with a `CommentResponse` object.
 * **Error Codes:** `404 Not Found` (parent ticket missing), `403 Forbidden` (scope boundary violation).
 
-#### GET /api/v1/tickets/{id}/comments
+#### `GET /api/v1/tickets/{id}/comments`
 Lists all comments for a ticket in ascending chronological order.
 * **Expected Response:** `200 OK` with an array of `CommentResponse` objects.
 * **Read-Audit Log:** Writes `TICKET_COMMENTS_VIEW` entry.
