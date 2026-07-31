@@ -56,6 +56,7 @@ def test_build_ecrf_context_mapping():
     Assert the projection produces expected eCRF.<DOMAIN>.<VARIABLE> keys/values
     for a representative Bundle, including AGE derivation and vitals/labs/conditions/meds mapping.
     """
+    # @req:PRD-MDR-007
     adapter = FHIRAdapter("study_123")
 
     parsed = {
@@ -105,6 +106,7 @@ def test_build_ecrf_context_multiple_and_missing():
     Verify multiple conditions/medications are parsed into lists and missing resources
     are gracefully omitted from the context.
     """
+    # @req:PRD-MDR-007
     adapter = FHIRAdapter("study_123")
 
     parsed = {
@@ -146,6 +148,7 @@ async def test_pre_screen_eligible(mock_fetch):
     """
     Test pre-screen endpoint for an eligible scenario.
     """
+    # @req:PRD-MDR-007
     # Setup mock criteria
     audit_args = {
         "created_by": "designer-system",
@@ -217,6 +220,7 @@ async def test_pre_screen_ineligible(mock_fetch):
     """
     Test pre-screen endpoint for an ineligible scenario (one criterion fails).
     """
+    # @req:PRD-MDR-007
     audit_args = {
         "created_by": "designer-system",
         "reason_for_change": "Initial eligibility rules.",
@@ -272,6 +276,7 @@ async def test_pre_screen_indeterminate(mock_fetch):
     """
     Test pre-screen endpoint for an indeterminate scenario (missing birthDate).
     """
+    # @req:PRD-MDR-007
     audit_args = {
         "created_by": "designer-system",
         "reason_for_change": "Initial eligibility rules.",
@@ -330,6 +335,7 @@ async def test_pre_screen_audit_evidence_non_phi(mock_fetch):
     Assert an InteropAuditLog row with the new FHIR_PRESCREEN action is
     written and its details contain no PHI (no names, raw demographics, or clinical values).
     """
+    # @req:PRD-MDR-007
     audit_args = {
         "created_by": "designer-system",
         "reason_for_change": "Initial eligibility rules.",
@@ -394,6 +400,7 @@ def test_no_edc_mutation_boundary():
     Assert the endpoint neither imports nor invokes Execution subject lifecycle
     code and creates no ClinicalSubject-equivalent records.
     """
+    # @req:PRD-MDR-007
     # Read the imports of apps/interop/main.py and apps/interop/fhir_adapter.py
     # to ensure no apps.execution database models are imported.
     with open("apps/interop/main.py", "r") as f:

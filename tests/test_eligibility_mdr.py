@@ -43,6 +43,7 @@ def get_auth_headers(
 
 @pytest.mark.asyncio
 async def test_eligibility_criteria_crud_endpoints():
+    # @req:PRD-MDR-007
     # Clear mock storage first
     MOCK_ELIGIBILITY_CRITERIA.clear()
     MOCK_STUDY_VERSIONS.clear()
@@ -120,6 +121,7 @@ async def test_eligibility_criteria_crud_endpoints():
 
 @pytest.mark.asyncio
 async def test_eligibility_criteria_validation_failures():
+    # @req:PRD-MDR-007
     MOCK_ELIGIBILITY_CRITERIA.clear()
 
     async with httpx.AsyncClient(
@@ -146,6 +148,7 @@ async def test_eligibility_criteria_validation_failures():
 
 @pytest.mark.asyncio
 async def test_eligibility_criteria_immutability():
+    # @req:PRD-MDR-007
     MOCK_ELIGIBILITY_CRITERIA.clear()
     MOCK_STUDY_VERSIONS.clear()
 
@@ -187,6 +190,7 @@ async def test_eligibility_criteria_immutability():
 
 @pytest.mark.asyncio
 async def test_eligibility_criteria_usdm_projection():
+    # @req:PRD-MDR-007
     MOCK_ELIGIBILITY_CRITERIA.clear()
     MOCK_STUDY_VERSIONS.clear()
 
