@@ -1394,6 +1394,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_has_permission` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_is_auditor_helper` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_mask_payload_recursive` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_new_execution_permissions` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_principal_agreement_with_middleware_coercion` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_require_any_role_dependency` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_require_permission_dependency` | `tests.test_rbac` | *Regression/Helper* | 🟢 PASSED | < 1s |
