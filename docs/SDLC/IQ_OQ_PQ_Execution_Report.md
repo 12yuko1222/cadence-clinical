@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1654
-- **Passed:** 1654 🟢
+- **Total Automated Test Cases Run:** 1659
+- **Passed:** 1659 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -598,6 +598,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_signature_blocks_if_comprehension_checks_fail_or_incomplete` | `tests.test_econsent_comprehension` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_submit_answers_and_evaluation_boundaries` | `tests.test_econsent_comprehension` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_template_version_separation` | `tests.test_econsent_comprehension` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_failed_comprehension_quiz_blocks_signature` | `tests.test_econsent_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_incomplete_comprehension_quiz_blocks_signature` | `tests.test_econsent_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_invalid_otp_auth_code_blocks_signature` | `tests.test_econsent_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_successful_signature_capture` | `tests.test_econsent_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_workflow_engine_legacy_signature_capture` | `tests.test_econsent_service` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_approved_content_retrieval_and_cache` | `tests.test_econsent_translations` | Trace-10 | 🟢 PASSED | < 1s |
 | `test_language_code_validation` | `tests.test_econsent_translations` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_translation_crud_and_validation` | `tests.test_econsent_translations` | *Regression/Helper* | 🟢 PASSED | < 1s |
