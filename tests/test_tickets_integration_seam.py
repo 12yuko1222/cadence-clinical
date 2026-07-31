@@ -5,11 +5,9 @@ Exercises real gateway routing, ASGI-based service-to-service communication,
 and SLA escalation retry mechanics.
 """
 
-import asyncio
-import os
 import time
 from datetime import datetime, timedelta
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -18,13 +16,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from apps.gateway.main import generate_signature
-from apps.tickets.database import db_manager as tickets_db_manager
-from apps.tickets.models import Base as TicketsBase, Ticket, TicketPriority, TicketStatus, TicketComment
-from apps.tickets.main import app as tickets_app
-from apps.tickets.escalation import execute_ticket_escalation_cycle
 from apps.notifications.database import db_manager as notifications_db_manager
-from apps.notifications.models import Base as NotificationsBase, Notification, NotificationDelivery
 from apps.notifications.main import app as notifications_app
+from apps.notifications.models import Base as NotificationsBase
+from apps.notifications.models import Notification, NotificationDelivery
+from apps.tickets.database import db_manager as tickets_db_manager
+from apps.tickets.escalation import execute_ticket_escalation_cycle
+from apps.tickets.main import app as tickets_app
+from apps.tickets.models import Base as TicketsBase
+from apps.tickets.models import Ticket, TicketPriority, TicketStatus
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -100,7 +100,7 @@ def route_tickets_to_notifications():
                 return httpx.Response(
                     status_code=500,
                     content=b"Simulated service failure",
-                    request=request
+                    request=request,
                 )
             if "/api/v1/notifications" in str(request.url):
                 self._transport = transport
@@ -159,7 +159,9 @@ async def test_end_to_end_tickets_and_notifications_handshake():
 
     notif_session_maker = notifications_db_manager.get_session_maker()
     async with notif_session_maker() as session:
-        stmt = select(Notification).where(Notification.related_entity_id == f"{ticket_id}:assignment:2")
+        stmt = select(Notification).where(
+            Notification.related_entity_id == f"{ticket_id}:assignment:2"
+        )
         res = await session.execute(stmt)
         notification = res.scalar_one_or_none()
 
@@ -169,7 +171,9 @@ async def test_end_to_end_tickets_and_notifications_handshake():
         assert "assigned" in notification.message_content
         assert notification.related_entity_type == "ticket"
 
-        stmt_deliv = select(NotificationDelivery).where(NotificationDelivery.notification_id == notification.id)
+        stmt_deliv = select(NotificationDelivery).where(
+            NotificationDelivery.notification_id == notification.id
+        )
         res_deliv = await session.execute(stmt_deliv)
         deliveries = res_deliv.scalars().all()
         assert len(deliveries) >= 1
@@ -233,7 +237,9 @@ async def test_escalation_worker_notifications_retry_mechanics():
 
     notif_session_maker = notifications_db_manager.get_session_maker()
     async with notif_session_maker() as session:
-        stmt = select(Notification).where(Notification.related_entity_id == f"{ticket_id}:escalation:2")
+        stmt = select(Notification).where(
+            Notification.related_entity_id == f"{ticket_id}:escalation:2"
+        )
         res = await session.execute(stmt)
         notification = res.scalar_one_or_none()
         assert notification is not None
