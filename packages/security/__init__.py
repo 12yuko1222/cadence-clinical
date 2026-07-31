@@ -1,3 +1,9 @@
+from packages.security.audit_logger import (
+    AuditLoggerEngine,
+    AuditLogPayload,
+    AuditLogRecord,
+    audit_logger_engine,
+)
 from packages.security.context import (
     audit_context,
     audit_context_decorator,
@@ -8,6 +14,11 @@ from packages.security.context import (
     current_user_id,
     service_audit_context,
 )
+from packages.security.crypto_verifier import (
+    SignatureVerificationRequest,
+    SignatureVerificationResult,
+    verify_electronic_signature,
+)
 from packages.security.delegation import (
     DelegationChecker,
     StaffRole,
@@ -15,6 +26,17 @@ from packages.security.delegation import (
     require_delegation,
     validate_request_staff_roles,
     verify_delegation_scope,
+)
+from packages.security.middleware import (
+    GatewayAuthMiddleware,
+    require_gateway_permission,
+)
+from packages.security.permissions import (
+    PermissionEnum,
+    RoleEnum,
+    get_permissions_for_role,
+    get_permissions_for_roles,
+    normalize_role_name,
 )
 from packages.security.rbac import (
     ROLE_ALIASES,
@@ -112,4 +134,18 @@ __all__ = [
     "can_access_site",
     "can_access_study",
     "mask_payload",
+    "PermissionEnum",
+    "RoleEnum",
+    "get_permissions_for_role",
+    "get_permissions_for_roles",
+    "normalize_role_name",
+    "GatewayAuthMiddleware",
+    "require_gateway_permission",
+    "AuditLoggerEngine",
+    "AuditLogPayload",
+    "AuditLogRecord",
+    "audit_logger_engine",
+    "SignatureVerificationRequest",
+    "SignatureVerificationResult",
+    "verify_electronic_signature",
 ]

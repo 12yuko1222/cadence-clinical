@@ -9,6 +9,7 @@ from apps.designer.serialization import USDMSerializationError, serialize_usdm
 
 
 def test_serialize_usdm_canonical_json():
+    # @req:PRD-MDR-007
     # Define a clean internal study projection
     study_data = {
         "study_id": "study_123",
@@ -75,6 +76,7 @@ def test_serialize_usdm_canonical_json():
 
 
 def test_serialize_usdm_canonical_yaml():
+    # @req:PRD-MDR-007
     study_data = {
         "study_id": "study_456",
         "title": "Diabetes Phase I Trial",
@@ -140,6 +142,7 @@ def test_serialize_usdm_validation_errors():
 
 
 def test_round_trip_canonical_serialization_verification():
+    # @req:PRD-MDR-007
     original_study = {
         "study_id": "study_roundtrip",
         "title": "Round-Trip Verification Study",

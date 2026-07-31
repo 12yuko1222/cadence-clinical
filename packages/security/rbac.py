@@ -138,7 +138,18 @@ ROLE_ALIASES = {
 # Actions: "create", "read", "update", "delete"
 ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
     ROLE_SYSADMIN: {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "export_masked": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
@@ -185,7 +196,18 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "eisf_document": {"create", "read", "update", "delete", "sync"},
     },
     ROLE_SPONSOR_DESIGNER: {
-        "study_design": {"create", "read", "update", "delete"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {
+            "create",
+            "update",
+            "amend",
+            "transition",
+            "instantiate",
+            "read",
+        },
+        "mdr_concept": {"create", "update", "rename", "delete", "read"},
+        "protocol_export": {"generate", "read"},
+        "designer_cache": {"admin"},
         "system_audit_logs": {"read"},
         "protocol_ingestion": {"upload", "read", "review", "promote"},
         "protocol_version": {"sign", "transition_approved"},
@@ -199,7 +221,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         "protocol_section": {"review", "read"},
     },
     ROLE_SPONSOR_DM: {
-        "study_design": {"read"},
+        "study_design": {"read", "approve"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
@@ -435,7 +460,10 @@ ROLE_PERMISSIONS: Dict[str, Dict[str, Set[str]]] = {
         }
     },
     "admin": {
-        "study_design": {"read"},
+        "study_design": {"create", "read", "update", "delete", "approve", "reorder"},
+        "global_library": {"transition", "read"},
+        "mdr_concept": {"read"},
+        "protocol_export": {"generate", "read"},
         "subject_enrollment": {"read"},
         "ecrf_data_entry": {"read"},
         "query_lifecycle": {"create", "read", "update", "delete"},
@@ -632,12 +660,14 @@ ROLE_UNMASKED_FIELDS: Dict[str, Set[str]] = {
 }
 
 
+# Traceability Note: Principal now captures sponsor scope (sponsor_id) as a contract change per ADR-86.
 class Principal(BaseModel):
     user_id: str
     roles: List[str]  # Normalized canonical roles
     assigned_sites: List[str] = Field(default_factory=list)
     assigned_studies: List[str] = Field(default_factory=list)
     unblinded_access: bool = False
+    sponsor_id: Optional[str] = None
     change_reason: Optional[str] = None
     raw_roles: List[str] = Field(default_factory=list)
 
@@ -786,6 +816,30 @@ def get_principal_sync(request: Request) -> Principal:
     if site_id_val:
         assigned_sites = [s.strip() for s in site_id_val.split(",") if s.strip()]
 
+    # 3.5. Sponsor ID
+    sponsor_id_val = None
+    if hasattr(request, "state"):
+        sponsor_id_val = getattr(request.state, "sponsor_id", None)
+    if sponsor_id_val is None and hasattr(request, "headers"):
+        sponsor_id_val = (
+            request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+            or ""
+        )
+
+    sponsor_id = None
+    if sponsor_id_val:
+        if isinstance(sponsor_id_val, list):
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
+        else:
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
+        if not sponsor_id:
+            sponsor_id = None
+
     # 4. Unblinded status
     unblinded_access = False
     if hasattr(request, "headers"):
@@ -846,6 +900,7 @@ def get_principal_sync(request: Request) -> Principal:
         roles=normalized_roles,
         assigned_sites=assigned_sites,
         unblinded_access=unblinded_access,
+        sponsor_id=sponsor_id,
         change_reason=change_reason,
         raw_roles=raw_roles_list,
     )
@@ -904,6 +959,30 @@ async def get_principal(request: Request) -> Principal:
     if site_id_val:
         assigned_sites = [s.strip() for s in site_id_val.split(",") if s.strip()]
 
+    # 3.5. Sponsor ID
+    sponsor_id_val = None
+    if hasattr(request, "state"):
+        sponsor_id_val = getattr(request.state, "sponsor_id", None)
+    if sponsor_id_val is None and hasattr(request, "headers"):
+        sponsor_id_val = (
+            request.headers.get("X-Sponsor-Id")
+            or request.headers.get("x-sponsor-id")
+            or ""
+        )
+
+    sponsor_id = None
+    if sponsor_id_val:
+        if isinstance(sponsor_id_val, list):
+            sponsor_id = ",".join(
+                str(s).strip() for s in sponsor_id_val if str(s).strip()
+            )
+        else:
+            sponsor_id = ",".join(
+                s.strip() for s in str(sponsor_id_val).split(",") if s.strip()
+            )
+        if not sponsor_id:
+            sponsor_id = None
+
     unblinded_access = False
     if hasattr(request, "headers"):
         unblinded_header = (
@@ -958,6 +1037,7 @@ async def get_principal(request: Request) -> Principal:
         roles=normalized_roles,
         assigned_sites=assigned_sites,
         unblinded_access=unblinded_access,
+        sponsor_id=sponsor_id,
         change_reason=change_reason,
         raw_roles=raw_roles_list,
     )

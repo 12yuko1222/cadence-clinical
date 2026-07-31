@@ -2,7 +2,7 @@ import time
 from typing import Optional
 
 import pytest
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.testclient import TestClient
 from jose import jwt
 
@@ -15,7 +15,11 @@ from packages.security.context import (
     current_timestamp,
     current_user_id,
 )
-from packages.security.middleware import GatewayAuthMiddleware
+from packages.security.middleware import (
+    GatewayAuthMiddleware,
+    require_gateway_permission,
+)
+from packages.security.permissions import PermissionEnum
 from packages.security.signing import (
     generate_canonical_signature,
     verify_canonical_signature,
@@ -29,6 +33,20 @@ test_app.add_middleware(GatewayAuthMiddleware)
 @test_app.get("/secure-endpoint")
 async def secure_endpoint():
     return {"status": "success", "message": "Access Granted"}
+
+
+@test_app.get("/permission-check")
+async def permission_check_endpoint(request: Request):
+    perms = [p.value for p in getattr(request.state, "permissions", set())]
+    return {"permissions": sorted(perms)}
+
+
+@test_app.post(
+    "/datalock-protected",
+    dependencies=[Depends(require_gateway_permission(PermissionEnum.DATA_LOCK))],
+)
+async def datalock_protected_endpoint():
+    return {"status": "locked"}
 
 
 @test_app.post("/secure-endpoint")
@@ -882,6 +900,23 @@ async def verify_context_tenant():
     }
 
 
+@test_app.get("/verify-context-vars")
+async def verify_context_vars():
+    from packages.security.context import (
+        current_site_id,
+        current_sponsor_id,
+        current_tenant_id,
+        current_unblinded_access,
+    )
+
+    return {
+        "site_id": current_site_id.get(),
+        "sponsor_id": current_sponsor_id.get(),
+        "unblinded_access": current_unblinded_access.get(),
+        "tenant_id": current_tenant_id.get(),
+    }
+
+
 def test_middleware_tenant_context_and_state() -> None:
     """Validate that the security middleware correctly extracts, verifies, binds to contextvar, and attaches tenant_id.
 
@@ -1166,3 +1201,564 @@ def test_middleware_unblinded_access_parametrization(header_val, expected_bool) 
     response = client.get("/verify-context-scope", headers=headers)
     assert response.status_code == 200
     assert response.json()["unblinded_access"] is expected_bool
+
+
+def test_middleware_permissions_parsed_in_state() -> None:
+    """Verify GatewayAuthMiddleware attaches permissions set to request.state.
+
+    Requirements: PRD-SYS-001, 21 CFR Part 11
+    """
+    client = TestClient(test_app)
+    timestamp = str(time.time())
+    user_id = "user_cra"
+    roles = "ClinicalResearchAssociate"
+    change_reason = "monitoring view"
+
+    sig = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=change_reason,
+    )
+
+    headers = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+
+    response = client.get("/permission-check", headers=headers)
+    assert response.status_code == 200
+    perms = response.json()["permissions"]
+    assert "sdv:verify" in perms
+    assert "study:read" in perms
+    assert "data:lock" not in perms
+
+
+def test_verify_gateway_signature_tenant_and_multishape_restrictions() -> None:
+    """
+    Test cryptographic enforcement of signature formats per ADR-86:
+    - Canonical 8-field payload (includes tenant_id)
+    - 7-field fallback payload (tenant_id=None)
+    - Scope-free 7-field payload (all scopes defaulted, tenant_id=None)
+    - Legacy 4-field payload (identity-only)
+    """
+    import hashlib
+    import hmac
+    import json
+
+    from packages.security.signing import (
+        generate_gateway_signature,
+        verify_gateway_signature,
+    )
+
+    secret = b"test-secret-key-12345"
+    user_id = "user_abc"
+    roles = "investigator"
+    timestamp = "1234567890"
+    change_reason = "gxp signoff"
+
+    legacy_payload = {
+        "change_reason": change_reason,
+        "roles": roles,
+        "timestamp": timestamp,
+        "user_id": user_id,
+    }
+    legacy_serialized = json.dumps(
+        legacy_payload, sort_keys=True, separators=(",", ":")
+    )
+    legacy_sig = hmac.new(
+        secret, legacy_serialized.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+
+    scope_free_sig = generate_gateway_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        secret=secret,
+        change_reason=change_reason,
+        site_id=None,
+        sponsor_id=None,
+        unblinded_access=False,
+        tenant_id=None,
+    )
+
+    scope_bearing_7_sig = generate_gateway_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        secret=secret,
+        change_reason=change_reason,
+        site_id="site_01",
+        sponsor_id="spon_01",
+        unblinded_access=True,
+        tenant_id=None,
+    )
+
+    canonical_sig = generate_gateway_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        secret=secret,
+        change_reason=change_reason,
+        site_id="site_01",
+        sponsor_id="spon_01",
+        unblinded_access=True,
+        tenant_id="tenant_active",
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_other",
+        )
+        is False
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_free_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_other",
+        )
+        is False
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is True
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_free_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is True
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=legacy_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id=None,
+        )
+        is False
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=canonical_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id=None,
+            sponsor_id=None,
+            unblinded_access=False,
+            tenant_id="tenant_default",
+        )
+        is False
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=canonical_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id="spon_01",
+            unblinded_access=True,
+            tenant_id="tenant_active",
+        )
+        is True
+    )
+
+    assert (
+        verify_gateway_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            signature=scope_bearing_7_sig,
+            secret=secret,
+            change_reason=change_reason,
+            site_id="site_01",
+            sponsor_id="spon_01",
+            unblinded_access=True,
+            tenant_id="tenant_active",
+        )
+        is True
+    )
+
+
+def test_middleware_unblinded_access_edge_cases() -> None:
+    """
+    Test unblinded_access edge cases under GatewayAuthMiddleware.
+    """
+    client = TestClient(test_app)
+    user_id = "test_user"
+    roles = "sponsor_designer"
+    change_reason = "gxp signoff"
+
+    def make_headers(
+        unblinded_hdr_val: Optional[str],
+        expected_bool: bool,
+        other_headers: dict = None,
+    ) -> dict:
+        timestamp = str(time.time())
+        sig = generate_signature(
+            user_id=user_id,
+            roles=roles,
+            timestamp=timestamp,
+            version="2",
+            change_reason=change_reason,
+            site_id="site_01",
+            unblinded_access=expected_bool,
+        )
+        headers = {
+            "X-User-Id": user_id,
+            "X-User-Roles": roles,
+            "X-Gateway-Timestamp": timestamp,
+            "X-Gateway-Signature": sig,
+            "X-Signature-Version": "2",
+            "X-Change-Reason": change_reason,
+            "X-Site-Id": "site_01",
+        }
+        if unblinded_hdr_val is not None:
+            headers["X-Unblinded-Access"] = unblinded_hdr_val
+        if other_headers:
+            headers.update(other_headers)
+        return headers
+
+    headers = make_headers(None, False)
+    response = client.get("/verify-context-scope", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["unblinded_access"] is False
+
+    headers = make_headers("  yes  ", True)
+    response = client.get("/verify-context-scope", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["unblinded_access"] is True
+
+    headers = make_headers("  1  ", True)
+    response = client.get("/verify-context-scope", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["unblinded_access"] is True
+
+    headers = make_headers("unblinded_garbage_value", False)
+    response = client.get("/verify-context-scope", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["unblinded_access"] is False
+
+    timestamp = str(time.time())
+    sig = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=change_reason,
+        site_id="site_01",
+        unblinded_access=False,
+    )
+    headers_list = [
+        ("X-User-Id", user_id),
+        ("X-User-Roles", roles),
+        ("X-Gateway-Timestamp", timestamp),
+        ("X-Gateway-Signature", sig),
+        ("X-Signature-Version", "2"),
+        ("X-Change-Reason", change_reason),
+        ("X-Site-Id", "site_01"),
+        ("X-Unblinded-Access", "false"),
+        ("X-Unblinded-Access", "true"),
+    ]
+    response = client.get("/verify-context-scope", headers=headers_list)
+    assert response.status_code == 200
+    assert response.json()["unblinded_access"] is False
+
+
+def test_middleware_cross_request_scope_isolation() -> None:
+    """
+    Cross-request isolation test issuing two sequential requests via TestClient(test_app).
+    """
+    client = TestClient(test_app)
+    user_id = "test_user"
+    roles = "sponsor_designer"
+    change_reason = "gxp signoff"
+
+    timestamp_a = str(time.time())
+    sig_a = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp_a,
+        version="2",
+        change_reason=change_reason,
+        site_id="site_active_A",
+        sponsor_id="spon_active_A",
+        unblinded_access=True,
+        tenant_id="tenant_active_A",
+    )
+    headers_a = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp_a,
+        "X-Gateway-Signature": sig_a,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+        "X-Site-Id": "site_active_A",
+        "X-Sponsor-Id": "spon_active_A",
+        "X-Unblinded-Access": "true",
+        "X-Tenant-Id": "tenant_active_A",
+    }
+
+    res_a = client.get("/verify-context-scope", headers=headers_a)
+    assert res_a.status_code == 200
+    assert res_a.json() == {
+        "site_id": "site_active_A",
+        "sponsor_id": "spon_active_A",
+        "unblinded_access": True,
+    }
+
+    timestamp_b = str(time.time())
+    sig_b = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp_b,
+        version="2",
+        change_reason=change_reason,
+        site_id=None,
+        sponsor_id=None,
+        unblinded_access=False,
+        tenant_id="tenant_default",
+    )
+    headers_b = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp_b,
+        "X-Gateway-Signature": sig_b,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+    res_b = client.get("/verify-context-scope", headers=headers_b)
+    assert res_b.status_code == 200
+    assert res_b.json() == {
+        "site_id": None,
+        "sponsor_id": None,
+        "unblinded_access": False,
+    }
+    client = TestClient(test_app)
+    timestamp = str(time.time())
+
+    # CRC attempt -> Missing DATA_LOCK permission -> Expect 403
+    crc_user = "user_crc"
+    crc_roles = "ClinicalResearchCoordinator"
+    crc_reason = "attempt lock"
+
+    crc_sig = generate_signature(
+        user_id=crc_user,
+        roles=crc_roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=crc_reason,
+    )
+
+    crc_headers = {
+        "X-User-Id": crc_user,
+        "X-User-Roles": crc_roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": crc_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": crc_reason,
+    }
+
+    response = client.post("/datalock-protected", headers=crc_headers)
+    assert response.status_code == 403
+    assert "Missing required permission 'data:lock'" in response.json()["detail"]
+
+    # DataManager attempt -> Possesses DATA_LOCK permission -> Expect 200
+    dm_user = "user_dm"
+    dm_roles = "DataManager"
+    dm_reason = "lock database"
+
+    dm_sig = generate_signature(
+        user_id=dm_user,
+        roles=dm_roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=dm_reason,
+    )
+
+    dm_headers = {
+        "X-User-Id": dm_user,
+        "X-User-Roles": dm_roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": dm_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": dm_reason,
+    }
+
+    response_dm = client.post("/datalock-protected", headers=dm_headers)
+    assert response_dm.status_code == 200
+    assert response_dm.json() == {"status": "locked"}
+
+    res_b_scope = client.get("/verify-context-scope", headers=headers_b)
+    assert res_b_scope.status_code == 200
+    assert res_b_scope.json() == {
+        "site_id": None,
+        "sponsor_id": None,
+        "unblinded_access": False,
+    }
+
+    res_b_tenant = client.get("/verify-context-tenant", headers=headers_b)
+    assert res_b_tenant.status_code == 200
+    assert res_b_tenant.json() == {"context_tenant_id": "tenant_default"}
+
+    from packages.security.context import (
+        current_site_id,
+        current_sponsor_id,
+        current_tenant_id,
+        current_unblinded_access,
+    )
+
+    assert current_site_id.get() is None
+    assert current_sponsor_id.get() is None
+    assert current_unblinded_access.get() is False
+    assert current_tenant_id.get() is None
+
+
+def test_middleware_scope_header_mutation_and_injection_rejection() -> None:
+    """
+    Integration-level round-trip test for GatewayAuthMiddleware:
+    1. Sign a valid scoped request, then mutate X-Site-Id, X-Sponsor-Id, and X-Unblinded-Access.
+       Assert the middleware rejects each mutated request (401/403) because the HMAC no longer matches.
+    2. Sign a scope-free request, then inject each scope header individually.
+       Assert rejection, proving the has_scopes-gated fallback does not validate an injected scope.
+    """
+    client = TestClient(test_app)
+    user_id = "test_user"
+    roles = "sponsor_designer"
+    change_reason = "gxp signoff"
+
+    timestamp = str(time.time())
+    valid_sig = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=change_reason,
+        site_id="site_original",
+        sponsor_id="spon_original",
+        unblinded_access=True,
+        tenant_id="tenant_default",
+    )
+
+    base_headers = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": valid_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+        "X-Site-Id": "site_original",
+        "X-Sponsor-Id": "spon_original",
+        "X-Unblinded-Access": "true",
+    }
+
+    headers_mutated_site = base_headers.copy()
+    headers_mutated_site["X-Site-Id"] = "site_tampered"
+    res = client.get("/verify-context-scope", headers=headers_mutated_site)
+    assert res.status_code in (401, 403)
+
+    headers_mutated_sponsor = base_headers.copy()
+    headers_mutated_sponsor["X-Sponsor-Id"] = "spon_tampered"
+    res = client.get("/verify-context-scope", headers=headers_mutated_sponsor)
+    assert res.status_code in (401, 403)
+
+    headers_mutated_unblinded = base_headers.copy()
+    headers_mutated_unblinded["X-Unblinded-Access"] = "false"
+    res = client.get("/verify-context-scope", headers=headers_mutated_unblinded)
+    assert res.status_code in (401, 403)
+
+    scope_free_sig = generate_signature(
+        user_id=user_id,
+        roles=roles,
+        timestamp=timestamp,
+        version="2",
+        change_reason=change_reason,
+        site_id=None,
+        sponsor_id=None,
+        unblinded_access=False,
+        tenant_id="tenant_default",
+    )
+
+    base_scope_free_headers = {
+        "X-User-Id": user_id,
+        "X-User-Roles": roles,
+        "X-Gateway-Timestamp": timestamp,
+        "X-Gateway-Signature": scope_free_sig,
+        "X-Signature-Version": "2",
+        "X-Change-Reason": change_reason,
+    }
+
+    headers_injected_site = base_scope_free_headers.copy()
+    headers_injected_site["X-Site-Id"] = "site_injected"
+    res = client.get("/verify-context-scope", headers=headers_injected_site)
+    assert res.status_code in (401, 403)
+
+    headers_injected_sponsor = base_scope_free_headers.copy()
+    headers_injected_sponsor["X-Sponsor-Id"] = "spon_injected"
+    res = client.get("/verify-context-scope", headers=headers_injected_sponsor)
+    assert res.status_code in (401, 403)
+
+    headers_injected_unblinded = base_scope_free_headers.copy()
+    headers_injected_unblinded["X-Unblinded-Access"] = "true"
+    res = client.get("/verify-context-scope", headers=headers_injected_unblinded)
+    assert res.status_code in (401, 403)

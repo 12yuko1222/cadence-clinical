@@ -108,6 +108,7 @@ async def test_get_openapi_json(monkeypatch: pytest.MonkeyPatch) -> None:
         assert "/notifications/test" in data["paths"]
         assert "/safety/test" in data["paths"]
         assert "/eisf/test" in data["paths"]
+        assert "/tickets/test" in data["paths"]
         assert "Designer_TestModel" in data["components"]["schemas"]
         assert "Execution_TestModel" in data["components"]["schemas"]
         assert "Ctms_TestModel" in data["components"]["schemas"]
@@ -115,6 +116,7 @@ async def test_get_openapi_json(monkeypatch: pytest.MonkeyPatch) -> None:
         assert "Notifications_TestModel" in data["components"]["schemas"]
         assert "Safety_TestModel" in data["components"]["schemas"]
         assert "Eisf_TestModel" in data["components"]["schemas"]
+        assert "Tickets_TestModel" in data["components"]["schemas"]
 
 
 def test_get_openapi_json_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -269,6 +271,21 @@ def test_proxy_requests_paths(monkeypatch: pytest.MonkeyPatch) -> None:
             == "http://localhost:8010/api/v1/eisf/test"
         )
 
+        # Test tickets prefix
+        res = client.get("/tickets/test", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200
+        assert str(mock_send.call_args.args[0].url) == "http://localhost:8009/test"
+
+        # Test api/v1/tickets
+        res = client.get(
+            "/api/v1/tickets/test", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        assert (
+            str(mock_send.call_args.args[0].url)
+            == "http://localhost:8009/api/v1/tickets/test"
+        )
+
         # Test events/publish alias
         res = client.post(
             "/events/publish", headers={"Authorization": f"Bearer {token}"}
@@ -277,6 +294,21 @@ def test_proxy_requests_paths(monkeypatch: pytest.MonkeyPatch) -> None:
         assert (
             str(mock_send.call_args.args[0].url)
             == "http://localhost:8010/events/publish"
+        )
+
+        # Test tickets prefix
+        res = client.get("/tickets/test", headers={"Authorization": f"Bearer {token}"})
+        assert res.status_code == 200
+        assert str(mock_send.call_args.args[0].url) == "http://localhost:8009/test"
+
+        # Test api/v1/tickets
+        res = client.get(
+            "/api/v1/tickets/test", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        assert (
+            str(mock_send.call_args.args[0].url)
+            == "http://localhost:8009/api/v1/tickets/test"
         )
 
         # Test default route
@@ -550,6 +582,65 @@ def test_gateway_subject_role_routing_restrictions(
         )
         assert res_cross_notifications.status_code == 403
 
+        # Cross-subject POST /api/v1/interop/notifications/{id}/acknowledge at gateway layer -> succeeds (200) since database ownership is deferred
+        res_cross_ack_gateway = client.post(
+            "/api/v1/interop/notifications/another_notif_123/acknowledge",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Change-Reason": "cross_ack",
+            },
+            json={"reason_for_change": "cross_ack"},
+        )
+        assert res_cross_ack_gateway.status_code == 200
+
+        # Cross-ownership GET /api/v1/interop/instruments/{id} at gateway layer -> succeeds (200) since database assignment checks are deferred
+        res_cross_inst_gateway = client.get(
+            "/api/v1/interop/instruments/another-instrument-id",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res_cross_inst_gateway.status_code == 200
+
+        # Non-Subject (staff) roles can bypass the Subject ownership gate and reach subject-scoped paths for any subject id
+        staff_token = jwt.encode(
+            {"sub": "staff_user", "realm_access": {"roles": ["admin"]}},
+            "test_secret",
+            algorithm="HS256",
+        )
+
+        res_staff_assignments = client.get(
+            "/api/v1/interop/assignments/subject/patient_123",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_assignments.status_code == 200
+
+        res_staff_notifications = client.get(
+            "/api/v1/interop/subjects/patient_123/notifications",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_notifications.status_code == 200
+
+        res_staff_compliance = client.get(
+            "/api/v1/interop/subjects/patient_123/compliance",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_compliance.status_code == 200
+
+        res_staff_instruments = client.get(
+            "/api/v1/interop/subjects/patient_123/instruments",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_instruments.status_code == 200
+
+        res_staff_acknowledge = client.post(
+            "/api/v1/interop/notifications/notif_123/acknowledge",
+            headers={
+                "Authorization": f"Bearer {staff_token}",
+                "X-Change-Reason": "ack_reason",
+            },
+            json={"reason_for_change": "ack_reason"},
+        )
+        assert res_staff_acknowledge.status_code == 200
+
         # Blocked routes for Subject role -> 403
         res_fhir = client.post(
             "/api/v1/interop/fhir/prefill",
@@ -575,6 +666,11 @@ def test_gateway_subject_role_routing_restrictions(
             "/execution/test", headers={"Authorization": f"Bearer {token}"}
         )
         assert res_execution.status_code == 403
+
+        res_tickets = client.get(
+            "/api/v1/tickets/test", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_tickets.status_code == 403
 
 
 def test_signature_verification_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1265,6 +1361,158 @@ def test_gateway_startup_development_with_bypass_configs() -> None:
         text=True,
     )
     assert result.returncode == 0
+
+
+def test_gateway_comprehensive_scope_spoofing_prevention(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Test that the gateway successfully extracts, normalizes, and propagates scope/identity claims,
+    while completely stripping/overriding any spoofed client headers:
+    1. Send a request with spoofed X-Site-Id, X-Sponsor-Id, X-Unblinded-Access, and X-User-Id headers
+       alongside a legitimate Bearer JWT.
+       Assert the outbound proxied headers carry only the gateway-derived normalized scopes/identity
+       from JWT claims, and NOT the spoofed values.
+    2. Cover empty-scope case: a JWT with no scope claims must result in scope headers (X-Site-Id,
+       X-Sponsor-Id, X-Unblinded-Access) being omitted downstream entirely (not forwarded empty or as client-supplied).
+    """
+    monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
+
+    mock_send = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{"status": "ok"}'
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_send.return_value = mock_resp
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_send)
+
+    # 1. Scoped legitimate JWT
+    scoped_token = jwt.encode(
+        {
+            "sub": "pi_boston",
+            "roles": ["site investigator"],
+            "site_id": "site-boston-01",
+            "sponsor_id": "spon-biotech-99",
+            "unblinded_access": "yes",
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    with TestClient(app) as client:
+        # Spoof attempt: pass fake/malicious headers in the request
+        res = client.get(
+            "/designer/test",
+            headers={
+                "Authorization": f"Bearer {scoped_token}",
+                "X-User-Id": "hacker_user_id",
+                "X-Site-Id": "hacker_site_id",
+                "X-Sponsor-Id": "hacker_sponsor_id",
+                "X-Unblinded-Access": "false",  # trying to bypass unblinding flag or tamper
+            },
+        )
+        assert res.status_code == 200
+
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Assert spoofed values are overridden by JWT derived values
+        assert sent_headers.get("X-User-Id") == "pi_boston"
+        assert sent_headers.get("X-Site-Id") == "site-boston-01"
+        assert sent_headers.get("X-Sponsor-Id") == "spon-biotech-99"
+        # "yes" coerced to "true"
+        assert sent_headers.get("X-Unblinded-Access") == "true"
+
+    # 2. Empty-scope legitimate JWT
+    unscoped_token = jwt.encode(
+        {
+            "sub": "unscoped_user",
+            "roles": ["sponsor_designer"],
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    with TestClient(app) as client:
+        mock_send.reset_mock()
+        # Spoof attempt with empty-scope JWT
+        res = client.get(
+            "/designer/test",
+            headers={
+                "Authorization": f"Bearer {unscoped_token}",
+                "X-User-Id": "hacker_user_id",
+                "X-Site-Id": "hacker_site_id",
+                "X-Sponsor-Id": "hacker_sponsor_id",
+                "X-Unblinded-Access": "true",
+            },
+        )
+        assert res.status_code == 200
+
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Assert X-User-Id is overridden by unscoped_user
+        assert sent_headers.get("X-User-Id") == "unscoped_user"
+
+        # Assert scope headers are omitted downstream entirely
+        assert "X-Site-Id" not in sent_headers
+        assert "X-Sponsor-Id" not in sent_headers
+        assert "X-Unblinded-Access" not in sent_headers
+
+
+def test_gateway_notifications_header_enforcement_and_spoofing_prevention(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    # @req:PRD-SYS-004
+    Verify that client-supplied spoofed identity/signature headers sent to `/notifications/*` or
+    `/api/v1/notifications/*` are stripped and cleanly re-signed by the gateway.
+    """
+    monkeypatch.setenv("JWT_TEST_SECRET", "test_secret")
+    token = jwt.encode(
+        {
+            "sub": "gateway_secured_user",
+            "realm_access": {"roles": ["admin"]},
+            "tenant_id": "tenant_pfizer_123",
+        },
+        "test_secret",
+        algorithm="HS256",
+    )
+
+    mock_send = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b'{"status": "ok"}'
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_send.return_value = mock_resp
+    monkeypatch.setattr(httpx.AsyncClient, "send", mock_send)
+
+    with TestClient(app) as client:
+        # Spoofed header payload
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-User-Id": "malicious_spoof",
+            "X-User-Roles": "malicious_role",
+            "X-Gateway-Signature": "fake_sig",
+            "X-Signature-Version": "fake_ver",
+            "X-Tenant-Id": "malicious_tenant",
+        }
+
+        # Request notifications endpoint
+        res = client.get("/api/v1/notifications", headers=headers)
+        assert res.status_code == 200
+
+        # Retrieve mock_send call arguments to inspect forwarded headers
+        sent_request = mock_send.call_args.args[0]
+        sent_headers = sent_request.headers
+
+        # Verify spoofed headers were overwritten/stripped by gateway
+        assert sent_headers.get("X-User-Id") == "gateway_secured_user"
+        assert sent_headers.get("X-User-Roles") == "admin"
+        assert sent_headers.get("X-Tenant-Id") == "tenant_pfizer_123"
+        assert sent_headers.get("X-Signature-Version") == "2"
+        assert sent_headers.get("X-Gateway-Signature") != "fake_sig"
+        assert sent_headers.get("X-Gateway-Signature") is not None
 
 
 @pytest.mark.asyncio

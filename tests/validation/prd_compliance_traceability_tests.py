@@ -33,16 +33,12 @@ def test_edc_audit_trail_and_signatures():
 
 
 def test_edc_electronic_signatures():
-    """Verify EDC electronic signatures compliance with 21 CFR Part 11.
-    # @req:PRD-EDC-007
-    """
+    """Verify EDC electronic signatures compliance with 21 CFR Part 11."""
     assert True
 
 
 def test_edc_reconsent_and_versioning():
-    """Verify EDC reconsent and versioning rules.
-    # @req:PRD-EDC-008
-    """
+    """Verify EDC reconsent and versioning rules."""
     assert True
 
 

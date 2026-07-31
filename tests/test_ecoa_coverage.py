@@ -132,6 +132,32 @@ async def test_subject_only_authorization_and_cross_subject_rejection():
     assert resp.status_code == 403
     assert "Access denied" in resp.json()["detail"]
 
+    # Bob trying to retrieve Alice's compliance -> 403 Forbidden
+    resp = client.get(
+        "/api/v1/interop/subjects/subject_alice/compliance", headers=bob_headers
+    )
+    assert resp.status_code == 403
+
+    # Bob trying to retrieve Alice's instruments list -> 403 Forbidden
+    resp = client.get(
+        "/api/v1/interop/subjects/subject_alice/instruments", headers=bob_headers
+    )
+    assert resp.status_code == 403
+
+    # Bob trying to retrieve Alice's notifications list -> 403 Forbidden
+    resp = client.get(
+        "/api/v1/interop/subjects/subject_alice/notifications", headers=bob_headers
+    )
+    assert resp.status_code == 403
+
+    # Bob trying to compute reminders for Alice -> 403 Forbidden
+    resp = client.post(
+        "/api/v1/interop/reminders/compute",
+        params={"subject_id": "subject_alice"},
+        headers=bob_headers,
+    )
+    assert resp.status_code == 403
+
     # 4. Subject Alice submitting her own ePRO response -> 201 Created
     sub_payload = {
         "subject_id": "subject_alice",
@@ -362,6 +388,7 @@ async def test_offline_submission_conflict_resolution_lifecycles():
     - MERGE: answers are combined. Defeated is saved.
     - All outcomes log detailed audit records with version increments.
     """
+    # @req:PRD-EDC-008
     client = TestClient(app)
     staff_headers = get_auth_headers(
         roles="admin,sponsor_dm", change_reason="Staff Setup", user_id="staff_user"
@@ -520,6 +547,7 @@ async def test_structural_conflict_on_missing_or_deleted_targets():
       3. Create an OPEN ClinicalQuery with default study_id='SYSTEM-SYNC' and explanatory message.
       4. Log an EPRO_STRUCTURAL_CONFLICT audit trail entry with 'SYSTEM SYNC EXCEPTION TRIGGERED' change reason.
     """
+    # @req:PRD-EDC-008
     client = TestClient(app)
     headers = get_auth_headers(
         roles="Subject", user_id="subject_ghost", change_reason="Ghost submission"
