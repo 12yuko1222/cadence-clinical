@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1723
-- **Passed:** 1723 🟢
+- **Total Automated Test Cases Run:** 1725
+- **Passed:** 1725 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -132,6 +132,7 @@ pydantic-core            2.46.4
 pydyf                    0.12.1
 pyee                     13.0.1
 pygments                 2.20.0
+pymupdf                  1.28.0
 pyparsing                3.3.2
 pyphen                   0.17.2
 pytest                   9.1.1
@@ -1226,7 +1227,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_esignature_tamper_detection_e2e` | `tests.test_part11_esignatures` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_tampered_pdf_fails_verification` | `tests.test_part11_esignatures` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_valid_part11_signature_verification` | `tests.test_part11_esignatures` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pdf_redaction_overlay_generation` | `tests.test_pdf_redactor` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_pdf_redaction_engine_bounding_box` | `tests.test_pdf_redactor` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_pdf_redaction_engine_purges_metadata_and_fields` | `tests.test_pdf_redactor` | PRD-SYS-001 | 🟢 PASSED | < 1s |
+| `test_pdf_redaction_overlay_generation` | `tests.test_pdf_redactor` | PRD-SYS-001 | 🟢 PASSED | < 1s |
 | `test_zero_phi_leak_in_redacted_pdf` | `tests.test_phi_redaction` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_build_comment_body` | `tests.test_pr_comment` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_combined_audit_logic` | `tests.test_pr_comment` | *Regression/Helper* | 🟢 PASSED | < 1s |
