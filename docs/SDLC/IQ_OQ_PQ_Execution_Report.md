@@ -588,17 +588,17 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_eisf_sync_exact_duplicate_ignored` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_sync_per_field_metadata_lww` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_sync_unmapped_propagation` | `tests.test_eisf_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_aggregate_eligibility_evaluation` | `tests.test_eligibility_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_evaluation_all_operators` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-005 | 🟢 PASSED | < 1s |
+| `test_aggregate_eligibility_evaluation` | `tests.test_eligibility_engine` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_evaluation_all_operators` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-005, PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_evaluation_incompatible_types_graceful_handling` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-007 | 🟢 PASSED | < 1s |
-| `test_evaluation_kleene_indeterminate_propagation` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-006 | 🟢 PASSED | < 1s |
+| `test_evaluation_kleene_indeterminate_propagation` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-006, PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_parse_invalid_syntax` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-004 | 🟢 PASSED | < 1s |
-| `test_parse_logical_and_nested_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-003 | 🟢 PASSED | < 1s |
-| `test_parse_simple_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-002 | 🟢 PASSED | < 1s |
-| `test_eligibility_criteria_crud_endpoints` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_eligibility_criteria_immutability` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_eligibility_criteria_usdm_projection` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_eligibility_criteria_validation_failures` | `tests.test_eligibility_mdr` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_parse_logical_and_nested_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-003, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_parse_simple_expressions` | `tests.test_eligibility_engine` | PRD-ELIGIBILITY-002, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_crud_endpoints` | `tests.test_eligibility_mdr` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_immutability` | `tests.test_eligibility_mdr` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_usdm_projection` | `tests.test_eligibility_mdr` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_eligibility_criteria_validation_failures` | `tests.test_eligibility_mdr` | PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_unblind_missing_sig_token` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_screening_status_error` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_subject_not_found` | `tests.test_emergency_unblinding` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -752,13 +752,13 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_search_concepts_success` | `tests.test_evs_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_search_concepts_timeout` | `tests.test_evs_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_search_concepts_transport_error` | `tests.test_evs_client` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_designer_criteria_client_retrieval_and_parsing` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-009 | 🟢 PASSED | < 1s |
-| `test_ecrf_context_builder_demographics_and_precedence` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-010 | 🟢 PASSED | < 1s |
-| `test_ecrf_context_builder_kleene_absent_semantics` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-011 | 🟢 PASSED | < 1s |
-| `test_randomization_allocation_rejection_gate` | `tests.test_execution_eligibility` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_screening_endpoint_eligible_and_transition` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-012 | 🟢 PASSED | < 1s |
-| `test_screening_endpoint_indeterminate_behavior` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-014 | 🟢 PASSED | < 1s |
-| `test_screening_endpoint_ineligible_transition_and_audit` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-013 | 🟢 PASSED | < 1s |
+| `test_designer_criteria_client_retrieval_and_parsing` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-009, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_ecrf_context_builder_demographics_and_precedence` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-010, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_ecrf_context_builder_kleene_absent_semantics` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-011, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_randomization_allocation_rejection_gate` | `tests.test_execution_eligibility` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_screening_endpoint_eligible_and_transition` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-012, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_screening_endpoint_indeterminate_behavior` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-014, PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_screening_endpoint_ineligible_transition_and_audit` | `tests.test_execution_eligibility` | PRD-ELIGIBILITY-013, PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_form_submission_approval_audit_manifestation` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_form_submission_audit_logging` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_form_submission_invalid_transitions` | `tests.test_form_submissions` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -856,13 +856,13 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_structural_conflict_on_missing_target` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_submit_with_invalid_signature_fails` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_submit_with_valid_signature` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_build_ecrf_context_mapping` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_build_ecrf_context_multiple_and_missing` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_no_edc_mutation_boundary` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_audit_evidence_non_phi` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_eligible` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_indeterminate` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_ineligible` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_build_ecrf_context_mapping` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_build_ecrf_context_multiple_and_missing` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_no_edc_mutation_boundary` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_pre_screen_audit_evidence_non_phi` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_pre_screen_eligible` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_pre_screen_indeterminate` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_pre_screen_ineligible` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_circular_skip_logic_rules_raises_value_error` | `tests.test_inverse_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_inverse_mapping_valid_round_trip` | `tests.test_inverse_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_missing_required_fields_raises_value_error` | `tests.test_inverse_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1576,9 +1576,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_validate_usdm_payload_stochastic_math_operators` | `tests.test_usdm_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_usdm_payload_valid_v3` | `tests.test_usdm_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validate_usdm_payload_warnings_custom_elements` | `tests.test_usdm_ingestion` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_round_trip_canonical_serialization_verification` | `tests.test_usdm_serialization` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_serialize_usdm_canonical_json` | `tests.test_usdm_serialization` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_serialize_usdm_canonical_yaml` | `tests.test_usdm_serialization` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_round_trip_canonical_serialization_verification` | `tests.test_usdm_serialization` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_serialize_usdm_canonical_json` | `tests.test_usdm_serialization` | PRD-MDR-007 | 🟢 PASSED | < 1s |
+| `test_serialize_usdm_canonical_yaml` | `tests.test_usdm_serialization` | PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_serialize_usdm_validation_errors` | `tests.test_usdm_serialization` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_adr_compliance_validation_logic` | `tests.test_validate_adrs` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_check_architectural_changes_require_adr_missing_adr` | `tests.test_validate_adrs` | *Regression/Helper* | 🟢 PASSED | < 1s |
