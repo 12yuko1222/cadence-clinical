@@ -9,12 +9,14 @@ from cdisc.cdisc_library_client import (
     CodelistTerm,
     SdtmDomainDefinition,
 )
+from cdisc.terminology_cache import CdiscTerminologyCache
 
 __all__ = [
     "CdashDomainDefinition",
     "CdiscLibraryClient",
     "CdiscLibraryConfig",
     "CdiscProductSummary",
+    "CdiscTerminologyCache",
     "CodelistDefinition",
     "CodelistTerm",
     "SdtmDomainDefinition",
