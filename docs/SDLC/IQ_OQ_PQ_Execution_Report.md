@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1678
-- **Passed:** 1678 🟢
+- **Total Automated Test Cases Run:** 1682
+- **Passed:** 1682 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1743,6 +1743,10 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_convert_unit_temperature` | `tests.test_ucum_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_get_normalized_representation` | `tests.test_ucum_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_normalize_unit_name` | `tests.test_ucum_coverage` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_terminology_numeric_and_boolean_mappings` | `tests.test_unified_schemas_terminology` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_translation_fails_early_on_invalid_structure` | `tests.test_unified_schemas_terminology` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_with_invalid_gender` | `tests.test_unified_schemas_terminology` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_validator_with_variant_and_boolean_inputs` | `tests.test_unified_schemas_terminology` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_usdm_importer_invalid_payload_raises` | `tests.test_usdm_importer` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_usdm_importer_valid_dict` | `tests.test_usdm_importer` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_usdm_importer_valid_model` | `tests.test_usdm_importer` | *Regression/Helper* | 🟢 PASSED | < 1s |
