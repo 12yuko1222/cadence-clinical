@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1709
-- **Passed:** 1709 🟢
+- **Total Automated Test Cases Run:** 1713
+- **Passed:** 1713 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1495,6 +1495,9 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_suppqual_fields_and_validation` | `tests.test_sdtm_foundation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_terminology_normalization_and_enums` | `tests.test_sdtm_foundation` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_vs_required_and_optional_fields` | `tests.test_sdtm_foundation` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cdash_ae_mapping` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cdash_generic_orchestrator` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_cdash_vs_unit_conversion_and_study_day` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_compute_age` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_get_demographics` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_map_ae_flat_structure` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -1506,6 +1509,7 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_map_lb` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_map_to_sdtm_orchestrator` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_map_vs` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_persist_sdtm_records_pipeline` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_to_dtc` | `tests.test_sdtm_mapper` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_sdv_automatic_verification_drop_compliance` | `tests.test_sdv` | PRD-QRY-006 | 🟢 PASSED | < 1s |
 | `test_sdv_signoff_endpoints_rbac_and_target_validation` | `tests.test_sdv` | PRD-QRY-005 | 🟢 PASSED | < 1s |
