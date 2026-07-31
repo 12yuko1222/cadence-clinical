@@ -626,3 +626,56 @@ def assemble_rendered_protocol_document(
         soa_matrix=soa_matrix,
         source_study=study,
     )
+
+
+def render_synopsis_template_html(
+    rendered_doc: RenderedProtocolDocument,
+) -> str:
+    """Render a RenderedProtocolDocument into HTML using Jinja2 template.
+
+    Requirements: PRD-SYS-001
+    """
+    from pathlib import Path
+
+    from jinja2 import Environment, FileSystemLoader
+
+    template_dir = Path(__file__).resolve().parent / "templates"
+    env = Environment(
+        loader=FileSystemLoader(str(template_dir)),
+        autoescape=True,
+    )
+    template = env.get_template("protocol_synopsis.html.j2")
+    return template.render(
+        metadata=rendered_doc.metadata,
+        synopsis=rendered_doc.synopsis,
+        soa_matrix=rendered_doc.soa_matrix,
+        narrative_sections=rendered_doc.narrative_sections,
+    )
+
+
+class USDMSynopsisAssembler:
+    """High-level assembler service mapping USDM studies to rendered documents.
+
+    Requirements: PRD-SYS-001
+    """
+
+    def assemble_and_render_html(
+        self,
+        study: usdm_model.Study,
+        creator: str = "Cadence Clinical DDF Engine",
+        change_reason: str = "Initial Baseline",
+    ) -> str:
+        """Assemble USDM study and render HTML synopsis.
+
+        Args:
+            study: Input USDM Study model.
+            creator: Document author identifier.
+            change_reason: GxP change reason.
+
+        Returns:
+            Rendered HTML string.
+        """
+        doc = assemble_rendered_protocol_document(
+            study=study, creator=creator, change_reason=change_reason
+        )
+        return render_synopsis_template_html(doc)
