@@ -567,6 +567,65 @@ def test_gateway_subject_role_routing_restrictions(
         )
         assert res_cross_notifications.status_code == 403
 
+        # Cross-subject POST /api/v1/interop/notifications/{id}/acknowledge at gateway layer -> succeeds (200) since database ownership is deferred
+        res_cross_ack_gateway = client.post(
+            "/api/v1/interop/notifications/another_notif_123/acknowledge",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Change-Reason": "cross_ack",
+            },
+            json={"reason_for_change": "cross_ack"},
+        )
+        assert res_cross_ack_gateway.status_code == 200
+
+        # Cross-ownership GET /api/v1/interop/instruments/{id} at gateway layer -> succeeds (200) since database assignment checks are deferred
+        res_cross_inst_gateway = client.get(
+            "/api/v1/interop/instruments/another-instrument-id",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert res_cross_inst_gateway.status_code == 200
+
+        # Non-Subject (staff) roles can bypass the Subject ownership gate and reach subject-scoped paths for any subject id
+        staff_token = jwt.encode(
+            {"sub": "staff_user", "realm_access": {"roles": ["admin"]}},
+            "test_secret",
+            algorithm="HS256",
+        )
+
+        res_staff_assignments = client.get(
+            "/api/v1/interop/assignments/subject/patient_123",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_assignments.status_code == 200
+
+        res_staff_notifications = client.get(
+            "/api/v1/interop/subjects/patient_123/notifications",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_notifications.status_code == 200
+
+        res_staff_compliance = client.get(
+            "/api/v1/interop/subjects/patient_123/compliance",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_compliance.status_code == 200
+
+        res_staff_instruments = client.get(
+            "/api/v1/interop/subjects/patient_123/instruments",
+            headers={"Authorization": f"Bearer {staff_token}"},
+        )
+        assert res_staff_instruments.status_code == 200
+
+        res_staff_acknowledge = client.post(
+            "/api/v1/interop/notifications/notif_123/acknowledge",
+            headers={
+                "Authorization": f"Bearer {staff_token}",
+                "X-Change-Reason": "ack_reason",
+            },
+            json={"reason_for_change": "ack_reason"},
+        )
+        assert res_staff_acknowledge.status_code == 200
+
         # Blocked routes for Subject role -> 403
         res_fhir = client.post(
             "/api/v1/interop/fhir/prefill",

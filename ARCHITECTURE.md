@@ -96,6 +96,7 @@ Traditional clinical trial builds require manual, error-prone translation of pro
   * Implements multi-strategy offline reconciliation (`CLIENT_WINS`, `SERVER_WINS`, `MERGE`) and isolates/logs conflict details in `EPROSubmissionDefeated`.
   * Triggers auditable open clinical queries automatically for submissions with structural mismatches.
   * Computes subject compliance schedules and triggers async background notifications (EMAIL, SMS, WEBHOOK, IN_APP).
+  * Exposes secure least-privilege APIs for patient self-service (instrument details, assignments, compliance, and notification lists) and notification acknowledgement.
 
 ### K. Patient/Subject Portal (`apps/subject-portal`)
 * **Role:** Standalone Patient-Facing ePRO Web Application.
@@ -104,6 +105,7 @@ Traditional clinical trial builds require manual, error-prone translation of pro
   * Integrates with Keycloak OIDC for authenticated login under the strict `Subject` role.
   * Implements offline-first caching via service workers and queues signed submissions chronologically inside IndexedDB.
   * Provides a visual Sync Queue Panel allowing subjects to view transmission logs and online reconciliation decisions.
+  * Supports read capabilities (assigned instruments, compliance rates, assignments, and notification inbox) and interactive notification acknowledgement alongside diary submit and sync operations.
 
 ### L. eISF Module (`apps/eisf`)
 * **Role:** Electronic Investigator Site File (eISF) Repository.

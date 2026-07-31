@@ -97,7 +97,7 @@ The Cadence Clinical platform enforces a highly granular Role-Based Access Contr
 6. **Principal Investigator / Site Investigator (PI):** The medical authority at the clinical research site. Enrolls subjects, performs medical review, answers queries, and sign-off/approves finalized eCRFs.
 7. **Clinical Research Coordinator (CRC):** Performs daily data entry on subjects, saves draft eCRFs, responds to query validation issues, and manages subject visits.
 8. **Clinical Research Associate (CRA / Monitor):** Represents the sponsor at the site. Performs Source Document Verification (SDV), raises manual queries, and monitors protocol compliance.
-9. **Subject / Patient (ePRO):** Individual enrolled in the trial. Limited access strictly through a mobile or web portal to submit self-reported outcomes (ePRO/diaries) without visibility into any backend trial configurations, dictionaries, or other subjects.
+9. **Subject / Patient (ePRO):** Individual enrolled in the trial. Limited access strictly through a mobile or web portal to perform the 8 allowed self-service actions (submit diaries, bulk sync, read assigned instruments, read self-scoped assignments, assigned instruments, compliance metrics, and notifications inbox, and acknowledge notifications), without visibility into any backend trial configurations, dictionaries, or other subjects.
 10. **External Monitor (CRO Monitor):** Associated with CRO affiliation. Performs high-level clinical oversight as a strict read-only persona. Excluded from delegation-of-authority workflows, and holds only read permissions for eTMF, EDL, eTMF Audit Logs, and eISF.
 
 ### 2.2 System Resource & Feature Permission Matrix
