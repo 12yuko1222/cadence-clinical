@@ -446,3 +446,40 @@ def require_gateway_permission(required_permission: "PermissionEnum") -> Callabl
             )
 
     return _dependency
+
+
+async def get_current_user(request: Request) -> dict:
+    """FastAPI dependency extracting current user identity from request context or headers.
+
+    Raises 401 Unauthorized if no user identity or authorization header is present.
+    """
+    from fastapi import HTTPException
+
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id and hasattr(request, "headers"):
+        user_id = request.headers.get("X-User-Id") or request.headers.get("x-user-id")
+
+    auth_header = request.headers.get("Authorization") if hasattr(request, "headers") else None
+
+    if not user_id and not auth_header:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Missing user identity or authorization header",
+        )
+
+    roles = getattr(request.state, "roles", "")
+    if isinstance(roles, str):
+        role_list = [r.strip() for r in roles.split(",") if r.strip()]
+    else:
+        role_list = list(roles)
+
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if not tenant_id and hasattr(request, "headers"):
+        tenant_id = request.headers.get("X-Tenant-Id", "tenant_default")
+
+    return {
+        "sub": user_id or "authenticated_user",
+        "roles": role_list,
+        "tenant_id": tenant_id or "tenant_default",
+    }
+
