@@ -1330,3 +1330,13 @@ class DOAAuditLog(Base):
     timestamp: Mapped[datetime] = mapped_column(
         DateTime, default=func.now(), nullable=False
     )
+
+
+class ProcessedOfflineBatch(Base):
+    """Represents a processed offline batch record for idempotency tracking."""
+
+    __tablename__ = "processed_offline_batches"
+
+    client_batch_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())

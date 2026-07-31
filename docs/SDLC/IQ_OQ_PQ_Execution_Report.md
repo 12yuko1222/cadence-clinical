@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1718
-- **Passed:** 1718 🟢
+- **Total Automated Test Cases Run:** 1723
+- **Passed:** 1723 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1191,6 +1191,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_webhook_delivery_channel_success` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_offline_sync_batch_success_and_idempotency` | `tests.test_offline_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_offline_sync_batch_update_action` | `tests.test_offline_router` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_batch_sync_success` | `tests.test_offline_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_delta_ingestion_integrity` | `tests.test_offline_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_sync_conflict_resolution` | `tests.test_offline_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_sync_cryptographic_verification` | `tests.test_offline_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_offline_sync_idempotency` | `tests.test_offline_sync` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_signoff_automatic_archival_handoff` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_doa_signoff_tampered_payload_rejected` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_eisf_completeness_participation` | `tests.test_org_integration_e2e` | *Regression/Helper* | 🟢 PASSED | < 1s |
