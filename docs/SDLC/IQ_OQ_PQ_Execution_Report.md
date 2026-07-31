@@ -9,10 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1521
-- **Passed:** 1521 🟢
-- **Total Automated Test Cases Run:** 1497
-- **Passed:** 1497 🟢
+- **Total Automated Test Cases Run:** 1529
+- **Passed:** 1529 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -300,15 +298,15 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_router_send_sms_mapping` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_router_send_webhook_mapping` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unblind_emergency_unblinding_alert_integration` | `tests.test_clinical_workflow_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_emergency_unblinding_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-SUB-006 | 🟢 PASSED | < 1s |
+| `test_query_aging_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-QRY-002 | 🟢 PASSED | < 1s |
+| `test_sdv_drop_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-QRY-006 | 🟢 PASSED | < 1s |
+| `test_trial_lock_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-SYS-003, PRD-SYS-004 | 🟢 PASSED | < 1s |
 | `test_audit_logger_creates_valid_record` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_audit_logger_detects_chain_tampering` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_crypto_verifier_invalid_signature` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_crypto_verifier_valid_signature` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_security_audit_script` | `tests.test_compliance_security` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_emergency_unblinding_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-SUB-006 | 🟢 PASSED | < 1s |
-| `test_query_aging_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-QRY-002 | 🟢 PASSED | < 1s |
-| `test_sdv_drop_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-QRY-006 | 🟢 PASSED | < 1s |
-| `test_trial_lock_generates_notification` | `tests.test_clinical_workflow_notifications_integration` | PRD-SYS-003, PRD-SYS-004 | 🟢 PASSED | < 1s |
 | `test_check_dict_for_value` | `tests.test_concept_locks` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_concept_mutations_locked_active_recruiting` | `tests.test_concept_locks` | PRD-MDR-002 | 🟢 PASSED | < 1s |
 | `test_concept_mutations_unreferenced` | `tests.test_concept_locks` | *Regression/Helper* | 🟢 PASSED | < 1s |
@@ -869,18 +867,6 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_structural_conflict_on_missing_target` | `tests.test_interop_defeated` | PRD-EDC-008 | 🟢 PASSED | < 1s |
 | `test_submit_with_invalid_signature_fails` | `tests.test_interop_defeated` | PRD-EDC-008 | 🟢 PASSED | < 1s |
 | `test_submit_with_valid_signature` | `tests.test_interop_defeated` | PRD-EDC-008 | 🟢 PASSED | < 1s |
-| `test_build_ecrf_context_mapping` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_build_ecrf_context_multiple_and_missing` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_no_edc_mutation_boundary` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_audit_evidence_non_phi` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_eligible` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_indeterminate` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_pre_screen_ineligible` | `tests.test_interop_prescreen` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_bulk_sync_with_valid_signatures_and_tallies` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_defeated_record_persistence_on_conflicts` | `tests.test_interop_defeated` | Trace-9 | 🟢 PASSED | < 1s |
-| `test_structural_conflict_on_missing_target` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_submit_with_invalid_signature_fails` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
-| `test_submit_with_valid_signature` | `tests.test_interop_defeated` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_build_ecrf_context_mapping` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_build_ecrf_context_multiple_and_missing` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |
 | `test_no_edc_mutation_boundary` | `tests.test_interop_prescreen` | PRD-MDR-007 | 🟢 PASSED | < 1s |

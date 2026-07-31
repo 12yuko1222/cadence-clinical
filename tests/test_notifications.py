@@ -665,7 +665,9 @@ async def test_email_delivery_channel_failure_and_exhaustion():
             await asyncio.sleep(0.05)
             async with db_manager.get_session_maker()() as session:
                 res = await session.execute(
-                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+                    select(NotificationDelivery).where(
+                        NotificationDelivery.id == delivery_id
+                    )
                 )
                 d = res.scalars().first()
                 if d.status == "FAILED":
@@ -674,7 +676,9 @@ async def test_email_delivery_channel_failure_and_exhaustion():
         # Confirm failure
         async with db_manager.get_session_maker()() as session:
             res = await session.execute(
-                select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+                select(NotificationDelivery).where(
+                    NotificationDelivery.id == delivery_id
+                )
             )
             d = res.scalars().first()
             assert d.status == "FAILED"
@@ -694,7 +698,9 @@ async def test_email_delivery_channel_failure_and_exhaustion():
             await asyncio.sleep(0.05)
             async with db_manager.get_session_maker()() as session:
                 res = await session.execute(
-                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_id)
+                    select(NotificationDelivery).where(
+                        NotificationDelivery.id == delivery_id
+                    )
                 )
                 d = res.scalars().first()
                 if d.attempts == 5:
@@ -769,7 +775,9 @@ async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
             await asyncio.sleep(0.05)
             async with db_manager.get_session_maker()() as session:
                 res_email = await session.execute(
-                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+                    select(NotificationDelivery).where(
+                        NotificationDelivery.id == delivery_email_id
+                    )
                 )
                 d_email = res_email.scalars().first()
                 if d_email.attempts == 1:
@@ -778,7 +786,9 @@ async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
         # Advance EMAIL to 4 attempts and past next_retry_at
         async with db_manager.get_session_maker()() as session:
             res_email = await session.execute(
-                select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+                select(NotificationDelivery).where(
+                    NotificationDelivery.id == delivery_email_id
+                )
             )
             d_email = res_email.scalars().first()
             assert d_email.attempts == 1
@@ -794,7 +804,9 @@ async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
             await asyncio.sleep(0.05)
             async with db_manager.get_session_maker()() as session:
                 res_email = await session.execute(
-                    select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+                    select(NotificationDelivery).where(
+                        NotificationDelivery.id == delivery_email_id
+                    )
                 )
                 d_email = res_email.scalars().first()
                 if d_email.attempts == 5:
@@ -804,14 +816,18 @@ async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
     async with db_manager.get_session_maker()() as session:
         # Check IN_APP is successful
         res_in_app = await session.execute(
-            select(NotificationDelivery).where(NotificationDelivery.id == delivery_in_app_id)
+            select(NotificationDelivery).where(
+                NotificationDelivery.id == delivery_in_app_id
+            )
         )
         d_in_app = res_in_app.scalars().first()
         assert d_in_app.status == "SUCCESS"
 
         # Check EMAIL is exhausted
         res_email = await session.execute(
-            select(NotificationDelivery).where(NotificationDelivery.id == delivery_email_id)
+            select(NotificationDelivery).where(
+                NotificationDelivery.id == delivery_email_id
+            )
         )
         d_email = res_email.scalars().first()
         assert d_email.status == "FAILED"
@@ -822,7 +838,9 @@ async def test_multi_channel_edge_case_in_app_succeeds_email_exhausts():
             select(Notification).where(Notification.id == notif_id)
         )
         n = res_notif.scalars().first()
-        assert n.delivery_state == "DELIVERED"  # Because IN_APP completed, marking delivery_state = "DELIVERED"
+        assert (
+            n.delivery_state == "DELIVERED"
+        )  # Because IN_APP completed, marking delivery_state = "DELIVERED"
         assert n.retries == 5
 
         # Check NOTIFICATION_DELIVERY_EXHAUSTED audit log is present

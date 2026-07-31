@@ -1,7 +1,6 @@
 import asyncio
-import os
 import time
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -14,6 +13,8 @@ from sqlalchemy import select, text
 from apps.execution.database.core import db_manager as exec_db_manager
 from apps.execution.database.models import (
     Base as ExecBase,
+)
+from apps.execution.database.models import (
     ClinicalObservation,
     ClinicalQuery,
     ClinicalSubject,
@@ -21,11 +22,12 @@ from apps.execution.database.models import (
     SubjectRandomization,
 )
 from apps.execution.main import app as execution_app
-from apps.execution.trial_lock import TrialLockManager, NotificationRouter
 from apps.execution.queries_escalation import execute_query_escalation_cycle
+from apps.execution.trial_lock import TrialLockManager
 from apps.notifications.database import db_manager as notif_db_manager
 from apps.notifications.main import app as notifications_app
-from apps.notifications.models import Base as NotifBase, Notification, NotificationAuditLog
+from apps.notifications.models import Base as NotifBase
+from apps.notifications.models import Notification, NotificationAuditLog
 from packages.security.context import audit_context
 from packages.security.signing import generate_gateway_signature
 
@@ -83,6 +85,7 @@ async def setup_dual_dbs(monkeypatch):
     """
     # 1. Reset and initialize notifications database
     from apps.notifications.main import active_deliveries
+
     active_deliveries.clear()
     notif_db_manager.init_db("sqlite+aiosqlite:///:memory:", echo=False)
     async with notif_db_manager.engine.begin() as conn:
@@ -103,7 +106,9 @@ async def setup_dual_dbs(monkeypatch):
         kwargs["transport"] = httpx.ASGITransport(app=notifications_app)
         return original_async_client(*args, **kwargs)
 
-    monkeypatch.setattr("apps.execution.notifications_client.httpx.AsyncClient", mock_async_client)
+    monkeypatch.setattr(
+        "apps.execution.notifications_client.httpx.AsyncClient", mock_async_client
+    )
 
     yield
 
@@ -128,7 +133,9 @@ async def test_trial_lock_generates_notification():
     and audit log in the notifications service.
     """
     # Trigger trial lock
-    with audit_context(user_id="security_lead", change_reason="Intrusion attempt detected"):
+    with audit_context(
+        user_id="security_lead", change_reason="Intrusion attempt detected"
+    ):
         TrialLockManager.lock_trial("Unauthorized schema access detected")
 
     # Give async tasks a brief moment to process
@@ -141,13 +148,17 @@ async def test_trial_lock_generates_notification():
         notifs = res.scalars().all()
 
         assert len(notifs) > 0
-        critical_alert = [n for n in notifs if "URGENT: Trial locked" in n.message_content]
+        critical_alert = [
+            n for n in notifs if "URGENT: Trial locked" in n.message_content
+        ]
         assert len(critical_alert) > 0
         assert critical_alert[0].priority == "CRITICAL"
         assert critical_alert[0].related_entity_type == "trial-lock"
 
         # Verify NotificationAuditLog entry
-        stmt_audit = select(NotificationAuditLog).where(NotificationAuditLog.action == "NOTIFICATION_CREATE")
+        stmt_audit = select(NotificationAuditLog).where(
+            NotificationAuditLog.action == "NOTIFICATION_CREATE"
+        )
         res_audit = await session.execute(stmt_audit)
         audit_logs = res_audit.scalars().all()
         assert len(audit_logs) > 0
@@ -164,7 +175,9 @@ async def test_query_aging_generates_notification():
         async with session.begin():
             # Seed clinical subject and visit
             subj = ClinicalSubject(
-                subject_id="SUBJ-AGING-99", study_id="STUDY-AGING-99", site_id="SITE-AGING-99"
+                subject_id="SUBJ-AGING-99",
+                study_id="STUDY-AGING-99",
+                site_id="SITE-AGING-99",
             )
             session.add(subj)
 
@@ -191,7 +204,9 @@ async def test_query_aging_generates_notification():
             session.add(q)
 
     # Trigger query escalation/aging cycle
-    with audit_context(user_id="system_cron", change_reason="Daily clinical query aging scan"):
+    with audit_context(
+        user_id="system_cron", change_reason="Daily clinical query aging scan"
+    ):
         await execute_query_escalation_cycle(exec_db_manager.get_session_maker())
 
     # Wait for background publish
@@ -204,7 +219,11 @@ async def test_query_aging_generates_notification():
         notifs = res.scalars().all()
 
         assert len(notifs) > 0
-        digest_notif = [n for n in notifs if "Daily Clinical Query Aging Digest" in n.message_content]
+        digest_notif = [
+            n
+            for n in notifs
+            if "Daily Clinical Query Aging Digest" in n.message_content
+        ]
         assert len(digest_notif) > 0
         assert digest_notif[0].priority == "HIGH"
         assert digest_notif[0].related_entity_type == "study-site"
@@ -255,7 +274,9 @@ async def test_sdv_drop_generates_notification():
     ):
         async with exec_db_manager.get_session_maker()() as session:
             res = await session.execute(
-                select(ClinicalObservation).where(ClinicalObservation.id == "OBS-DROP-99")
+                select(ClinicalObservation).where(
+                    ClinicalObservation.id == "OBS-DROP-99"
+                )
             )
             obs_edit = res.scalar_one()
             obs_edit.value = 125.0
@@ -302,6 +323,7 @@ async def test_emergency_unblinding_generates_notification():
             subj.status = "RANDOMIZED"
 
             from apps.execution.cryptography import AllocationKeyManager
+
             key_mgr = AllocationKeyManager()
             encrypted_alloc = key_mgr.encrypt({"allocation": "Arm A Active"})
 
@@ -321,13 +343,20 @@ async def test_emergency_unblinding_generates_notification():
             change_reason="Emergency unblinding: patient in critical state",
             unblinded_access=True,
         )
-        headers["X-Sig-Token"] = get_sig_token(user_id="pi_doctor", roles="principal_investigator")
+        headers["X-Sig-Token"] = get_sig_token(
+            user_id="pi_doctor", roles="principal_investigator"
+        )
 
         unblind_payload = {
             "reason_code": "SAE-Life-Threatening-Event",
             "justification": "Patient non-responsive after drug administration, immediate medical intervention required.",
             "shares": [
-                {"custodian": "Lead Unblinded Statistician", "version": 1, "x": 1, "y": 42},
+                {
+                    "custodian": "Lead Unblinded Statistician",
+                    "version": 1,
+                    "x": 1,
+                    "y": 42,
+                },
                 {"custodian": "IDMC", "version": 1, "x": 2, "y": 87},
             ],
         }
@@ -359,8 +388,15 @@ async def test_emergency_unblinding_generates_notification():
         notifs = res.scalars().all()
 
         assert len(notifs) > 0
-        unblind_notifs = [n for n in notifs if "Emergency unblinding alert for Subject SUBJ-UNBLIND-99" in n.message_content]
-        assert len(unblind_notifs) == 3  # Targeting roles: "Sponsor Safety Lead", "Lead CRA", "IDMC"
+        unblind_notifs = [
+            n
+            for n in notifs
+            if "Emergency unblinding alert for Subject SUBJ-UNBLIND-99"
+            in n.message_content
+        ]
+        assert (
+            len(unblind_notifs) == 3
+        )  # Targeting roles: "Sponsor Safety Lead", "Lead CRA", "IDMC"
 
         target_roles = [n.recipient_role for n in unblind_notifs]
         assert "Sponsor Safety Lead" in target_roles
