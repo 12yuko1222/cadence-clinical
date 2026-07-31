@@ -1,3 +1,4 @@
+// Upgraded eCOA Subject Portal Dispatch and Failure-State Rendering Contract
 import {
   buildLedgerBlock,
   validateField,

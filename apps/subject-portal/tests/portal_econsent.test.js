@@ -1,3 +1,4 @@
+// Verified Portal eConsent Gating and Credential Hygiene Tests
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 

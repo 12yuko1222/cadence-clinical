@@ -1,3 +1,4 @@
+// Verified Portal eCOA Regression and Contract Tests
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
