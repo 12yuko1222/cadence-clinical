@@ -459,7 +459,9 @@ async def get_current_user(request: Request) -> dict:
     if not user_id and hasattr(request, "headers"):
         user_id = request.headers.get("X-User-Id") or request.headers.get("x-user-id")
 
-    auth_header = request.headers.get("Authorization") if hasattr(request, "headers") else None
+    auth_header = (
+        request.headers.get("Authorization") if hasattr(request, "headers") else None
+    )
 
     if not user_id and not auth_header:
         raise HTTPException(
@@ -482,4 +484,3 @@ async def get_current_user(request: Request) -> dict:
         "roles": role_list,
         "tenant_id": tenant_id or "tenant_default",
     }
-
