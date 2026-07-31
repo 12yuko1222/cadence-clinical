@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1696
-- **Passed:** 1696 🟢
+- **Total Automated Test Cases Run:** 1701
+- **Passed:** 1701 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -1142,6 +1142,11 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_run_migrations_success` | `tests.test_migrate` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_detect_phi_patterns` | `tests.test_ner_scrubber` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_scrub_phi_redaction` | `tests.test_ner_scrubber` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_start_stop_notification_worker_integration` | `tests.test_notification_worker` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_worker_gxp_exponential_retry_and_dlq` | `tests.test_notification_worker` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_worker_resolves_cra_for_document_expiry` | `tests.test_notification_worker` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_worker_resolves_crc_for_edc_query` | `tests.test_notification_worker` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_worker_resolves_safety_officer_for_sae_flag` | `tests.test_notification_worker` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_direct_transition_open_to_resolved` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_email_delivery_channel_failure_and_exhaustion` | `tests.test_notifications` | PRD-SYS-003 | 🟢 PASSED | < 1s |
 | `test_email_delivery_channel_success` | `tests.test_notifications` | *Regression/Helper* | 🟢 PASSED | < 1s |
