@@ -4,10 +4,9 @@ Bypasses manual mocks and intercepts real outgoing HTTP requests to verify Gatew
 de-duplication tokens, recipient policies, and delivery state tracking.
 """
 
-import asyncio
 import time
 from datetime import datetime, timedelta
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -16,13 +15,15 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from apps.gateway.main import generate_signature
-from apps.tickets.main import app as tickets_app
-from apps.notifications.main import app as notifications_app
-from apps.tickets.models import Base as TicketsBase, Ticket, TicketPriority, TicketStatus
-from apps.notifications.models import Base as NotificationsBase, Notification
-from apps.tickets.database import db_manager as tickets_db_manager
 from apps.notifications.database import db_manager as notifications_db_manager
+from apps.notifications.main import app as notifications_app
+from apps.notifications.models import Base as NotificationsBase
+from apps.notifications.models import Notification
+from apps.tickets.database import db_manager as tickets_db_manager
 from apps.tickets.escalation import execute_ticket_escalation_cycle
+from apps.tickets.main import app as tickets_app
+from apps.tickets.models import Base as TicketsBase
+from apps.tickets.models import Ticket, TicketPriority, TicketStatus
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -85,7 +86,9 @@ def intercept_notifications():
     """
     original_send = httpx.AsyncClient.send
 
-    async def mock_send(self, request: httpx.Request, *args, **kwargs) -> httpx.Response:
+    async def mock_send(
+        self, request: httpx.Request, *args, **kwargs
+    ) -> httpx.Response:
         url_str = str(request.url)
         if "api/v1/notifications" in url_str:
             # Route to the notifications ASGI application
@@ -121,10 +124,10 @@ async def test_end_to_end_ticket_creation_and_comment_flow(intercept_notificatio
     ticket_id = res_create.json()["id"]
 
     # 2. Append a comment to the ticket (acting as "reporter_user")
-    comment_headers = get_auth_headers(user_id="reporter_user", change_reason="Query updates")
-    comment_payload = {
-        "body": "Bob, are you seeing any thread locks?"
-    }
+    comment_headers = get_auth_headers(
+        user_id="reporter_user", change_reason="Query updates"
+    )
+    comment_payload = {"body": "Bob, are you seeing any thread locks?"}
     res_comment = client.post(
         f"/api/v1/tickets/{ticket_id}/comments",
         json=comment_payload,
@@ -145,10 +148,16 @@ async def test_end_to_end_ticket_creation_and_comment_flow(intercept_notificatio
         assert notification.recipient_user_id == "developer_bob"  # Targets assignee
         assert notification.recipient_role is None
         assert "ACTION_ITEMS" in str(notification.category)
-        assert "MEDIUM" in str(notification.priority)  # Comment notifications default to MEDIUM priority per policy
+        assert "MEDIUM" in str(
+            notification.priority
+        )  # Comment notifications default to MEDIUM priority per policy
         assert "Bob, are you seeing any thread locks?" in notification.message_content
-        assert notification.created_by == "reporter_user"  # Correctly attributed to the actor
-        assert notification.reason_for_change == "Query updates"  # Correctly propagated via signature v2
+        assert (
+            notification.created_by == "reporter_user"
+        )  # Correctly attributed to the actor
+        assert (
+            notification.reason_for_change == "Query updates"
+        )  # Correctly propagated via signature v2
 
 
 @pytest.mark.asyncio
@@ -187,20 +196,28 @@ async def test_end_to_end_escalation_worker_flow_and_retries(intercept_notificat
         await execute_ticket_escalation_cycle(session_maker)
 
     async with session_maker() as db:
-        r = await db.execute(select(Ticket).where(Ticket.reference == "TKT-ESCALATE-01"))
+        r = await db.execute(
+            select(Ticket).where(Ticket.reference == "TKT-ESCALATE-01")
+        )
         ticket_db = r.scalar_one()
         assert ticket_db.priority == TicketPriority.MEDIUM  # escalated LOW -> MEDIUM
         assert ticket_db.last_escalated_at is not None
-        assert ticket_db.last_escalation_notified_at is None  # Remains stale because of notify failure
+        assert (
+            ticket_db.last_escalation_notified_at is None
+        )  # Remains stale because of notify failure
 
     # 2. Second escalation cycle succeeds on notification dispatch
     # Our normal intercept_notifications will route it to notifications_app successfully
     await execute_ticket_escalation_cycle(session_maker)
 
     async with session_maker() as db:
-        r = await db.execute(select(Ticket).where(Ticket.reference == "TKT-ESCALATE-01"))
+        r = await db.execute(
+            select(Ticket).where(Ticket.reference == "TKT-ESCALATE-01")
+        )
         ticket_db2 = r.scalar_one()
-        assert ticket_db2.priority == TicketPriority.MEDIUM  # Remains MEDIUM (did not re-escalate)
+        assert (
+            ticket_db2.priority == TicketPriority.MEDIUM
+        )  # Remains MEDIUM (did not re-escalate)
         assert ticket_db2.last_escalation_notified_at is not None  # Success stamps it!
 
     # 3. Assert notification is stored in Notifications DB with f"{ticket_id}:escalation:{version}" pattern
