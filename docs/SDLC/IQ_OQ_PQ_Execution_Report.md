@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1682
-- **Passed:** 1682 🟢
+- **Total Automated Test Cases Run:** 1690
+- **Passed:** 1690 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -44,6 +44,7 @@ annotated-doc            0.0.4
 annotated-types          0.7.0
 anyio                    4.14.2
 asyncpg                  0.31.0
+attrs                    26.1.0
 babel                    2.18.0
 bandit                   1.9.4
 beautifulsoup4           4.15.0
@@ -85,6 +86,8 @@ identify                 2.6.19
 idna                     3.18
 iniconfig                2.3.0
 jinja2                   3.1.6
+jsonschema               4.26.0
+jsonschema-specifications 2025.9.1
 license-expression       30.4.4
 lxml                     6.1.1
 markdown-it-py           4.2.0
@@ -134,8 +137,10 @@ python-slugify           8.0.4
 pytz                     2026.2
 pyyaml                   6.0.3
 rapidfuzz                3.14.5
+referencing              0.37.0
 requests                 2.34.2
 rich                     15.0.0
+rpds-py                  2026.6.3
 rsa                      4.9.1
 ruff                     0.15.22
 six                      1.17.0
@@ -416,6 +421,14 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_validator_missing_required_variables` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validator_null_flavor_and_stat_reasnd_consistency` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_validator_supp_dataset_linkage_and_structure` | `tests.test_dataset_json` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_build_dataset_json_validation` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_build_domain_dataset_dm` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_conformance_validation_float_data_type_error` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_conformance_validation_invalid_data_type` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_conformance_validation_missing_mandatory_vars` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_conformance_validation_missing_sequence_non_dm` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_conformance_validation_string_data_type_error` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_dynamic_fallback_unknown_domain` | `tests.test_dataset_json_builder` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_basic_detection_results` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cli_get_line_and_col` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cli_load_gitignore_patterns` | `tests.test_deid` | *Regression/Helper* | 🟢 PASSED | < 1s |
