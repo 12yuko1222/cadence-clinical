@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1641
-- **Passed:** 1641 🟢
+- **Total Automated Test Cases Run:** 1647
+- **Passed:** 1647 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -301,6 +301,12 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_cdisc_openapi_paths_coverage` | `tests.test_cdisc_openapi_contract` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_register_and_verify_valid_certificate` | `tests.test_cert_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_revoke_certificate_status_check` | `tests.test_cert_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_analyze_diff_endpoint_via_gateway` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_disable_audit_logging_is_blocked_outright` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_high_risk_compliance_setting_changes` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_low_risk_ui_display_changes` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_medium_risk_configuration_changes` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_type_aware_diff_no_op` | `tests.test_change_analyzer` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_rtm_generation_conftest_hook_detection` | `tests.test_cli_etmf_archival` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_rtm_generation_with_cli_overrides` | `tests.test_cli_etmf_archival` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_api_gateway_routing` | `tests.test_clinical_engine` | *Regression/Helper* | 🟢 PASSED | < 1s |
