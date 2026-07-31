@@ -9,8 +9,8 @@ This report documents the Installation Qualification (IQ) and Operational Qualif
 Based on the executed automated verification suite, the platform meets all predefined structural, functional, and security compliance constraints.
 
 ### Validation Result Summary
-- **Total Automated Test Cases Run:** 1701
-- **Passed:** 1701 🟢
+- **Total Automated Test Cases Run:** 1709
+- **Passed:** 1709 🟢
 - **Failed/Errors:** 0 🔴
 - **Skipped:** 0 ⚪
 - **Overall Operational Pass Rate:** 100.00%
@@ -38,6 +38,13 @@ The Installation Qualification verifies that the software execution environment,
 ```
 Package                 Version     Editable project location
 ----------------------- ----------- -------------------------
+aioboto3                 15.5.0
+aiobotocore              2.25.1
+aiofiles                 25.1.0
+aiohappyeyeballs         2.7.1
+aiohttp                  3.14.3
+aioitertools             0.13.0
+aiosignal                1.4.0
 aiosmtplib               5.1.2
 aiosqlite                0.22.1
 annotated-doc            0.0.4
@@ -49,6 +56,8 @@ babel                    2.18.0
 bandit                   1.9.4
 beautifulsoup4           4.15.0
 boolean-py               5.0
+boto3                    1.40.61
+botocore                 1.40.61
 brotli                   1.2.0
 brotlicffi               1.2.0.1
 cachecontrol             0.14.4
@@ -77,6 +86,7 @@ fhir-core                1.1.9
 fhir-resources           8.3.0
 filelock                 3.32.0
 fonttools                4.63.0
+frozenlist               1.8.0
 greenlet                 3.5.4
 h11                      0.16.0
 httpcore                 1.0.9
@@ -86,6 +96,7 @@ identify                 2.6.19
 idna                     3.18
 iniconfig                2.3.0
 jinja2                   3.1.6
+jmespath                 1.1.0
 jsonschema               4.26.0
 jsonschema-specifications 2025.9.1
 license-expression       30.4.4
@@ -94,6 +105,7 @@ markdown-it-py           4.2.0
 markupsafe               3.0.3
 mdurl                    0.1.2
 msgpack                  1.2.1
+multidict                6.7.1
 neo4j                    6.2.0
 nodeenv                  1.10.0
 numpy                    2.4.6
@@ -111,6 +123,7 @@ platformdirs             4.11.0
 playwright               1.61.0
 pluggy                   1.6.0
 pre-commit               4.6.1
+propcache                0.5.2
 py-serializable          2.1.0
 pyasn1                   0.6.4
 pycparser                3.0
@@ -143,6 +156,7 @@ rich                     15.0.0
 rpds-py                  2026.6.3
 rsa                      4.9.1
 ruff                     0.15.22
+s3transfer               0.14.0
 six                      1.17.0
 sortedcontainers         2.4.0
 soupsieve                2.9.1
@@ -169,6 +183,8 @@ watchfiles               1.2.0
 weasyprint               69.0
 webencodings             0.5.1
 websockets               16.1.1
+wrapt                    1.17.3
+yarl                     1.24.5
 yattag                   1.16.1
 zopfli                   0.4.3
 ```
@@ -291,6 +307,14 @@ The Operational Qualification verifies that individual clinical operations, stat
 | `test_invalid_sdtm_domain_rejection` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_sdtm_domain_export_success` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_unauthenticated_access_rejection` | `tests.test_biostat_exports` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_local_storage_provider_integrity_failure` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_local_storage_provider_lifecycle` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_local_storage_provider_not_found` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_local_storage_provider_traversal_prevention` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_s3_storage_provider_integrity_failure` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_s3_storage_provider_lifecycle` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_s3_storage_provider_not_found` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
+| `test_verify_checksum` | `tests.test_blob_store` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cdisc_cache_purge_expired` | `tests.test_cdisc_cache` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cdisc_cache_save_and_get` | `tests.test_cdisc_cache` | *Regression/Helper* | 🟢 PASSED | < 1s |
 | `test_cdisc_cache_ttl_expiration` | `tests.test_cdisc_cache` | *Regression/Helper* | 🟢 PASSED | < 1s |
