@@ -93,6 +93,7 @@ from apps.execution.query_service import QueryService, StateTransitionError
 from apps.execution.routers.amendments import router as amendments_router
 from apps.execution.routers.auditor import router as auditor_router
 from apps.execution.routers.locks import router as locks_router
+from apps.execution.routers.safety import router as safety_router
 from apps.execution.routers.signatures import router as signatures_router
 from apps.execution.rtsm_authz import redact_response, verify_site_access
 from apps.execution.rtsm_supply import (
@@ -289,6 +290,7 @@ app.include_router(locks_router)
 app.include_router(signatures_router)
 app.include_router(amendments_router)
 app.include_router(auditor_router)
+app.include_router(safety_router)
 
 
 @app.exception_handler(RequestValidationError)
